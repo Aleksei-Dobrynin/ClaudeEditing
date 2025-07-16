@@ -1,0 +1,136 @@
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap");
+@import url("https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined");
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell,
+    Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  background-color: var(--colorNeutralForegroundInverted1);
+  overflow: hidden;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+p,
+span {
+  margin: 0px;
+}
+
+.sync-scrollable-header {
+  overflow-x: auto;
+  width: 100%;
+  overflow-y: hidden;
+
+  &::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+  }
+}
+
+.sync-scrollable-body {
+  overflow-x: auto;
+  width: 100%;
+  background-color: var(--colorNeutralBackground1);
+
+  &::-webkit-scrollbar {
+    width: 0px;
+  }
+}
+
+.sync-fake-scrollable-header {
+  overflow-x: auto;
+  overflow-x: auto;
+  width: 100%;
+  overflow-y: hidden;
+}
+
+.sync-fake-scrollable-header::-webkit-scrollbar {
+  width: 4px;
+  height: 6px;
+  background-color: var(--colorNeutralBackground3);
+}
+
+.sync-fake-scrollable-header::-webkit-scrollbar-thumb {
+  background-color: var(--colorNeutralForeground6);
+  border-radius: 20px;
+  border: 3px solid var(--colorNeutralForeground6);
+
+  .MuiMultiSectionDigitalClockSection-root {
+    &:hover {
+      &::-webkit-scrollbar {
+        width: 6px;
+      }
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--colorNeutralBackground1);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      border-radius: 25px;
+      background: var(--ER-Theme-sys-light-surface-container-lowest, #d8d8d8);
+    }
+  }
+
+  .MuiMultiSectionDigitalClockSection-root {
+    &:hover {
+      &::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background-color: var(--colorGrayForeground6);
+        border-radius: 3px;
+        border: 3px solid var(--colorGrayForeground6);
+      }
+    }
+  }
+}
+
+.sv-action-bar-item--secondary .sv-action-bar-item__icon use {
+  fill: var(--colorPaletteVioletBackground1);
+}
+
+.svc-question__content--selected:not(.svc-question__content--dragged) {
+  box-shadow: 0 0 0 2px var(--colorPaletteVioletBackground2);
+}
+
+.svc-question__content:hover {
+  box-shadow: 0 0 0 2px var(--colorPaletteVioletBackground2);
+}
+
+.svc-creator__content-holder {
+  width: 70%;
+  margin: 0 auto;
+}
+
+.svc-required-action--active {
+  background-color: var(--colorPalleteLightBlue) !important;
+  border-radius: 4px;
+}
+
+.svc-question__content--eNPS {
+  &.svc-question__content .svc-rating-question-controls {
+    display: none;
+  }
+}
+
+.svc-question__content-actions .sv-action--convertTo .sv-action-bar-item__title::after {
+  content: url("assets/images/chevronrating.svg");
+  background-image: none;
+}

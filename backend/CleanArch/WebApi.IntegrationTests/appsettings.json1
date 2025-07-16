@@ -1,0 +1,73 @@
+{
+  "ConnectionStrings": {
+    "TestConnection": "Host=localhost;port=5432;database=bga_tests;username=postgres;password=00890;Persist Security Info=true;Include Error Detail=true"
+  },
+  "Jwt": {
+    "Key": "!63vKd91Rn7Up@qk0e0%T1Wt1S9!O@^E",
+    "Issuer": "YourIssuer",
+    "Audience": "YourAudience",
+    "ExpiryMinutes": 8000
+  },
+  "Logging": {
+    "Token": "7483542640:AAG3W51vRKsmeHX0KgjYX3xHUQJutm-g7fI",
+    "Channel": "-4549609759",
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "N8N": {
+    "FeedbackURL": "https://n8n.tech-demo.su/webhook/a42c6ac1-6395-45ec-b4f5-8f61709a63d0",
+    "NotificationURL": "https://n8n.tech-demo.su/webhook/notificationMessage"
+  },
+  "AllowedHosts": "*",
+  "Tunduk": {
+    "Minjust": [
+      {
+        "pin": "1231435",
+        "is_organization": true,
+        "full_name": "ИП ИВАНОВ",
+        "address": "Советская 1",
+        "director": "Иванов",
+        "okpo": 987,
+        "organization_type_id": 0
+      },
+      {
+        "pin": "2231436",
+        "is_organization": true,
+        "full_name": "ООО Ромашка",
+        "address": "Победы 12",
+        "director": "Петров",
+        "okpo": 456,
+        "organization_type_id": 1
+      },
+      {
+        "pin": "3231437",
+        "is_organization": false,
+        "full_name": "ИП Сидоров",
+        "address": "Кирова 23",
+        "director": "Сидоров",
+        "okpo": 789,
+        "organization_type_id": 0
+      },
+      {
+        "pin": "4231438",
+        "is_organization": true,
+        "full_name": "ЗАО Лотос",
+        "address": "Ленина 5",
+        "director": "Кузнецов",
+        "okpo": 123,
+        "organization_type_id": 2
+      },
+      {
+        "pin": "5231439",
+        "is_organization": false,
+        "full_name": "ИП Новиков",
+        "address": "Гагарина 7",
+        "director": "Новиков",
+        "okpo": 321,
+        "organization_type_id": 0
+      }
+    ]
+  }
+}

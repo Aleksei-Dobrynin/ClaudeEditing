@@ -1,0 +1,102 @@
+{
+  "name": "my-app",
+  "version": "0.1.0",
+  "test": "jest",
+  "jest": {
+    "transformIgnorePatterns": []
+  },
+  "private": true,
+  "dependencies": {
+    "@2gis/mapgl": "^1.53.0",
+    "@ckeditor/ckeditor5-image": "^43.1.0",
+    "@ckeditor/ckeditor5-react": "^9.0.0",
+    "@ckeditor/ckeditor5-table": "^43.1.0",
+    "@emotion/react": "^11.13.0",
+    "@emotion/styled": "^11.13.0",
+    "@mui/icons-material": "^5.16.5",
+    "@mui/material": "^5.16.5",
+    "@mui/x-data-grid": "^7.11.1",
+    "@mui/x-date-pickers": "^7.11.1",
+    "@mui/x-tree-view": "^7.14.0",
+    "@tabler/icons-react": "^3.14.0",
+    "@testing-library/user-event": "^13.5.0",
+    "@types/jest": "^27.5.2",
+    "@types/node": "^16.18.104",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "apexcharts": "^3.54.0",
+    "axios": "^1.7.2",
+    "axios-mock-adapter": "^1.22.0",
+    "ckeditor5": "^43.0.0",
+    "dayjs": "^1.11.12",
+    "file-saver": "^2.0.5",
+    "i18next": "^23.12.2",
+    "i18next-browser-languagedetector": "^8.0.0",
+    "i18next-http-backend": "^2.5.2",
+    "jwt-decode": "^4.0.0",
+    "leaflet": "^1.9.4",
+    "leaflet-draw-locales": "^1.2.3",
+    "leaflet.markercluster": "^1.5.3",
+    "mobx": "^6.13.1",
+    "mobx-react": "^9.1.1",
+    "primereact": "^10.8.3",
+    "print-js": "^1.6.0",
+    "proj4": "^2.15.0",
+    "proj4leaflet": "^1.0.2",
+    "react": "^18.2.0",
+    "react-apexcharts": "^1.4.1",
+    "react-device-detect": "^2.2.3",
+    "react-dom": "^18.2.0",
+    "react-dropdown-tree-select": "^2.8.0",
+    "react-i18next": "^15.0.0",
+    "react-imask": "^7.6.1",
+    "react-leaflet": "^4.2.1",
+    "react-leaflet-draw": "^0.20.4",
+    "react-leaflet-markercluster": "^4.1.1",
+    "react-perfect-scrollbar": "^1.5.8",
+    "react-pivottable": "^0.11.0",
+    "react-player": "^2.16.0",
+    "react-router-dom": "^6.25.1",
+    "react-scripts": "5.0.1",
+    "react-simple-wysiwyg": "^3.2.0",
+    "react-world-flags": "^1.6.0",
+    "sass": "^1.78.0",
+    "styled-components": "^6.1.12",
+    "typescript": "^4.9.5",
+    "web-vitals": "^2.1.4",
+    "xlsx": "^0.18.5",
+    "yup": "^1.4.0"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.4.8",
+    "@testing-library/react": "^16.0.0",
+    "@types/leaflet": "^1.9.14",
+    "@types/leaflet-draw": "^1.0.11",
+    "@types/proj4": "^2.5.5",
+    "jest": "^27.5.1"
+  }
+}
