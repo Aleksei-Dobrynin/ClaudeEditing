@@ -118,7 +118,7 @@ const HistoryTableListView: FC<HistoryTableListViewProps> = observer((props) => 
         title={translate("label:HistoryTableListView.entityTitle")}
         columns={columns}
         data={store.data}
-        hustomHeader={<>
+        customHeader={<>
           <Grid container spacing={2}>
             <Grid item md={3} xs={12}>
               <AutocompleteCustom

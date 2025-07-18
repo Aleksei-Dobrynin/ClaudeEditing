@@ -113,31 +113,31 @@ const ServiceListView: FC<ServiceListViewProps> = observer((props) => {
         columns={columns}
         data={store.data}
         isInLineHeader={true}
-        hustomHeader={<Box display={"flex"} alignItems={"center"}>
-          <CustomTextField
-            value={store.searchField}
-            onChange={(e) => store.changeSearch(e.target.value)}
-            label={translate("common:search")}
-            onKeyDown={(e) => e.keyCode === 13 && store.onSearchClicked()}
-            name="TaskSearchField"
-            id="TaskSearchField"
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    id="employee_clear_Btn"
-                    onClick={() => store.clearSearch()}
-                  >
-                    <ClearIcon />
-                  </IconButton>
-                </InputAdornment>
-              )
-            }}
-          />
-          <CustomButton sx={{ ml: 1 }} variant='contained' size="small" onClick={() => { store.onSearchClicked() }}>
-            {translate("common:Find")}
-          </CustomButton>
-        </Box>}
+        // customHeader={<Box display={"flex"} alignItems={"center"}>
+        //   <CustomTextField
+        //     value={store.searchField}
+        //     onChange={(e) => store.changeSearch(e.target.value)}
+        //     label={translate("common:search")}
+        //     onKeyDown={(e) => e.keyCode === 13 && store.onSearchClicked()}
+        //     name="TaskSearchField"
+        //     id="TaskSearchField"
+        //     InputProps={{
+        //       endAdornment: (
+        //         <InputAdornment position="end">
+        //           <IconButton
+        //             id="employee_clear_Btn"
+        //             onClick={() => store.clearSearch()}
+        //           >
+        //             <ClearIcon />
+        //           </IconButton>
+        //         </InputAdornment>
+        //       )
+        //     }}
+        //   />
+        //   <CustomButton sx={{ ml: 1 }} variant='contained' size="small" onClick={() => { store.onSearchClicked() }}>
+        //     {translate("common:Find")}
+        //   </CustomButton>
+        // </Box>}
         tableName="Service" />
       break
     case 'popup':

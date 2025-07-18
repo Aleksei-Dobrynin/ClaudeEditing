@@ -193,7 +193,7 @@ const incomeListView: FC<incomeListViewProps> = observer((props) => {
         columns={columns}
         data={store.data}
         getRowHeight={() => 'auto'}
-        hustomHeader={<>
+        customHeader={<>
           <Grid container spacing={2}>
             <Grid item xs={12} md={3} sx={{ mb: 1 }}>
               <DateField

@@ -1,4 +1,5 @@
 import { Outlet, RouterProvider, createBrowserRouter } from "react-router-dom";
+import { GlobalStyles } from '@mui/material';
 
 import { ThemeProvider } from "@mui/material/styles";
 import { CssBaseline, StyledEngineProvider } from "@mui/material";
@@ -508,6 +509,49 @@ const App = () => {
       </NavigationScroll>
     </ThemeProvider>
   </StyledEngineProvider>;
+};
+
+export const DataGridPanelStyles = () => {
+  return (
+    <GlobalStyles
+      styles={{
+        // Переопределяем позиционирование для всех панелей DataGrid
+        '.MuiDataGrid-panel': {
+          // Убираем стандартное позиционирование
+          position: 'fixed !important',
+          
+          // Позиционируем относительно кнопки, которая открыла панель
+          '&[data-placement="bottom-start"]': {
+            transform: 'translateX(calc(-100% + 40px)) !important',
+          },
+          
+          // Альтернативный вариант - всегда справа
+          '&.MuiDataGrid-columnsPanel, &.MuiDataGrid-filterPanel': {
+            right: '16px !important',
+            left: 'auto !important',
+          },
+        },
+        
+        // Для Popper компонента, который обертывает панели
+        '.MuiPopper-root[role="tooltip"]': {
+          '& .MuiDataGrid-panel': {
+            position: 'relative !important',
+          },
+        },
+        
+        // Специфично для панелей в toolbar
+        '.MuiDataGrid-toolbarContainer': {
+          '& + .MuiPopper-root, & ~ .MuiPopper-root': {
+            '& .MuiDataGrid-columnsPanel, & .MuiDataGrid-filterPanel': {
+              // Сдвигаем панель вправо
+              marginLeft: 'auto',
+              transform: 'none !important',
+            },
+          },
+        },
+      }}
+    />
+  );
 };
 
 export default App;

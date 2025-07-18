@@ -121,7 +121,7 @@ const ArchiveObjectListView: FC<ArchiveObjectListViewProps> = observer((props) =
             columns={columns}
             hideActions={!MainStore.isDutyPlan || store.combineObjectsMode}
             hideAddButton={!MainStore.isDutyPlan || store.combineObjectsMode}
-            hustomHeader={
+            customHeader={
               <>
                 {!store.combineObjectsMode ? (
                   <CustomButton
