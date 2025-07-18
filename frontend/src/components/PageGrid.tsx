@@ -4,14 +4,10 @@ import {
   GridColDef,
   GridActionsCellItem,
   GridToolbarContainer,
-  GridToolbarColumnsButton,
-  GridToolbarFilterButton,
-  GridToolbarExport,
-  GridToolbarDensitySelector,
-  GridToolbarQuickFilter,
   GridRowsProp,
   GridRowParams,
   GridLocaleText,
+  GridRenderCellParams,
 } from '@mui/x-data-grid';
 import {
   Box,
@@ -40,55 +36,54 @@ import {
   Delete as DeleteIcon,
   Refresh as RefreshIcon,
   Print as PrintIcon,
-  ViewColumn as ViewColumnIcon,
-  FilterList as FilterListIcon,
-  GetApp as DownloadIcon,
   ErrorOutline as ErrorIcon,
   InfoOutlined as InfoIcon,
 } from '@mui/icons-material';
 import { observer } from 'mobx-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { CustomColumnsButton, CustomFilterButton, CustomDensityButton } from './CustomToolbarComponents';
+import { 
+  CustomColumnsButton, 
+  CustomFilterButton, 
+  CustomDensityButton,
+  CustomExportButton,
+  CustomQuickFilter,
+} from './CustomToolbarComponents';
+import { gridCommonStyles } from './GridStyles';
+import { GridCellTooltip } from './GridCellTooltip';
+import { exportToExcel } from './ExcelExportUtils';
 
 // Custom Toolbar Component
 interface CustomToolbarProps {
   onRefresh?: () => void;
   onPrint?: () => void;
   loading?: boolean;
+  data: any[];
+  columns: GridColDef[];
+  fileName?: string;
 }
 
-const CustomToolbar: React.FC<CustomToolbarProps> = ({ onRefresh, onPrint, loading }) => {
+const CustomToolbar: React.FC<CustomToolbarProps> = ({ 
+  onRefresh, 
+  onPrint, 
+  loading,
+  data,
+  columns,
+  fileName,
+}) => {
   const { t } = useTranslation();
   
   return (
-    <GridToolbarContainer sx={{ 
-      padding: '8px 16px',
-      borderBottom: '1px solid',
-      borderColor: 'divider',
-      background: (theme) => alpha(theme.palette.primary.main, 0.02),
-      gap: 1,
-      flexWrap: 'wrap',
-    }}>
-      <GridToolbarQuickFilter 
-        quickFilterParser={(searchInput: string) =>
-          searchInput
-            .split(',')
-            .map((value) => value.trim())
-            .filter((value) => value !== '')
-        }
-        debounceMs={200}
-        sx={{ mr: 2 }}
-      />
+    <GridToolbarContainer sx={gridCommonStyles.toolbar}>
+      <CustomQuickFilter />
       <Box sx={{ flexGrow: 1 }} />
       <CustomColumnsButton />
       <CustomFilterButton />
       <CustomDensityButton />
-      <GridToolbarExport 
-        csvOptions={{
-          fileName: `export-${new Date().toISOString().split('T')[0]}`,
-          utf8WithBom: true,
-        }}
+      <CustomExportButton 
+        data={data}
+        columns={columns}
+        fileName={fileName}
       />
       {onRefresh && (
         <Tooltip title={t('refresh')}>
@@ -131,17 +126,8 @@ const EmptyState: React.FC<EmptyStateProps> = ({ message, onAdd }) => {
   const { t } = useTranslation();
   
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: 400,
-        gap: 2,
-      }}
-    >
-      <InfoIcon sx={{ fontSize: 64, color: 'text.secondary', opacity: 0.5 }} />
+    <Box sx={gridCommonStyles.emptyState}>
+      <InfoIcon sx={{ fontSize: 64 }} />
       <Typography variant="h5" color="text.secondary">
         {message || t('noDataAvailable')}
       </Typography>
@@ -183,11 +169,11 @@ export interface PageGridProps {
   // Additional props for backward compatibility
   isInLineHeader?: boolean;
   hideTitle?: boolean;
-  // hustomHeader?: React.ReactNode; // Note: original typo preserved for compatibility
   hideDeleteButton?: boolean;
   hideEditButton?: boolean;
   customActionButton?: (id: number) => React.ReactNode;
   customEditClick?: (id: number) => void;
+  onPrint?: () => void;
 }
 
 const PageGrid: React.FC<PageGridProps> = observer(({
@@ -213,11 +199,11 @@ const PageGrid: React.FC<PageGridProps> = observer(({
   // Backward compatibility props
   isInLineHeader = false,
   hideTitle = false,
-  // hustomHeader,
   hideDeleteButton = false,
   hideEditButton = false,
   customActionButton,
   customEditClick,
+  onPrint,
 }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -234,80 +220,68 @@ const PageGrid: React.FC<PageGridProps> = observer(({
     noResultsOverlayLabel: t('noResultsOverlayLabel'),
     
     // Тексты панели инструментов
-    toolbarDensity: t('density', 'Плотность'),
-    toolbarDensityLabel: t('densityLabel', 'Плотность'),
-    toolbarDensityCompact: t('densityCompact', 'Компактная'),
-    toolbarDensityStandard: t('densityStandard', 'Стандартная'),
-    toolbarDensityComfortable: t('densityComfortable', 'Комфортная'),
-    toolbarColumns: t('columns', 'Колонки'),
-    toolbarColumnsLabel: t('columnsLabel', 'Выбрать колонки'),
-    toolbarFilters: t('filters', 'Фильтры'),
-    toolbarFiltersLabel: t('filtersLabel', 'Показать фильтры'),
-    toolbarFiltersTooltipHide: t('filtersTooltipHide', 'Скрыть фильтры'),
-    toolbarFiltersTooltipShow: t('filtersTooltipShow', 'Показать фильтры'),
-    toolbarFiltersTooltipActive: (count) => t('filtersTooltipActive', `${count} активных фильтров`),
-    toolbarQuickFilterPlaceholder: t('searchPlaceholder', 'Поиск...'),
-    toolbarExport: t('export', 'Экспорт'),
-    toolbarExportLabel: t('exportLabel', 'Экспорт'),
-    toolbarExportCSV: t('exportCSV', 'Скачать как CSV'),
-    toolbarExportPrint: t('print', 'Печать'),
+    toolbarDensity: t('density'),
+    toolbarDensityLabel: t('densityLabel'),
+    toolbarDensityCompact: t('densityCompact'),
+    toolbarDensityStandard: t('densityStandard'),
+    toolbarDensityComfortable: t('densityComfortable'),
+    toolbarColumns: t('columns'),
+    toolbarColumnsLabel: t('columnsLabel'),
+    toolbarFilters: t('filters'),
+    toolbarFiltersLabel: t('filtersLabel'),
+    toolbarFiltersTooltipHide: t('filtersTooltipHide'),
+    toolbarFiltersTooltipShow: t('filtersTooltipShow'),
+    toolbarFiltersTooltipActive: (count) => `${count} ${t('filtersTooltipActive')}`,
     
     // Тексты меню колонок
-    columnMenuLabel: t('columnMenuLabel'),
-    columnMenuShowColumns: t('columnMenuShowColumns'),
-    columnMenuManageColumns: t('columnMenuManageColumns'),
-    columnMenuFilter: t('columnMenuFilter'),
-    columnMenuHideColumn: t('columnMenuHideColumn'),
-    columnMenuUnsort: t('columnMenuUnsort'),
-    columnMenuSortAsc: t('columnMenuSortAsc'),
-    columnMenuSortDesc: t('columnMenuSortDesc'),
+    columnMenuLabel: t('columnMenuLabel', 'Меню'),
+    columnMenuShowColumns: t('columnMenuShowColumns', 'Показать колонки'),
+    columnMenuManageColumns: t('columnMenuManageColumns', 'Управление колонками'),
+    columnMenuFilter: t('columnMenuFilter', 'Фильтр'),
+    columnMenuHideColumn: t('columnMenuHideColumn', 'Скрыть колонку'),
+    columnMenuUnsort: t('columnMenuUnsort', 'Отменить сортировку'),
+    columnMenuSortAsc: t('columnMenuSortAsc', 'Сортировать по возрастанию'),
+    columnMenuSortDesc: t('columnMenuSortDesc', 'Сортировать по убыванию'),
     
-    // Тексты панели колонок
-    columnsPanelTextFieldLabel: t('columnsPanelTextFieldLabel', 'Найти колонку'),
-    columnsPanelTextFieldPlaceholder: t('columnsPanelTextFieldPlaceholder', 'Название колонки'),
-    columnsPanelDragIconLabel: t('columnsPanelDragIconLabel', 'Изменить порядок колонки'),
-    columnsPanelShowAllButton: t('columnsPanelShowAllButton', 'Показать все'),
-    columnsPanelHideAllButton: t('columnsPanelHideAllButton', 'Скрыть все'),
-    
-    // Тексты фильтров
-    filterPanelAddFilter: t('filterPanelAddFilter', 'Добавить фильтр'),
-    filterPanelRemoveAll: t('filterPanelRemoveAll', 'Удалить все'),
-    filterPanelDeleteIconLabel: t('filterPanelDeleteIconLabel', 'Удалить'),
-    filterPanelLogicOperator: t('filterPanelLogicOperator', 'Логический оператор'),
-    filterPanelOperator: t('filterPanelOperator', 'Оператор'),
-    filterPanelOperatorAnd: t('filterPanelOperatorAnd', 'И'),
-    filterPanelOperatorOr: t('filterPanelOperatorOr', 'Или'),
-    filterPanelColumns: t('filterPanelColumns', 'Колонки'),
-    filterPanelInputLabel: t('filterPanelInputLabel', 'Значение'),
-    filterPanelInputPlaceholder: t('filterPanelInputPlaceholder', 'Значение фильтра'),
+    // Тексты панели фильтров
+    filterPanelAddFilter: t('filterPanelAddFilter'),
+    filterPanelRemoveAll: t('filterPanelRemoveAll'),
+    filterPanelDeleteIconLabel: t('filterPanelDeleteIconLabel'),
+    filterPanelLogicOperator: t('filterPanelLogicOperator'),
+    filterPanelOperator: t('filterPanelOperator'),
+    filterPanelOperatorAnd: t('filterPanelOperatorAnd'),
+    filterPanelOperatorOr: t('filterPanelOperatorOr'),
+    filterPanelColumns: t('filterPanelColumns'),
+    filterPanelInputLabel: t('filterPanelInputLabel'),
+    filterPanelInputPlaceholder: t('filterPanelInputPlaceholder'),
     
     // Операторы фильтров
-    filterOperatorContains: t('filterOperatorContains', 'содержит'),
-    filterOperatorEquals: t('filterOperatorEquals', 'равно'),
-    filterOperatorStartsWith: t('filterOperatorStartsWith', 'начинается с'),
-    filterOperatorEndsWith: t('filterOperatorEndsWith', 'заканчивается на'),
-    filterOperatorIs: t('filterOperatorIs', 'равно'),
-    filterOperatorNot: t('filterOperatorNot', 'не равно'),
-    filterOperatorAfter: t('filterOperatorAfter', 'после'),
-    filterOperatorOnOrAfter: t('filterOperatorOnOrAfter', 'после или равно'),
-    filterOperatorBefore: t('filterOperatorBefore', 'до'),
-    filterOperatorOnOrBefore: t('filterOperatorOnOrBefore', 'до или равно'),
-    filterOperatorIsEmpty: t('filterOperatorIsEmpty', 'пусто'),
-    filterOperatorIsNotEmpty: t('filterOperatorIsNotEmpty', 'не пусто'),
-    filterOperatorIsAnyOf: t('filterOperatorIsAnyOf', 'любое из'),
+    filterOperatorContains: t('filterOperatorContains'),
+    filterOperatorEquals: t('filterOperatorEquals'),
+    filterOperatorStartsWith: t('filterOperatorStartsWith'),
+    filterOperatorEndsWith: t('filterOperatorEndsWith'),
+    filterOperatorIs: t('filterOperatorIs'),
+    filterOperatorNot: t('filterOperatorNot'),
+    filterOperatorAfter: t('filterOperatorAfter'),
+    filterOperatorOnOrAfter: t('filterOperatorOnOrAfter'),
+    filterOperatorBefore: t('filterOperatorBefore'),
+    filterOperatorOnOrBefore: t('filterOperatorOnOrBefore'),
+    filterOperatorIsEmpty: t('filterOperatorIsEmpty'),
+    filterOperatorIsNotEmpty: t('filterOperatorIsNotEmpty'),
+    filterOperatorIsAnyOf: t('filterOperatorIsAnyOf'),
     
     // Тексты пагинации
     MuiTablePagination: {
       labelRowsPerPage: t('rowsPerPage'),
       labelDisplayedRows: ({ from, to, count }) =>
-        `${from}–${to} ${t('of', 'из')} ${count !== -1 ? count : `${t('moreThan', 'более')} ${to}`}`,
+        `${from}–${to} ${t('of')} ${count !== -1 ? count : `${t('moreThan')} ${to}`}`,
     },
     
     // Тексты футера
-    footerRowSelected: (count) => t('footerRowSelected', `${count} строк выбрано`),
-    footerTotalRows: t('footerTotalRows', 'Всего строк:'),
+    footerRowSelected: (count) => t('footerRowSelected', { count }),
+    footerTotalRows: t('footerTotalRows'),
     footerTotalVisibleRows: (visibleCount, totalCount) =>
-      t('footerTotalVisibleRows', `${visibleCount} из ${totalCount}`),
+      t('footerTotalVisibleRows', { visibleCount, totalCount }),
   }), [t]);
 
   // Handle delete confirmation
@@ -334,6 +308,34 @@ const PageGrid: React.FC<PageGridProps> = observer(({
     window.print();
   }, []);
 
+  // Handle add button
+  const handleAdd = useCallback(() => {
+    if (addButtonClick) {
+      addButtonClick();
+    } else {
+      navigate(`/${tableName}/add`);
+    }
+  }, [addButtonClick, navigate, tableName]);
+
+  // Handle edit
+  const handleEdit = useCallback((id: number) => {
+    if (customEditClick) {
+      customEditClick(id);
+    } else {
+      navigate(`/${tableName}/edit/${id}`);
+    }
+  }, [customEditClick, navigate, tableName]);
+
+  // Применяем тултипы к колонкам
+  const columnsWithTooltips = useMemo(() => {
+    return columns.map(col => ({
+      ...col,
+      renderCell: col.renderCell || ((params: GridRenderCellParams) => (
+        <GridCellTooltip value={params.value} />
+      )),
+    }));
+  }, [columns]);
+
   // Create action columns
   const actionColumns: GridColDef[] = useMemo(() => {
     if (hideActions) return [];
@@ -344,164 +346,148 @@ const PageGrid: React.FC<PageGridProps> = observer(({
       headerName: t('actions'),
       width: isMobile ? 100 : 150,
       cellClassName: 'actions',
-      getActions: ({ id }: GridRowParams) => {
+      getActions: ({ id, row }: GridRowParams) => {
         const actions = [];
         
         if (!hideEditButton) {
           actions.push(
             <GridActionsCellItem
               key="edit"
-              icon={
-                <Tooltip title={t('edit')} placement="top">
-                  <EditIcon />
-                </Tooltip>
-              }
+              icon={<EditIcon />}
               label={t('edit')}
-              className="textPrimary"
-              data-testid={`${tableName}EditButton`}
-              onClick={() => customEditClick ? customEditClick(id as number) : navigate(`/user/${tableName}/addedit?id=${id}`)}
-              sx={{
-                color: 'primary.main',
-                '&:hover': {
-                  backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                  transform: 'scale(1.1)',
-                },
-                transition: 'all 0.2s ease-in-out',
-              }}
+              onClick={() => handleEdit(Number(id))}
+              data-testid={`edit-${id}`}
             />
           );
         }
-
+        
         if (!hideDeleteButton && onDeleteClicked) {
           actions.push(
             <GridActionsCellItem
               key="delete"
-              icon={
-                <Tooltip title={t('delete')} placement="top">
-                  <DeleteIcon />
-                </Tooltip>
-              }
+              icon={<DeleteIcon />}
               label={t('delete')}
-              data-testid={`${tableName}DeleteButton`}
-              onClick={() => handleDeleteClick(id as number)}
-              sx={{
-                color: 'error.main',
-                '&:hover': {
-                  backgroundColor: alpha(theme.palette.error.main, 0.1),
-                  transform: 'scale(1.1)',
-                },
-                transition: 'all 0.2s ease-in-out',
-              }}
+              onClick={() => handleDeleteClick(Number(id))}
+              data-testid={`delete-${id}`}
+              sx={{ color: 'error.main' }}
             />
           );
         }
         
         if (customActionButton) {
-          actions.push(customActionButton(id as number));
+          actions.push(
+            <Box key="custom" component="span">
+              {customActionButton(Number(id))}
+            </Box>
+          );
         }
-
+        
         return actions;
       },
     }];
-  }, [hideActions, isMobile, t, tableName, navigate, onDeleteClicked, handleDeleteClick, theme, hideEditButton, hideDeleteButton, customActionButton, customEditClick]);
+  }, [
+    hideActions, 
+    hideEditButton, 
+    hideDeleteButton, 
+    onDeleteClicked, 
+    customActionButton,
+    handleEdit,
+    handleDeleteClick,
+    t,
+    isMobile,
+  ]);
 
   // Combine columns
   const allColumns = useMemo(() => {
-    return [...actionColumns, ...columns];
-  }, [actionColumns, columns]);
+    return [...columnsWithTooltips, ...actionColumns];
+  }, [columnsWithTooltips, actionColumns]);
 
   return (
     <>
-      <Paper
+      <Paper 
         elevation={0}
-        sx={{
-          width: '100%',
-          maxWidth: '100%',
-          borderRadius: 2,
+        sx={{ 
+          width: '100%', 
+          overflow: 'hidden',
           border: '1px solid',
           borderColor: 'divider',
-          overflow: 'hidden',
-          background: theme.palette.background.paper,
-          transition: 'box-shadow 0.3s ease-in-out',
-          display: 'flex',
-          flexDirection: 'column',
-          height: 'auto',
-          mb: 3,
-          '&:hover': {
-            boxShadow: theme.shadows[4],
-          },
+          borderRadius: 2,
         }}
       >
         {/* Header */}
-        {customHeader || (
-          <>
-            {!hideTitle && (
-              <Box
-                sx={{
-                  p: 3,
-                  pb: 2,
-                  borderBottom: !isInLineHeader ? '1px solid' : 'none',
-                  borderColor: 'divider',
-                  background: (theme) => alpha(theme.palette.primary.main, 0.02),
-                }}
-              >
-                <Typography 
-                  variant="h4" 
-                  component="h1"
-                  data-testid={`${tableName}HeaderTitle`}
-                  sx={{ fontWeight: 800 }}
-                >
-                  {title}
-                </Typography>
+        {customHeader ? (
+          customHeader
+        ) : !hideTitle && (title || !hideAddButton) ? (
+          <Box 
+            sx={{ 
+              p: 3,
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              background: theme => alpha(theme.palette.primary.main, 0.02),
+            }}
+          >
+            <Stack 
+              direction={isInLineHeader ? "row" : { xs: 'column', sm: 'row' }}
+              spacing={2}
+              alignItems={isInLineHeader ? "center" : { xs: 'flex-start', sm: 'center' }}
+              justifyContent="space-between"
+            >
+              <Box>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  {icon && <Box sx={{ color: 'primary.main' }}>{icon}</Box>}
+                  {title && (
+                    <Typography 
+                      variant="h5" 
+                      component="h1"
+                      sx={{ fontWeight: 600 }}
+                      data-testid={`${tableName}Title`}
+                    >
+                      {title}
+                    </Typography>
+                  )}
+                  {showCount && data.length > 0 && (
+                    <Chip 
+                      label={data.length} 
+                      size="small" 
+                      color="primary"
+                      variant="outlined"
+                    />
+                  )}
+                </Stack>
                 {subtitle && (
-                  <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary"
+                    sx={{ mt: 0.5 }}
+                  >
                     {subtitle}
                   </Typography>
                 )}
-                {showCount && data.length > 0 && (
-                  <Chip
-                    label={`${data.length} ${t('records')}`}
-                    size="small"
-                    sx={{ mt: 1 }}
-                    data-testid={`${tableName}itemCount`}
-                  />
-                )}
               </Box>
-            )}
-            
-            <Box
-              sx={isInLineHeader ? {
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                p: 2,
-                borderBottom: '1px solid',
-                borderColor: 'divider',
-              } : { p: 2 }}
-            >
               {!hideAddButton && (
                 <Button
                   variant="contained"
                   startIcon={<AddIcon />}
-                  onClick={addButtonClick || (() => navigate(`/user/${tableName}/addedit?id=0`))}
+                  onClick={handleAdd}
                   data-testid={`${tableName}AddButton`}
                   sx={{
                     borderRadius: 1.5,
                     textTransform: 'none',
-                    boxShadow: theme.shadows[2],
-                    '&:hover': {
-                      boxShadow: theme.shadows[4],
-                      transform: 'translateY(-1px)',
-                    },
-                    transition: 'all 0.2s ease-in-out',
+                    fontWeight: 500,
                   }}
                 >
                   {t('add')}
                 </Button>
               )}
-              {/* {hustomHeader} */}
-            </Box>
-          </>
+            </Stack>
+          </Box>
+        ) : null}
+
+        {/* Custom Bottom */}
+        {customBottom && (
+          <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+            {customBottom}
+          </Box>
         )}
 
         {/* Error State */}
@@ -509,20 +495,14 @@ const PageGrid: React.FC<PageGridProps> = observer(({
           <Alert 
             severity="error" 
             icon={<ErrorIcon />}
-            sx={{ m: 2 }}
+            sx={{ m: 2, borderRadius: 1 }}
           >
             {error}
           </Alert>
         )}
 
-        {/* DataGrid or Empty State */}
-        <Box sx={{ 
-          width: '100%', 
-          position: 'relative',
-          flex: 1,
-          minHeight: 400,
-          overflow: 'auto',
-        }}>
+        {/* DataGrid */}
+        <Box sx={{ width: '100%', position: 'relative' }}>
           {loading ? (
             <Box sx={{ p: 2 }}>
               {[...Array(5)].map((_, index) => (
@@ -531,30 +511,28 @@ const PageGrid: React.FC<PageGridProps> = observer(({
                   variant="rectangular"
                   height={52}
                   sx={{ mb: 1, borderRadius: 1 }}
+                  animation="wave"
                 />
               ))}
             </Box>
-          ) : data.length === 0 ? (
+          ) : data.length === 0 && !loading ? (
             <EmptyState 
               message={emptyStateMessage}
-              onAdd={!hideAddButton ? (addButtonClick || (() => navigate(`/user/${tableName}/addedit?id=0`))) : undefined}
+              onAdd={!hideAddButton ? handleAdd : undefined}
             />
           ) : (
             <DataGrid
               rows={data}
-              style={forcePageSize ? { height: '100%' } }
               columns={allColumns}
               data-testid={`${tableName}Table`}
               autoHeight
               initialState={{
                 pagination: { paginationModel: { pageSize: pageSize } },
               }}
-              pageSizeOptions={[10, 25, 50, 100]}
-              editMode="row"
-              checkboxSelection={false}
+              pageSizeOptions={[5, 10, 25, 50]}
               disableRowSelectionOnClick
-              getRowHeight={getRowHeight || (() => 'auto')}
               loading={loading}
+              getRowHeight={getRowHeight || (() => 'auto')}
               localeText={localeText}
               slots={{
                 toolbar: CustomToolbar,
@@ -562,84 +540,17 @@ const PageGrid: React.FC<PageGridProps> = observer(({
               slotProps={{
                 toolbar: {
                   onRefresh,
-                  onPrint: handlePrint,
+                  onPrint: onPrint || handlePrint,
                   loading,
+                  data,
+                  columns: columnsWithTooltips,
+                  fileName: tableName,
                 },
               }}
-              sx={{
-                border: 'none',
-                '& .MuiDataGrid-main': {
-                  overflow: 'unset',
-                },
-                '& .MuiDataGrid-virtualScroller': {
-                  overflow: 'auto',
-                },
-                '& .MuiDataGrid-cell': {
-                  whiteSpace: 'normal',
-                  wordWrap: 'break-word',
-                  lineHeight: '1.5',
-                  py: 1,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  display: '-webkit-box',
-                  WebkitBoxOrient: 'vertical',
-                  WebkitLineClamp: 3,
-                },
-                '& .MuiDataGrid-row': {
-                  maxWidth: '100%',
-                  '&:hover': {
-                    backgroundColor: alpha(theme.palette.primary.main, 0.04),
-                  },
-                  transition: 'background-color 0.2s ease-in-out',
-                },
-                '& .MuiDataGrid-row:nth-of-type(even)': {
-                  backgroundColor: alpha(theme.palette.grey[500], 0.02),
-                },
-                '& .MuiDataGrid-cell:focus': {
-                  outline: 'none',
-                },
-                '& .MuiDataGrid-columnHeaders': {
-                  backgroundColor: alpha(theme.palette.primary.main, 0.04),
-                  borderBottom: '2px solid',
-                  borderColor: 'divider',
-                  position: 'sticky',
-                  top: 0,
-                  zIndex: 1,
-                },
-                '& .MuiDataGrid-footerContainer': {
-                  borderTop: '2px solid',
-                  borderColor: 'divider',
-                  position: 'sticky',
-                  bottom: 0,
-                  backgroundColor: theme.palette.background.paper,
-                },
-                '& .MuiDataGrid-columnHeader': {
-                  whiteSpace: 'normal',
-                  lineHeight: '1.2',
-                },
-                // Стили для позиционирования выпадающих панелей
-                '& .MuiDataGrid-toolbarContainer': {
-                  position: 'relative',
-                },
-                '& .MuiDataGrid-panel': {
-                  position: 'absolute !important',
-                  top: 'calc(100% + 8px) !important',
-                  left: 'auto !important',
-                  right: '0 !important',
-                  maxWidth: 'calc(100vw - 32px)',
-                  boxShadow: theme.shadows[8],
-                },
-              }}
+              sx={gridCommonStyles.root}
             />
           )}
         </Box>
-
-        {/* Custom Bottom */}
-        {customBottom && (
-          <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider' }}>
-            {customBottom}
-          </Box>
-        )}
       </Paper>
 
       {/* Delete Confirmation Dialog */}

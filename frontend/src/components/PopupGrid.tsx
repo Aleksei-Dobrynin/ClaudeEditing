@@ -6,11 +6,8 @@ import {
   GridRowsProp,
   GridRowParams,
   GridToolbarContainer,
-  GridToolbarColumnsButton,
-  GridToolbarFilterButton,
-  GridToolbarDensitySelector,
-  GridToolbarQuickFilter,
   GridLocaleText,
+  GridRenderCellParams,
 } from '@mui/x-data-grid';
 import {
   Box,
@@ -45,27 +42,44 @@ import {
 } from '@mui/icons-material';
 import { observer } from 'mobx-react';
 import { useTranslation } from 'react-i18next';
-import { CustomColumnsButton, CustomFilterButton, CustomDensityButton } from './CustomToolbarComponents';
+import { 
+  CustomColumnsButton, 
+  CustomFilterButton, 
+  CustomDensityButton,
+  CustomExportButton,
+  CustomQuickFilter,
+} from './CustomToolbarComponents';
+import { gridCommonStyles } from './GridStyles';
+import { GridCellTooltip } from './GridCellTooltip';
 
 // Custom Toolbar для Popup с правильным позиционированием
 interface PopupToolbarProps {
   onRefresh?: () => void;
   loading?: boolean;
+  data: any[];
+  columns: GridColDef[];
+  fileName?: string;
 }
 
-const PopupToolbar: React.FC<PopupToolbarProps> = ({ onRefresh, loading }) => {
+const PopupToolbar: React.FC<PopupToolbarProps> = ({ 
+  onRefresh, 
+  loading,
+  data,
+  columns,
+  fileName,
+}) => {
   const { t } = useTranslation();
   
   return (
-    <GridToolbarContainer sx={{ 
-      padding: '8px 16px',
-      borderBottom: '1px solid',
-      borderColor: 'divider',
-      background: (theme) => alpha(theme.palette.primary.main, 0.02),
-    }}>
+    <GridToolbarContainer sx={gridCommonStyles.toolbar}>
       <CustomColumnsButton />
       <CustomFilterButton />
       <CustomDensityButton />
+      <CustomExportButton 
+        data={data}
+        columns={columns}
+        fileName={fileName}
+      />
       {onRefresh && (
         <Tooltip title={t('refresh')}>
           <span>
@@ -87,15 +101,7 @@ const PopupToolbar: React.FC<PopupToolbarProps> = ({ onRefresh, loading }) => {
         </Tooltip>
       )}
       <Box sx={{ flexGrow: 1 }} />
-      <GridToolbarQuickFilter 
-        quickFilterParser={(searchInput: string) =>
-          searchInput
-            .split(',')
-            .map((value) => value.trim())
-            .filter((value) => value !== '')
-        }
-        debounceMs={200}
-      />
+      <CustomQuickFilter />
     </GridToolbarContainer>
   );
 };
@@ -111,18 +117,11 @@ const EmptyState: React.FC<EmptyStateProps> = ({ message, onAdd, compact = false
   const { t } = useTranslation();
   
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: compact ? 250 : 350,
-        gap: 2,
-        p: 3,
-      }}
-    >
-      <InfoIcon sx={{ fontSize: compact ? 48 : 64, color: 'text.secondary', opacity: 0.5 }} />
+    <Box sx={{
+      ...gridCommonStyles.emptyState,
+      minHeight: compact ? 250 : 350,
+    }}>
+      <InfoIcon sx={{ fontSize: compact ? 48 : 64 }} />
       <Typography variant={compact ? "body1" : "h6"} color="text.secondary" align="center">
         {message || t('noDataAvailable')}
       </Typography>
@@ -215,80 +214,68 @@ const PopupGrid: React.FC<PopupGridProps> = observer(({
     noResultsOverlayLabel: t('noResultsOverlayLabel'),
     
     // Тексты панели инструментов
-    toolbarDensity: t('density', 'Плотность'),
-    toolbarDensityLabel: t('densityLabel', 'Плотность'),
-    toolbarDensityCompact: t('densityCompact', 'Компактная'),
-    toolbarDensityStandard: t('densityStandard', 'Стандартная'),
-    toolbarDensityComfortable: t('densityComfortable', 'Комфортная'),
-    toolbarColumns: t('columns', 'Колонки'),
-    toolbarColumnsLabel: t('columnsLabel', 'Выбрать колонки'),
-    toolbarFilters: t('filters', 'Фильтры'),
-    toolbarFiltersLabel: t('filtersLabel', 'Показать фильтры'),
-    toolbarFiltersTooltipHide: t('filtersTooltipHide', 'Скрыть фильтры'),
-    toolbarFiltersTooltipShow: t('filtersTooltipShow', 'Показать фильтры'),
-    toolbarFiltersTooltipActive: (count) => t('filtersTooltipActive', `${count} активных фильтров`),
-    toolbarQuickFilterPlaceholder: t('searchPlaceholder', 'Поиск...'),
-    toolbarExport: t('export', 'Экспорт'),
-    toolbarExportLabel: t('exportLabel', 'Экспорт'),
-    toolbarExportCSV: t('exportCSV', 'Скачать как CSV'),
-    toolbarExportPrint: t('print', 'Печать'),
+    toolbarDensity: t('density'),
+    toolbarDensityLabel: t('densityLabel'),
+    toolbarDensityCompact: t('densityCompact'),
+    toolbarDensityStandard: t('densityStandard'),
+    toolbarDensityComfortable: t('densityComfortable'),
+    toolbarColumns: t('columns'),
+    toolbarColumnsLabel: t('columnsLabel'),
+    toolbarFilters: t('filters'),
+    toolbarFiltersLabel: t('filtersLabel'),
+    toolbarFiltersTooltipHide: t('filtersTooltipHide'),
+    toolbarFiltersTooltipShow: t('filtersTooltipShow'),
+    toolbarFiltersTooltipActive: (count) => `${count} ${t('filtersTooltipActive')}`,
     
     // Тексты меню колонок
-    columnMenuLabel: t('columnMenuLabel'),
-    columnMenuShowColumns: t('columnMenuShowColumns'),
-    columnMenuManageColumns: t('columnMenuManageColumns'),
-    columnMenuFilter: t('columnMenuFilter'),
-    columnMenuHideColumn: t('columnMenuHideColumn'),
-    columnMenuUnsort: t('columnMenuUnsort'),
-    columnMenuSortAsc: t('columnMenuSortAsc'),
-    columnMenuSortDesc: t('columnMenuSortDesc'),
+    columnMenuLabel: t('columnMenuLabel', 'Меню'),
+    columnMenuShowColumns: t('columnMenuShowColumns', 'Показать колонки'),
+    columnMenuManageColumns: t('columnMenuManageColumns', 'Управление колонками'),
+    columnMenuFilter: t('columnMenuFilter', 'Фильтр'),
+    columnMenuHideColumn: t('columnMenuHideColumn', 'Скрыть колонку'),
+    columnMenuUnsort: t('columnMenuUnsort', 'Отменить сортировку'),
+    columnMenuSortAsc: t('columnMenuSortAsc', 'Сортировать по возрастанию'),
+    columnMenuSortDesc: t('columnMenuSortDesc', 'Сортировать по убыванию'),
     
-    // Тексты панели колонок
-    columnsPanelTextFieldLabel: t('columnsPanelTextFieldLabel', 'Найти колонку'),
-    columnsPanelTextFieldPlaceholder: t('columnsPanelTextFieldPlaceholder', 'Название колонки'),
-    columnsPanelDragIconLabel: t('columnsPanelDragIconLabel', 'Изменить порядок колонки'),
-    columnsPanelShowAllButton: t('columnsPanelShowAllButton', 'Показать все'),
-    columnsPanelHideAllButton: t('columnsPanelHideAllButton', 'Скрыть все'),
-    
-    // Тексты фильтров
-    filterPanelAddFilter: t('filterPanelAddFilter', 'Добавить фильтр'),
-    filterPanelRemoveAll: t('filterPanelRemoveAll', 'Удалить все'),
-    filterPanelDeleteIconLabel: t('filterPanelDeleteIconLabel', 'Удалить'),
-    filterPanelLogicOperator: t('filterPanelLogicOperator', 'Логический оператор'),
-    filterPanelOperator: t('filterPanelOperator', 'Оператор'),
-    filterPanelOperatorAnd: t('filterPanelOperatorAnd', 'И'),
-    filterPanelOperatorOr: t('filterPanelOperatorOr', 'Или'),
-    filterPanelColumns: t('filterPanelColumns', 'Колонки'),
-    filterPanelInputLabel: t('filterPanelInputLabel', 'Значение'),
-    filterPanelInputPlaceholder: t('filterPanelInputPlaceholder', 'Значение фильтра'),
+    // Тексты панели фильтров
+    filterPanelAddFilter: t('filterPanelAddFilter'),
+    filterPanelRemoveAll: t('filterPanelRemoveAll'),
+    filterPanelDeleteIconLabel: t('filterPanelDeleteIconLabel'),
+    filterPanelLogicOperator: t('filterPanelLogicOperator'),
+    filterPanelOperator: t('filterPanelOperator'),
+    filterPanelOperatorAnd: t('filterPanelOperatorAnd'),
+    filterPanelOperatorOr: t('filterPanelOperatorOr'),
+    filterPanelColumns: t('filterPanelColumns'),
+    filterPanelInputLabel: t('filterPanelInputLabel'),
+    filterPanelInputPlaceholder: t('filterPanelInputPlaceholder'),
     
     // Операторы фильтров
-    filterOperatorContains: t('filterOperatorContains', 'содержит'),
-    filterOperatorEquals: t('filterOperatorEquals', 'равно'),
-    filterOperatorStartsWith: t('filterOperatorStartsWith', 'начинается с'),
-    filterOperatorEndsWith: t('filterOperatorEndsWith', 'заканчивается на'),
-    filterOperatorIs: t('filterOperatorIs', 'равно'),
-    filterOperatorNot: t('filterOperatorNot', 'не равно'),
-    filterOperatorAfter: t('filterOperatorAfter', 'после'),
-    filterOperatorOnOrAfter: t('filterOperatorOnOrAfter', 'после или равно'),
-    filterOperatorBefore: t('filterOperatorBefore', 'до'),
-    filterOperatorOnOrBefore: t('filterOperatorOnOrBefore', 'до или равно'),
-    filterOperatorIsEmpty: t('filterOperatorIsEmpty', 'пусто'),
-    filterOperatorIsNotEmpty: t('filterOperatorIsNotEmpty', 'не пусто'),
-    filterOperatorIsAnyOf: t('filterOperatorIsAnyOf', 'любое из'),
+    filterOperatorContains: t('filterOperatorContains'),
+    filterOperatorEquals: t('filterOperatorEquals'),
+    filterOperatorStartsWith: t('filterOperatorStartsWith'),
+    filterOperatorEndsWith: t('filterOperatorEndsWith'),
+    filterOperatorIs: t('filterOperatorIs'),
+    filterOperatorNot: t('filterOperatorNot'),
+    filterOperatorAfter: t('filterOperatorAfter'),
+    filterOperatorOnOrAfter: t('filterOperatorOnOrAfter'),
+    filterOperatorBefore: t('filterOperatorBefore'),
+    filterOperatorOnOrBefore: t('filterOperatorOnOrBefore'),
+    filterOperatorIsEmpty: t('filterOperatorIsEmpty'),
+    filterOperatorIsNotEmpty: t('filterOperatorIsNotEmpty'),
+    filterOperatorIsAnyOf: t('filterOperatorIsAnyOf'),
     
     // Тексты пагинации
     MuiTablePagination: {
       labelRowsPerPage: t('rowsPerPage'),
       labelDisplayedRows: ({ from, to, count }) =>
-        `${from}–${to} ${t('of', 'из')} ${count !== -1 ? count : `${t('moreThan', 'более')} ${to}`}`,
+        `${from}–${to} ${t('of')} ${count !== -1 ? count : `${t('moreThan')} ${to}`}`,
     },
     
     // Тексты футера
-    footerRowSelected: (count) => t('footerRowSelected', `${count} строк выбрано`),
-    footerTotalRows: t('footerTotalRows', 'Всего строк:'),
+    footerRowSelected: (count) => t('footerRowSelected', { count }),
+    footerTotalRows: t('footerTotalRows'),
     footerTotalVisibleRows: (visibleCount, totalCount) =>
-      t('footerTotalVisibleRows', `${visibleCount} из ${totalCount}`),
+      t('footerTotalVisibleRows', { visibleCount, totalCount }),
   }), [t]);
 
   // Handle delete confirmation
@@ -310,6 +297,16 @@ const PopupGrid: React.FC<PopupGridProps> = observer(({
     setDeleteId(null);
   }, []);
 
+  // Применяем тултипы к колонкам
+  const columnsWithTooltips = useMemo(() => {
+    return columns.map(col => ({
+      ...col,
+      renderCell: col.renderCell || ((params: GridRenderCellParams) => (
+        <GridCellTooltip value={params.value} />
+      )),
+    }));
+  }, [columns]);
+
   // Create action columns
   const actionColumns: GridColDef[] = useMemo(() => {
     if (hideActions) return [];
@@ -324,139 +321,119 @@ const PopupGrid: React.FC<PopupGridProps> = observer(({
         const canEditRow = canEdit ? canEdit(row) : true;
         const canDeleteRow = canDelete ? canDelete(row) : true;
         const actions = [];
-
-        if (canEditRow && !hideEditButton && onEditClicked) {
+        
+        if (!hideEditButton && onEditClicked && canEditRow) {
           actions.push(
             <GridActionsCellItem
               key="edit"
-              icon={
-                <Tooltip title={t('edit')} placement="top">
-                  <EditIcon fontSize={compact ? "small" : "medium"} />
-                </Tooltip>
-              }
+              icon={<EditIcon />}
               label={t('edit')}
-              className="textPrimary"
-              data-testid={`${tableName}EditButton`}
-              onClick={() => onEditClicked(id as number)}
-              sx={{
-                color: 'primary.main',
-                '&:hover': {
-                  backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                  transform: 'scale(1.1)',
-                },
-                transition: 'all 0.2s ease-in-out',
-              }}
+              onClick={() => onEditClicked(Number(id))}
+              data-testid={`edit-${id}`}
             />
           );
         }
-
-        if (canDeleteRow && !hideDeleteButton && onDeleteClicked) {
+        
+        if (!hideDeleteButton && onDeleteClicked && canDeleteRow) {
           actions.push(
             <GridActionsCellItem
               key="delete"
-              icon={
-                <Tooltip title={t('delete')} placement="top">
-                  <DeleteIcon fontSize={compact ? "small" : "medium"} />
-                </Tooltip>
-              }
+              icon={<DeleteIcon />}
               label={t('delete')}
-              data-testid={`${tableName}DeleteButton`}
-              onClick={() => handleDeleteClick(id as number)}
-              sx={{
-                color: 'error.main',
-                '&:hover': {
-                  backgroundColor: alpha(theme.palette.error.main, 0.1),
-                  transform: 'scale(1.1)',
-                },
-                transition: 'all 0.2s ease-in-out',
-              }}
+              onClick={() => handleDeleteClick(Number(id))}
+              data-testid={`delete-${id}`}
+              sx={{ color: 'error.main' }}
             />
           );
         }
         
         if (customActionButton) {
-          actions.push(customActionButton(id as number));
+          actions.push(
+            <Box key="custom" component="span">
+              {customActionButton(Number(id))}
+            </Box>
+          );
         }
-
+        
         return actions;
       },
     }];
-  }, [hideActions, compact, t, tableName, onEditClicked, onDeleteClicked, handleDeleteClick, theme, canEdit, canDelete, hideEditButton, hideDeleteButton, customActionButton]);
+  }, [
+    hideActions,
+    hideEditButton,
+    hideDeleteButton,
+    onEditClicked,
+    onDeleteClicked,
+    customActionButton,
+    canEdit,
+    canDelete,
+    handleDeleteClick,
+    t,
+    compact,
+  ]);
 
   // Combine columns
   const allColumns = useMemo(() => {
-    return [...actionColumns, ...columns];
-  }, [actionColumns, columns]);
+    return [...columnsWithTooltips, ...actionColumns];
+  }, [columnsWithTooltips, actionColumns]);
 
   return (
     <>
-      <Paper
+      <Paper 
         elevation={0}
-        sx={{
+        sx={{ 
           width: '100%',
-          maxWidth: '100%',
-          borderRadius: compact ? 1 : 2,
-          border: '1px solid',
-          borderColor: 'divider',
-          overflow: 'hidden',
-          background: theme.palette.background.paper,
-          transition: 'all 0.3s ease-in-out',
+          height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          '&:hover': {
-            boxShadow: theme.shadows[2],
-          },
+          overflow: 'hidden',
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 2,
         }}
       >
         {/* Header */}
-        {!hideTitle && (
-          <Box
-            sx={{
+        {!hideTitle && (title || !hideAddButton) && (
+          <Box 
+            sx={{ 
               p: compact ? 2 : 3,
               borderBottom: '1px solid',
               borderColor: 'divider',
-              background: (theme) => alpha(theme.palette.primary.main, 0.02),
+              background: theme => alpha(theme.palette.primary.main, 0.02),
             }}
           >
-            <Stack
-              direction="row"
+            <Stack 
+              direction="row" 
+              spacing={2} 
+              alignItems="center" 
               justifyContent="space-between"
-              alignItems="center"
-              spacing={2}
             >
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ flex: 1, minWidth: 0 }}>
-                {icon}
-                <Typography 
-                  variant={compact ? "h6" : "h5"} 
-                  component="h2"
-                  data-testid={`${tableName}HeaderTitle`}
-                  sx={{ fontWeight: 600 }}
-                  noWrap
-                >
-                  {title}
-                </Typography>
+              <Stack direction="row" spacing={1} alignItems="center">
+                {icon && <Box sx={{ color: 'primary.main' }}>{icon}</Box>}
+                {title && (
+                  <Typography 
+                    variant={compact ? "h6" : "h5"} 
+                    component="h2"
+                    sx={{ fontWeight: 600 }}
+                    data-testid={`${tableName}Title`}
+                  >
+                    {title}
+                  </Typography>
+                )}
                 {showCount && data.length > 0 && (
-                  <Chip
-                    label={data.length}
-                    size="small"
-                    sx={{ ml: 1 }}
-                    data-testid={`${tableName}itemCount`}
+                  <Chip 
+                    label={data.length} 
+                    size="small" 
+                    color="primary"
+                    variant="outlined"
                   />
                 )}
               </Stack>
-              
-              {checkbox && (
-                <Box sx={{ ml: 'auto' }}>
-                  {checkbox}
-                </Box>
-              )}
-              
               {!hideAddButton && onEditClicked && (
                 <Tooltip title={t('add')}>
                   <IconButton
-                    color="primary"
                     onClick={() => onEditClicked(0)}
-                    data-testid={`${tableName}AddButton`}
+                    color="primary"
                     size={compact ? "small" : "medium"}
                     sx={{
                       backgroundColor: alpha(theme.palette.primary.main, 0.1),
@@ -499,6 +476,7 @@ const PopupGrid: React.FC<PopupGridProps> = observer(({
           height, 
           position: 'relative',
           overflow: 'auto',
+          flexGrow: 1,
         }}>
           {loading ? (
             <Box sx={{ p: 2 }}>
@@ -542,89 +520,45 @@ const PopupGrid: React.FC<PopupGridProps> = observer(({
                 toolbar: {
                   onRefresh,
                   loading,
+                  data,
+                  columns: columnsWithTooltips,
+                  fileName: tableName,
                 },
               }}
               sx={{
-                border: 'none',
-                height: '100%',
-                '& .MuiDataGrid-main': {
-                  overflow: 'unset',
-                },
-                '& .MuiDataGrid-virtualScroller': {
-                  overflow: 'auto',
-                },
-                '& .MuiDataGrid-cell': {
-                  whiteSpace: 'normal',
-                  wordWrap: 'break-word',
-                  lineHeight: compact ? '1.2' : '1.5',
-                  py: compact ? 0.5 : 1,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  display: '-webkit-box',
-                  WebkitBoxOrient: 'vertical',
-                  WebkitLineClamp: compact ? 2 : 3,
-                  borderBottom: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
-                  '&:focus': {
-                    outline: 'none',
-                  },
-                },
-                '& .MuiDataGrid-row': {
-                  maxWidth: '100%',
-                  '&:hover': {
-                    backgroundColor: alpha(theme.palette.primary.main, 0.04),
-                    cursor: 'pointer',
-                  },
-                  transition: 'background-color 0.2s ease-in-out',
-                },
-                '& .MuiDataGrid-row:nth-of-type(even)': {
-                  backgroundColor: alpha(theme.palette.grey[500], 0.02),
-                },
-                '& .MuiDataGrid-columnHeaders': {
+                ...gridCommonStyles.root,
+                ...(compact ? gridCommonStyles.compactMode : {}),
+                // Hover effect для строк
+                '& .MuiDataGrid-row:hover': {
                   backgroundColor: alpha(theme.palette.primary.main, 0.04),
-                  borderBottom: '2px solid',
-                  borderColor: 'divider',
-                  fontSize: compact ? '0.875rem' : '1rem',
-                  position: 'sticky',
-                  top: 0,
-                  zIndex: 1,
-                },
-                '& .MuiDataGrid-columnHeader': {
-                  whiteSpace: 'normal',
-                  lineHeight: '1.2',
-                },
-                '& .MuiDataGrid-footerContainer': {
-                  borderTop: '2px solid',
-                  borderColor: 'divider',
-                  backgroundColor: alpha(theme.palette.primary.main, 0.02),
-                  minHeight: compact ? 40 : 52,
-                  position: 'sticky',
-                  bottom: 0,
-                },
-                '& .MuiTablePagination-root': {
-                  color: theme.palette.text.primary,
-                },
-                // Стили для панелей - выравнивание по правому краю
-                '& .MuiDataGrid-panel': {
-                  '& .MuiDataGrid-panelWrapper': {
-                    right: 0,
-                    left: 'auto',
-                  },
-                },
-                '& .MuiPopper-root': {
-                  '& .MuiPaper-root': {
-                    right: 0,
-                    left: 'auto',
-                  },
+                  cursor: onEditClicked ? 'pointer' : 'default',
                 },
                 // Double-click to edit hint
                 '& .MuiDataGrid-row:hover::after': onEditClicked ? {
-                  content: '""',
+                  content: '"Двойной клик для редактирования"',
                   position: 'absolute',
-                  inset: 0,
+                  bottom: -20,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  fontSize: '0.75rem',
+                  color: 'text.secondary',
+                  backgroundColor: 'background.paper',
+                  padding: '2px 8px',
+                  borderRadius: 4,
+                  boxShadow: theme.shadows[2],
+                  whiteSpace: 'nowrap',
                   pointerEvents: 'none',
-                  border: `2px solid ${alpha(theme.palette.primary.main, 0.3)}`,
-                  borderRadius: 1,
-                } : undefined,
+                  opacity: 0,
+                  animation: 'fadeIn 0.3s ease-in-out 0.5s forwards',
+                  '@keyframes fadeIn': {
+                    to: { opacity: 1 },
+                  },
+                } : {},
+              }}
+              onRowDoubleClick={(params) => {
+                if (onEditClicked) {
+                  onEditClicked(Number(params.id));
+                }
               }}
             />
           )}
@@ -635,22 +569,18 @@ const PopupGrid: React.FC<PopupGridProps> = observer(({
       <Dialog
         open={deleteDialogOpen}
         onClose={handleDeleteCancel}
-        TransitionComponent={Zoom}
+        TransitionComponent={Fade}
         PaperProps={{
           elevation: 0,
           sx: {
             borderRadius: 2,
             border: '1px solid',
             borderColor: 'divider',
-            minWidth: 320,
           },
         }}
       >
         <DialogTitle sx={{ pb: 1 }}>
-          <Stack direction="row" alignItems="center" spacing={1}>
-            <ErrorIcon color="error" />
-            <span>{t('confirmDelete')}</span>
-          </Stack>
+          {t('confirmDelete')}
         </DialogTitle>
         <DialogContent>
           <DialogContentText>
@@ -661,8 +591,7 @@ const PopupGrid: React.FC<PopupGridProps> = observer(({
           <Button 
             onClick={handleDeleteCancel}
             variant="outlined"
-            size="small"
-            sx={{ borderRadius: 1 }}
+            sx={{ borderRadius: 1.5 }}
           >
             {t('cancel')}
           </Button>
@@ -670,8 +599,7 @@ const PopupGrid: React.FC<PopupGridProps> = observer(({
             onClick={handleDeleteConfirm} 
             variant="contained" 
             color="error"
-            size="small"
-            sx={{ borderRadius: 1 }}
+            sx={{ borderRadius: 1.5 }}
             autoFocus
           >
             {t('delete')}
