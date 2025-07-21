@@ -174,6 +174,8 @@ export interface PageGridProps {
   customActionButton?: (id: number) => React.ReactNode;
   customEditClick?: (id: number) => void;
   onPrint?: () => void;
+  // New prop for custom form path
+  formPath?: string;
 }
 
 const PageGrid: React.FC<PageGridProps> = observer(({
@@ -204,6 +206,8 @@ const PageGrid: React.FC<PageGridProps> = observer(({
   customActionButton,
   customEditClick,
   onPrint,
+  // New prop
+  formPath,
 }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -313,18 +317,24 @@ const PageGrid: React.FC<PageGridProps> = observer(({
     if (addButtonClick) {
       addButtonClick();
     } else {
-      navigate(`/${tableName}/add`);
+      // Use custom form path if provided, otherwise use default path with /user/ prefix
+      const addPath = formPath || `/user/${tableName}/addedit?id=0`;
+      navigate(addPath);
     }
-  }, [addButtonClick, navigate, tableName]);
+  }, [addButtonClick, navigate, tableName, formPath]);
 
   // Handle edit
   const handleEdit = useCallback((id: number) => {
     if (customEditClick) {
       customEditClick(id);
     } else {
-      navigate(`/${tableName}/edit/${id}`);
+      // Use custom form path if provided, otherwise use default path with /user/ prefix
+      const editPath = formPath 
+        ? `${formPath}?id=${id}` 
+        : `/user/${tableName}/addedit?id=${id}`;
+      navigate(editPath);
     }
-  }, [customEditClick, navigate, tableName]);
+  }, [customEditClick, navigate, tableName, formPath]);
 
   // Применяем тултипы к колонкам
   const columnsWithTooltips = useMemo(() => {

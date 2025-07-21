@@ -153,5 +153,35 @@
   "error": "Ошибка",
   "success": "Успешно",
   "save": "Сохранить",
-  "close": "Закрыть"
+  "close": "Закрыть",
+    "date": {
+    "today": "Сегодня",
+    "yesterday": "Вчера",
+    "weekAgo": "Неделю назад",
+    "monthAgo": "Месяц назад",
+    "startOfMonth": "Начало месяца",
+    "endOfMonth": "Конец месяца",
+    "selectDate": "Выберите дату",
+    "quickSelect": "Быстрый выбор",
+    "clear": "Очистить",
+    "relative": "Относительные даты",
+    "monthBoundaries": "Границы месяца"
+  },
+  "file": {
+    "dragDropTitle": "Перетащите файлы сюда",
+    "dragDropSubtitle": "или нажмите для выбора",
+    "acceptedFormats": "Поддерживаемые форматы",
+    "maxSize": "Максимальный размер",
+    "sizeError": "Файлы превышают максимальный размер",
+    "selectFile": "Выбрать файл",
+    "clearAll": "Очистить все",
+    "preview": "Предпросмотр",
+    "remove": "Удалить"
+  },
+  "select": {
+    "itemsSelected": "{{count}} выбрано",
+    "noOptions": "Нет доступных опций",
+    "clear": "Очистить",
+    "search": "Поиск..."
+  }
 }
