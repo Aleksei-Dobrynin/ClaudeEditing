@@ -68,5 +68,7 @@ export type FilterApplication = {
   total_payed_from: number | null;
   total_payed_to: number | null;
   org_structure_id?: number; 
+  is_journal?: boolean;
+  journals_id?: number; 
 };
 

@@ -1,5 +1,6 @@
 import http from "api/https";
 import { FilterApplication } from "constants/Application";
+import { Dayjs } from "dayjs";
 
 export const getApplications = (): Promise<any> => {
   return http.get("/Application/GetAll");
@@ -74,6 +75,20 @@ export const getMyApplications = (searchField: string, orderBy: string, orderTyp
   return http.get(`/Application/GetMyApplications?searchField=${searchField}&orderBy=${orderBy}
                                                   &orderType=${orderType}&skipItem=${skipItem}
                                                   &getCountItems=${getCountItems}&codeFilter=${codeFilter}`);
+};
+
+export const GetApplicationsCountForMyStructure = (startDate: Dayjs, endDate: Dayjs): Promise<any> => {
+  const params = new URLSearchParams();
+console.log(startDate)
+  if (startDate) {
+    params.append('startDate', startDate.format('YYYY-MM-DD'));
+  }
+
+  if (endDate) {
+    params.append('endDate', endDate.format('YYYY-MM-DD'));
+  }
+
+  return http.get(`/Service/GetApplicationsCountForMyStructure?${params.toString()}`);
 };
 
 export const getApplicationForReestrOtchet = (year: number, month: number, status: string, structure_id: number): Promise<any> => {

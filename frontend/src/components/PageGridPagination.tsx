@@ -189,6 +189,8 @@ export interface PageGridPaginationProps {
   hideAddButton?: boolean;
   getRowHeight?: any;
   emptyStateMessage?: string;
+  customAddUrl?: string;
+  customEditUrl?: (id: number) => string;
 }
 
 const PageGridPagination: React.FC<PageGridPaginationProps> = observer(({
@@ -215,6 +217,8 @@ const PageGridPagination: React.FC<PageGridPaginationProps> = observer(({
   hideAddButton = false,
   getRowHeight,
   emptyStateMessage,
+  customAddUrl,
+  customEditUrl,
 }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -334,13 +338,21 @@ const PageGridPagination: React.FC<PageGridPaginationProps> = observer(({
 
   // Handle add button
   const handleAdd = useCallback(() => {
-    navigate(`/${tableName}/add`);
-  }, [navigate, tableName]);
+    if (customAddUrl) {
+      navigate(customAddUrl);
+    } else {
+      navigate(`/user/${tableName}/addedit?id=0`);
+    }
+  }, [navigate, tableName, customAddUrl]);
 
   // Handle edit
   const handleEdit = useCallback((id: number) => {
-    navigate(`/${tableName}/edit/${id}`);
-  }, [navigate, tableName]);
+    if (customEditUrl) {
+      navigate(customEditUrl(id));
+    } else {
+      navigate(`/user/${tableName}/addedit?id=${id}`);
+    }
+  }, [navigate, tableName, customEditUrl]);
 
   // Handle search
   const handleSearchChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
