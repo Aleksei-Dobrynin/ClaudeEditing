@@ -307,7 +307,6 @@ class NewStore {
     if (response && (response.status === 200 || response.status === 201)) {
       var documents = response.data.filter(x => x.file_name !== null && x.file_name !== "");
       this.incomingDocuments = documents.filter(x => x.is_outcome === null);
-      console.log(this.incomingDocuments)
       this.outgoingDocuments = documents.filter(x => x.is_outcome === true);
     } else if (response?.response?.status === 422 && response?.response?.data?.errorType === ErrorResponseCode.MESSAGE) {
       const message = JSON.parse(response?.response?.data?.errorMessage)
@@ -657,6 +656,27 @@ class NewStore {
     }
   }
 
+  validateObjectForm = () => {
+    let canSave = true;
+    let event: { target: { name: string; value: any } } = {
+      target: { name: "id", value: this.id },
+    };
+    canSave = validate(event) && canSave;
+    event = { target: { name: "customer_id", value: this.customer_id } };
+    canSave = validate(event) && canSave;
+    event = { target: { name: "arch_object_id", value: this.arch_object_id } };
+    canSave = validate(event) && canSave;
+    event = { target: { name: "service_id", value: this.service_id } };
+    canSave = validate(event) && canSave;
+
+    const saveObject = storeObject.onSaveClick()
+
+    if (!(canSave && saveObject.canSave)) {
+      MainStore.openErrorDialog(i18n.t("message:error.alertMessageAlert"));
+    }
+    return canSave && saveObject.canSave;
+  }
+
   onSaveClick = async (onSaved: (id: number) => void, saveWithoutCheck: boolean = false) => {
     let canSave = true;
     let event: { target: { name: string; value: any } } = {
@@ -681,7 +701,6 @@ class NewStore {
     }
 
     const saveObject = storeObject.onSaveClick()
-
     if (canSave && saveObject.canSave) {
       try {
         MainStore.changeLoader(true);

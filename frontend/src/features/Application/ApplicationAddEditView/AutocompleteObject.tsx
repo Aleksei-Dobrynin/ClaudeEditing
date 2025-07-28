@@ -42,7 +42,6 @@ const ObjectSearch: FC<ObjectSearchProps> = observer((props) => {
       filterOptions={(options, state) => {
         const filtered = options.filter((option) => {
           const str = `(${option.address}) / ${option.name}`;
-          console.log(str)
           return str.toLowerCase().includes(state.inputValue.toLowerCase());
         });
         if (filtered.length === 0) {

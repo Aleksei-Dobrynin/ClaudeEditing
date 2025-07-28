@@ -744,7 +744,13 @@
     "notify_history_date_message": "Дата",
     "notify_history_none": "Нет истории уведомлений",
     "customer_sendDocument": "Отправить документа на почту",
-    "only_electronic": "Только электронная выдача"
+    "only_electronic": "Только электронная выдача",
+    "steps_objects": "Объекты",
+    "steps_applicant": "Заявитель",
+    "steps_documents": "Документы",
+    "steps_review": "Шаблоны документов",
+    "editApplication": "Редактирование заявки",
+    "newApplication": "Регистрация новой заявки"
   },
   "DistrictListView": {
     "District": "Район",
@@ -780,6 +786,9 @@
   "ArchObjectAddEditView": {
     "entityTitle": "Архитектурный объект",
     "address": "Адрес",
+    "street": "Улица",
+    "house": "Дом",
+    "apartment": "Квартира",
     "name": "Название",
     "identifier": "ЕНИ",
     "district_id": "Район",

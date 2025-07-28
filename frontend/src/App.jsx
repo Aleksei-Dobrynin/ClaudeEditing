@@ -229,6 +229,7 @@ import ApplicationOutgoingDocumentListView from 'features/ApplicationOutgoingDoc
 import JournalTemplateTypeAddEditView from 'features/JournalTemplateType/JournalTemplateTypeAddEditView';
 import JournalTemplateTypeListView from 'features/JournalTemplateType/JournalTemplateTypeListView';
 import JournalApplicationListView from 'features/JournalApplication/JournalApplicationListView';
+import ApplicationStepper from 'features/Application/ApplicationStepper';
 
 import Reports from 'features/Dashboard_headDepartment/reports';
 import { JournalTemplateType } from "./constants/JournalTemplateType";
@@ -476,6 +477,7 @@ const router = createBrowserRouter([
               { path: 'JournalTemplateType', element: <JournalTemplateTypeListView /> },
               { path: 'JournalTemplateType/addedit', element: <JournalTemplateTypeAddEditView /> },
               { path: 'JournalApplication', element: <JournalApplicationListView /> },
+              { path: 'ApplicationStepper', element: <ApplicationStepper /> },
             ]
           }]
       },
@@ -515,35 +517,35 @@ export const DataGridPanelStyles = () => {
   return (
     <GlobalStyles
       styles={{
-        // ÐŸÐµÑ€ÐµÐ¾Ð¿Ñ€ÐµÐ´ÐµÐ»ÑÐµÐ¼ Ð¿Ð¾Ð·Ð¸Ñ†Ð¸Ð¾Ð½Ð¸Ñ€Ð¾Ð²Ð°Ð½Ð¸Ðµ Ð´Ð»Ñ Ð²ÑÐµÑ… Ð¿Ð°Ð½ÐµÐ»ÐµÐ¹ DataGrid
+        // Ïåðåîïðåäåëÿåì ïîçèöèîíèðîâàíèå äëÿ âñåõ ïàíåëåé DataGrid
         '.MuiDataGrid-panel': {
-          // Ð£Ð±Ð¸Ñ€Ð°ÐµÐ¼ ÑÑ‚Ð°Ð½Ð´Ð°Ñ€Ñ‚Ð½Ð¾Ðµ Ð¿Ð¾Ð·Ð¸Ñ†Ð¸Ð¾Ð½Ð¸Ñ€Ð¾Ð²Ð°Ð½Ð¸Ðµ
+          // Óáèðàåì ñòàíäàðòíîå ïîçèöèîíèðîâàíèå
           position: 'fixed !important',
           
-          // ÐŸÐ¾Ð·Ð¸Ñ†Ð¸Ð¾Ð½Ð¸Ñ€ÑƒÐµÐ¼ Ð¾Ñ‚Ð½Ð¾ÑÐ¸Ñ‚ÐµÐ»ÑŒÐ½Ð¾ ÐºÐ½Ð¾Ð¿ÐºÐ¸, ÐºÐ¾Ñ‚Ð¾Ñ€Ð°Ñ Ð¾Ñ‚ÐºÑ€Ñ‹Ð»Ð° Ð¿Ð°Ð½ÐµÐ»ÑŒ
+          // Ïîçèöèîíèðóåì îòíîñèòåëüíî êíîïêè, êîòîðàÿ îòêðûëà ïàíåëü
           '&[data-placement="bottom-start"]': {
             transform: 'translateX(calc(-100% + 40px)) !important',
           },
           
-          // ÐÐ»ÑŒÑ‚ÐµÑ€Ð½Ð°Ñ‚Ð¸Ð²Ð½Ñ‹Ð¹ Ð²Ð°Ñ€Ð¸Ð°Ð½Ñ‚ - Ð²ÑÐµÐ³Ð´Ð° ÑÐ¿Ñ€Ð°Ð²Ð°
+          // Àëüòåðíàòèâíûé âàðèàíò - âñåãäà ñïðàâà
           '&.MuiDataGrid-columnsPanel, &.MuiDataGrid-filterPanel': {
             right: '16px !important',
             left: 'auto !important',
           },
         },
         
-        // Ð”Ð»Ñ Popper ÐºÐ¾Ð¼Ð¿Ð¾Ð½ÐµÐ½Ñ‚Ð°, ÐºÐ¾Ñ‚Ð¾Ñ€Ñ‹Ð¹ Ð¾Ð±ÐµÑ€Ñ‚Ñ‹Ð²Ð°ÐµÑ‚ Ð¿Ð°Ð½ÐµÐ»Ð¸
+        // Äëÿ Popper êîìïîíåíòà, êîòîðûé îáåðòûâàåò ïàíåëè
         '.MuiPopper-root[role="tooltip"]': {
           '& .MuiDataGrid-panel': {
             position: 'relative !important',
           },
         },
         
-        // Ð¡Ð¿ÐµÑ†Ð¸Ñ„Ð¸Ñ‡Ð½Ð¾ Ð´Ð»Ñ Ð¿Ð°Ð½ÐµÐ»ÐµÐ¹ Ð² toolbar
+        // Ñïåöèôè÷íî äëÿ ïàíåëåé â toolbar
         '.MuiDataGrid-toolbarContainer': {
           '& + .MuiPopper-root, & ~ .MuiPopper-root': {
             '& .MuiDataGrid-columnsPanel, & .MuiDataGrid-filterPanel': {
-              // Ð¡Ð´Ð²Ð¸Ð³Ð°ÐµÐ¼ Ð¿Ð°Ð½ÐµÐ»ÑŒ Ð²Ð¿Ñ€Ð°Ð²Ð¾
+              // Ñäâèãàåì ïàíåëü âïðàâî
               marginLeft: 'auto',
               transform: 'none !important',
             },

@@ -77,11 +77,18 @@ const GisSearch = observer((props: TextFieldProps) => {
 
   const handleItemClick = (result: any) => {
     setIsListOpen(false);
+    const [street = "", house = "", apartment = ""] =
+      (result.address_name ?? "")
+        .split(",")
+        .map(part => part.trim());
     const dis_id = store.Districts.find(d => result.adm_div?.find((d: any) => d.type === 'district')?.name.includes(d.name))?.id
     store.arch_objects[props.index].point = [result.point.lat, result.point.lon]
     store.arch_objects[props.index].ycoordinate = result.point.lon
     store.arch_objects[props.index].xcoordinate = result.point.lat
     store.arch_objects[props.index].address = result.address_name ?? store.arch_objects[props.index].address
+    store.arch_objects[props.index].street = street;
+    store.arch_objects[props.index].house = house;
+    store.arch_objects[props.index].apartment = apartment;
     store.arch_objects[props.index].district_id = dis_id ?? 0
     store.point = [result.point.lat, result.point.lon]
     store.ycoordinate = result.point.lon

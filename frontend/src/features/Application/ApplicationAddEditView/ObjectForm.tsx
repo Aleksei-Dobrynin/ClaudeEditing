@@ -207,6 +207,45 @@ const ObjectFormView: FC<ProjectsTableProps> = observer((props) => {
                           onBlur={() => store.setBadgeConst(i)}
                         />
                       </Grid>
+                      {
+                        <Grid item xs={12} sm={ store.legalRecords ? 11 : 12}>
+                          <CustomTextField
+                            value={store.arch_objects[i]?.street || ""}
+                            onChange={(event) => {}}
+                            name="street"
+                            id="id_f_arch_object_street"
+                            data-testid="id_f_arch_object_street"
+                            label={translate("label:ArchObjectAddEditView.street")}
+                            disabled={applicationStore.is_application_read_only}
+                          />
+                        </Grid>
+                      }
+                      {
+                        <Grid item xs={12} sm={ store.legalRecords ? 11 : 12}>
+                          <CustomTextField
+                            value={store.arch_objects[i]?.house || ""}
+                            onChange={(event) => {}}
+                            name="house"
+                            id="id_f_arch_object_house"
+                            data-testid="id_f_arch_object_house"
+                            label={translate("label:ArchObjectAddEditView.house")}
+                            disabled={applicationStore.is_application_read_only}
+                          />
+                        </Grid>
+                      }
+                      {
+                        <Grid item xs={12} sm={ store.legalRecords ? 11 : 12}>
+                          <CustomTextField
+                            value={store.arch_objects[i]?.apartment || ""}
+                            onChange={(event) => {}}
+                            name="apartment"
+                            id="id_f_arch_object_apartment"
+                            data-testid="id_f_arch_object_apartment"
+                            label={translate("label:ArchObjectAddEditView.apartment")}
+                            disabled={applicationStore.is_application_read_only}
+                          />
+                        </Grid>
+                      }
                       <Grid item xs={12} sm={1}>
                         {((obj.legalActs && obj.legalActs.length > 0) || (obj.legalRecords &&obj.legalRecords.length > 0))  && (
                           <Tooltip title={"Адрес фигурирует в правовой записи"}>

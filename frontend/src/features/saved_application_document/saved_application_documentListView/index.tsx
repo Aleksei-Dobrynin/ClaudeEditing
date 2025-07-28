@@ -36,6 +36,7 @@ import appStore from 'features/Application/ApplicationAddEditView/store';
 
 type saved_application_documentListViewProps = {
   idMain: number;
+  templateCodeFilter?: string[];
 };
 
 
@@ -53,6 +54,9 @@ const Saved_application_documentListView: FC<saved_application_documentListViewP
     }
   }, [props.idMain])
 
+  const filteredTemplates = store.S_DocumentTemplates.filter(template =>
+    !props.templateCodeFilter || props.templateCodeFilter.includes(template.code)
+  );
 
   return (
     <Container maxWidth='xl' sx={{ mt: 4 }}>
@@ -65,7 +69,7 @@ const Saved_application_documentListView: FC<saved_application_documentListViewP
                 title={lg.name}
               />
               <CardContent sx={{ padding: 1 }}>
-                {store.S_DocumentTemplates.map(item => {
+                {filteredTemplates.map(item => {
                   const foundDocument = item.saved_application_documents?.find(x => x?.language_id === lg.id);
                   const hasDocument = item.saved_application_documents?.find(x => x?.language_id === lg.id && x?.file_id != null);
                   return (<Grid container item key={`template-${item.id}`} alignItems="center">

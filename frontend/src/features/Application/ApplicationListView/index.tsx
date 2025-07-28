@@ -508,6 +508,7 @@ const ApplicationListView: FC<ApplicationListViewProps> = observer((props) => {
             searchText={""}
             columns={columns}
             data={store.data}
+            customAddUrl={"/user/ApplicationStepper?id=0&tab=0"}
             tableName="Application" />;
         </Box>
       </Box>

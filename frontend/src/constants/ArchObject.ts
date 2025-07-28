@@ -1,6 +1,9 @@
 export type ArchObject = {
   id: number;
   address: string;
+  street?: string;
+  house?: string;
+  apartment?: string;
   name: string;
   identifier: string;
   district_id: number;

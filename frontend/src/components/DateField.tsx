@@ -281,7 +281,7 @@ const DateField: React.FC<DateFieldProps> = observer((props) => {
               },
             },
           }}
-          dayOfWeekFormatter={(day) => day.format('dd')}
+          dayOfWeekFormatter={(day) => dayjs(day).format('dd')}
         />
       </LocalizationProvider>
 
