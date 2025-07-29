@@ -4,7 +4,7 @@ import Checkbox from '@mui/material/Checkbox';
 
 type CheckboxProps = {
   value: boolean;
-  label?: string;
+  label?: string | React.ReactNode;
   name: string;
   size?: any;
   onChange: (e) => void;
