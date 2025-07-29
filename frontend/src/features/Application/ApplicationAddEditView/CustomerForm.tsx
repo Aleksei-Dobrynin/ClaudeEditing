@@ -1,10 +1,10 @@
 import React, { FC, useEffect } from "react";
-import { 
-  Box, 
-  Card, 
-  CardContent, 
-  CircularProgress, 
-  Grid, 
+import {
+  Box,
+  Card,
+  CardContent,
+  CircularProgress,
+  Grid,
   IconButton,
   Typography,
   Divider,
@@ -45,7 +45,8 @@ import {
   Public,
   Assignment,
   ContactMail,
-  Badge
+  Badge,
+  Warning
 } from "@mui/icons-material";
 
 // Styled components
@@ -126,6 +127,18 @@ const RequiredFieldIndicator = styled("span")(({ theme }) => ({
   fontWeight: "bold"
 }));
 
+const SectionErrorIndicator = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  gap: theme.spacing(1),
+  color: theme.palette.error.main,
+  fontSize: "0.875rem",
+  marginTop: theme.spacing(1),
+  padding: theme.spacing(1),
+  backgroundColor: alpha(theme.palette.error.main, 0.1),
+  borderRadius: theme.spacing(1),
+}));
+
 type ProjectsTableProps = {
   children?: React.ReactNode;
   isPopup?: boolean;
@@ -134,6 +147,28 @@ type ProjectsTableProps = {
 const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
   const { t } = useTranslation();
   const translate = t;
+
+  // Функция для проверки наличия ошибок в секции
+  const hasErrorsInSection = (section: 'main_info' | 'identity_documents' | 'contact_info' | 'organization_details'): boolean => {
+    const sectionFields = {
+      main_info: ['pin', 'full_name', 'individual_surname', 'individual_name', 'address', 'foreign_country'],
+      identity_documents: ['identity_document_type_id', 'document_serie', 'document_date_issue', 'document_whom_issued'],
+      contact_info: ['sms_1', 'sms_2', 'email_1', 'email_2'],
+      organization_details: ['director', 'organization_type_id', 'ugns', 'registration_number', 'payment_account', 'bank', 'bik']
+    };
+
+    return sectionFields[section].some(field => store.customerErrors[field] !== "");
+  };
+
+  // Улучшенный обработчик изменения полей
+  const handleFieldChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    store.handleChangeCustomer(event);
+  };
+
+  // Обработчик потери фокуса для отдельного поля
+  const handleFieldBlur = (fieldName: string) => {
+    store.validateCustomerField(fieldName);
+  };
 
   useEffect(() => {
   }, [store.customerErrors.pin])
@@ -149,22 +184,22 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
               {translate("label:ApplicationAddEditView.customer_id")}
               <RequiredFieldIndicator>*</RequiredFieldIndicator>
             </SectionTitle>
-            
+
             <Grid container spacing={3}>
               <Grid item md={8} xs={12}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <AutocompleteCustomer />
                   <Tooltip title={translate("tooltip:clear_customer")}>
-                    <IconButton 
-                      disabled={store.id > 0} 
-                      sx={{ 
+                    <IconButton
+                      disabled={store.id > 0}
+                      sx={{
                         ml: 1,
                         transition: "all 0.3s ease",
                         "&:hover": {
                           backgroundColor: alpha("#ef4444", 0.1),
                           color: "#ef4444"
                         }
-                      }} 
+                      }}
                       onClick={() => {
                         store.changeCustomer(null);
                       }}
@@ -179,15 +214,15 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                       stateCircular={store.loading}
                       icon={<ContentPasteSearchIcon sx={{ color: "#FF652F" }} />}
                       onClick={() => {
-                        PopupApplicationStore.handleChange({ target: { name: "openCustomerApplicationDialog", value: !PopupApplicationStore.openCustomerApplicationDialog }})
-                        PopupApplicationStore.handleChange({ target: { name: "common_filter", value: store.customer.pin }}, "filter")
-                        PopupApplicationStore.handleChange({ target: { name: "only_count", value: false }}, "filter")
+                        PopupApplicationStore.handleChange({ target: { name: "openCustomerApplicationDialog", value: !PopupApplicationStore.openCustomerApplicationDialog } })
+                        PopupApplicationStore.handleChange({ target: { name: "common_filter", value: store.customer.pin } }, "filter")
+                        PopupApplicationStore.handleChange({ target: { name: "only_count", value: false } }, "filter")
                       }}
                     />
                   )}
                 </Box>
               </Grid>
-              
+
               <Grid item md={4} xs={12}>
                 <StyledMaskedTextField
                   disabled={store.is_application_read_only}
@@ -196,10 +231,13 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                   id="id_f_Customer_pin"
                   label={translate("label:CustomerAddEditView.pin")}
                   value={store.customer.pin}
-                  onChange={(event) => store.handleChangeCustomer(event)}
+                  onChange={handleFieldChange}
                   name="pin"
                   mask={store.customer.is_foreign ? null : "00000000000000"}
-                  onBlur={() => store.setBadge()}
+                  onBlur={() => {
+                    store.setBadge();
+                    handleFieldBlur('pin');
+                  }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -215,10 +253,10 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
             <Box sx={{ mt: 3, mb: 2 }}>
               <Grid container spacing={2}>
                 <Grid item md={3} xs={6}>
-                  <Paper 
-                    elevation={0} 
-                    sx={{ 
-                      p: 2, 
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2,
                       borderRadius: 2,
                       border: `2px solid ${store.customer.is_organization ? alpha("#3b82f6", 0.5) : alpha("#9ca3af", 0.3)}`,
                       backgroundColor: store.customer.is_organization ? alpha("#3b82f6", 0.08) : "transparent",
@@ -232,7 +270,7 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                     <CustomCheckbox
                       value={store.customer.is_organization}
                       disabled={store.is_application_read_only}
-                      onChange={(event) => store.handleChangeCustomer(event)}
+                      onChange={handleFieldChange}
                       name="is_organization"
                       label={
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -244,12 +282,12 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                     />
                   </Paper>
                 </Grid>
-                
+
                 <Grid item md={3} xs={6}>
-                  <Paper 
-                    elevation={0} 
-                    sx={{ 
-                      p: 2, 
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2,
                       borderRadius: 2,
                       border: `2px solid ${store.customer.is_foreign ? alpha("#3b82f6", 0.5) : alpha("#9ca3af", 0.3)}`,
                       backgroundColor: store.customer.is_foreign ? alpha("#3b82f6", 0.08) : "transparent",
@@ -263,9 +301,7 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                     <CustomCheckbox
                       disabled={store.is_application_read_only}
                       value={store.customer.is_foreign}
-                      onChange={(event) => {
-                        store.handleChangeCustomer(event);
-                      }}
+                      onChange={handleFieldChange}
                       name="is_foreign"
                       label={
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -289,7 +325,7 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                       name={"foreign_country"}
                       value={store.customer.foreign_country}
                       id={"id_f_customer_identity_foreign_country_id"}
-                      onChange={(e) => store.handleChangeCustomer(e)}
+                      onChange={handleFieldChange}
                       fieldNameDisplay={(field) => field.name}
                     />
                   </Collapse>
@@ -303,7 +339,10 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
             <SectionPaper elevation={0}>
               <SectionTitle variant="subtitle1">
                 <ContactMail />
-                {translate("common:main_info")}
+                {translate("Основная информация")}
+                {hasErrorsInSection('main_info') && (
+                  <Warning sx={{ color: 'error.main', ml: 1, fontSize: '1.2rem' }} />
+                )}
               </SectionTitle>
 
               <Grid container spacing={3}>
@@ -316,8 +355,9 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                       id="id_f_Customer_full_name"
                       label={translate("label:CustomerAddEditView.full_name")}
                       value={store.customer.full_name}
-                      onChange={(event) => store.handleChangeCustomer(event)}
+                      onChange={handleFieldChange}
                       name="full_name"
+                      onBlur={() => handleFieldBlur('full_name')}
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
@@ -333,13 +373,14 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                       <StyledTextField
                         disabled={store.is_application_read_only}
                         value={store.customer.individual_surname}
-                        onChange={(event) => store.handleChangeCustomer(event)}
+                        onChange={handleFieldChange}
                         name="individual_surname"
                         data-testid="id_f_customer_individual_surname"
                         id="id_f_customer_individual_surname"
                         label={translate("label:CustomerAddEditView.individual_surname")}
                         helperText={store.customerErrors.individual_surname}
                         error={!!store.customerErrors.individual_surname}
+                        onBlur={() => handleFieldBlur('individual_surname')}
                       />
                     </Grid>
 
@@ -347,32 +388,34 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                       <StyledTextField
                         disabled={store.is_application_read_only}
                         value={store.customer.individual_name}
-                        onChange={(event) => store.handleChangeCustomer(event)}
+                        onChange={handleFieldChange}
                         name="individual_name"
                         data-testid="id_f_customer_individual_name"
                         id="id_f_customer_individual_name"
                         label={translate("label:CustomerAddEditView.individual_name")}
                         helperText={store.customerErrors.individual_name}
                         error={!!store.customerErrors.individual_name}
+                        onBlur={() => handleFieldBlur('individual_name')}
                       />
                     </Grid>
-                    
+
                     <Grid item md={4} xs={12}>
                       <StyledTextField
                         disabled={store.is_application_read_only}
                         value={store.customer.individual_secondname}
-                        onChange={(event) => store.handleChangeCustomer(event)}
+                        onChange={handleFieldChange}
                         name="individual_secondname"
                         data-testid="id_f_customer_individual_secondname"
                         id="id_f_customer_individual_secondname"
                         label={translate("label:CustomerAddEditView.individual_secondname")}
                         helperText={store.customerErrors.individual_secondname}
                         error={!!store.customerErrors.individual_secondname}
+                        onBlur={() => handleFieldBlur('individual_secondname')}
                       />
                     </Grid>
                   </>
                 )}
-                
+
                 <Grid item md={12} xs={12}>
                   <StyledTextField
                     disabled={store.is_application_read_only}
@@ -381,8 +424,9 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                     id="id_f_Customer_address"
                     label={translate("label:CustomerAddEditView.address")}
                     value={store.customer.address}
-                    onChange={(event) => store.handleChangeCustomer(event)}
+                    onChange={handleFieldChange}
                     name="address"
+                    onBlur={() => handleFieldBlur('address')}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -393,6 +437,13 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                   />
                 </Grid>
               </Grid>
+
+              {hasErrorsInSection('main_info') && (
+                <SectionErrorIndicator>
+                  <Warning />
+                  Пожалуйста, заполните все обязательные поля в разделе "Основная информация"
+                </SectionErrorIndicator>
+              )}
             </SectionPaper>
 
             {/* Organization Details Section */}
@@ -400,7 +451,10 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
               <SectionPaper elevation={0}>
                 <SectionTitle variant="subtitle1">
                   <Business />
-                  {translate("common:organization_details")}
+                  {translate("Реквизиты организации")}
+                  {hasErrorsInSection('organization_details') && (
+                    <Warning sx={{ color: 'error.main', ml: 1, fontSize: '1.2rem' }} />
+                  )}
                 </SectionTitle>
 
                 <Grid container spacing={3}>
@@ -412,8 +466,9 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                       id="id_f_Customer_director"
                       label={translate("label:CustomerAddEditView.director")}
                       value={store.customer.director}
-                      onChange={(event) => store.handleChangeCustomer(event)}
+                      onChange={handleFieldChange}
                       name="director"
+                      onBlur={() => handleFieldBlur('director')}
                     />
                   </Grid>
 
@@ -426,11 +481,11 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                       id="id_f_Customer_organization_type_id"
                       label={translate("label:CustomerAddEditView.organization_type_id")}
                       value={store.customer.organization_type_id}
-                      onChange={(event) => store.handleChangeCustomer(event)}
+                      onChange={handleFieldChange}
                       name="organization_type_id"
                     />
                   </Grid>
-                  
+
                   <Grid item md={4} xs={12}>
                     <StyledTextField
                       disabled={store.is_application_read_only}
@@ -439,8 +494,9 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                       id="id_f_Customer_ugns"
                       label={translate("label:CustomerAddEditView.ugns")}
                       value={store.customer.ugns}
-                      onChange={(event) => store.handleChangeCustomer(event)}
+                      onChange={handleFieldChange}
                       name="ugns"
+                      onBlur={() => handleFieldBlur('ugns')}
                     />
                   </Grid>
 
@@ -452,14 +508,15 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                       id="id_f_Customer_registration_number"
                       label={translate("label:CustomerAddEditView.registration_number")}
                       value={store.customer.registration_number}
-                      onChange={(event) => store.handleChangeCustomer(event)}
+                      onChange={handleFieldChange}
                       name="registration_number"
+                      onBlur={() => handleFieldBlur('registration_number')}
                     />
                   </Grid>
                 </Grid>
 
                 <SubSectionTitle>
-                  {translate("common:banking_details")}
+                  {translate("Банковские реквизиты")}
                 </SubSectionTitle>
 
                 <Grid container spacing={3}>
@@ -471,8 +528,9 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                       id="id_f_Customer_payment_account"
                       label={translate("label:CustomerAddEditView.payment_account")}
                       value={store.customer.payment_account}
-                      onChange={(event) => store.handleChangeCustomer(event)}
+                      onChange={handleFieldChange}
                       name="payment_account"
+                      onBlur={() => handleFieldBlur('payment_account')}
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
@@ -491,8 +549,9 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                       id="id_f_Customer_bank"
                       label={translate("label:CustomerAddEditView.bank")}
                       value={store.customer.bank}
-                      onChange={(event) => store.handleChangeCustomer(event)}
+                      onChange={handleFieldChange}
                       name="bank"
+                      onBlur={() => handleFieldBlur('bank')}
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
@@ -502,7 +561,7 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                       }}
                     />
                   </Grid>
-                  
+
                   <Grid item md={4} xs={12}>
                     <StyledTextField
                       disabled={store.is_application_read_only}
@@ -511,11 +570,19 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                       id="id_f_Customer_bik"
                       label={translate("label:CustomerAddEditView.bik")}
                       value={store.customer.bik}
-                      onChange={(event) => store.handleChangeCustomer(event)}
+                      onChange={handleFieldChange}
                       name="bik"
+                      onBlur={() => handleFieldBlur('bik')}
                     />
                   </Grid>
                 </Grid>
+
+                {hasErrorsInSection('organization_details') && (
+                  <SectionErrorIndicator>
+                    <Warning />
+                    Пожалуйста, заполните все обязательные поля в разделе "Реквизиты организации"
+                  </SectionErrorIndicator>
+                )}
               </SectionPaper>
             </Collapse>
 
@@ -524,7 +591,10 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
               <SectionPaper elevation={0}>
                 <SectionTitle variant="subtitle1">
                   <Assignment />
-                  {translate("common:identity_documents")}
+                  {translate("Документы, удостоверяющие личность")}
+                  {hasErrorsInSection('identity_documents') && (
+                    <Warning sx={{ color: 'error.main', ml: 1, fontSize: '1.2rem' }} />
+                  )}
                 </SectionTitle>
 
                 <Grid container spacing={3}>
@@ -532,7 +602,7 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                     <LookUp
                       disabled={store.is_application_read_only}
                       value={store.customer.identity_document_type_id}
-                      onChange={(event) => store.handleChangeCustomer(event)}
+                      onChange={handleFieldChange}
                       name="identity_document_type_id"
                       data={store.Identity_document_types}
                       data-testid="id_f_customer_identity_document_type_id"
@@ -542,28 +612,36 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                       error={!!store.customerErrors.identity_document_type_id}
                     />
                   </Grid>
-                  
+
                   <Grid item md={4} xs={12}>
                     <StyledTextField
                       disabled={store.is_application_read_only}
                       value={store.customer.document_serie}
-                      onChange={(event) => store.handleChangeCustomer(event)}
+                      onChange={handleFieldChange}
                       name="document_serie"
                       data-testid="id_f_customer_document_serie"
                       id="id_f_customer_document_serie"
                       label={translate("label:CustomerAddEditView.document_serie")}
                       helperText={store.customerErrors.document_serie}
                       error={!!store.customerErrors.document_serie}
+                      onBlur={() => handleFieldBlur('document_serie')}
                     />
                   </Grid>
-                  
+
                   <Grid item md={4} xs={12}>
                     <DateField
                       disabled={store.is_application_read_only}
                       value={store.customer.document_date_issue ? dayjs(store.customer.document_date_issue) : null}
                       onChange={(event) => {
-                        event.target.value = event.target.value?.format()
-                        store.handleChangeCustomer(event)
+                        const formattedEvent = {
+                          target: {
+                            name: 'document_date_issue',
+                            value: event.target.value?.format()
+                          }
+                        };
+                        handleFieldChange(formattedEvent as any);
+                        // Валидация после изменения
+                        setTimeout(() => handleFieldBlur('document_date_issue'), 0);
                       }}
                       name="document_date_issue"
                       id="id_f_customer_document_date_issue"
@@ -572,21 +650,29 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                       error={!!store.customerErrors.document_date_issue}
                     />
                   </Grid>
-                  
+
                   <Grid item md={12} xs={12}>
                     <StyledTextField
                       disabled={store.is_application_read_only}
                       value={store.customer.document_whom_issued}
-                      onChange={(event) => store.handleChangeCustomer(event)}
+                      onChange={handleFieldChange}
                       name="document_whom_issued"
                       data-testid="id_f_customer_document_whom_issued"
                       id="id_f_customer_document_whom_issued"
                       label={translate("label:CustomerAddEditView.document_whom_issued")}
                       helperText={store.customerErrors.document_whom_issued}
                       error={!!store.customerErrors.document_whom_issued}
+                      onBlur={() => handleFieldBlur('document_whom_issued')}
                     />
                   </Grid>
                 </Grid>
+
+                {hasErrorsInSection('identity_documents') && (
+                  <SectionErrorIndicator>
+                    <Warning />
+                    Пожалуйста, заполните все обязательные поля в разделе "Документы, удостоверяющие личность"
+                  </SectionErrorIndicator>
+                )}
               </SectionPaper>
             </Collapse>
 
@@ -594,7 +680,10 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
             <SectionPaper elevation={0}>
               <SectionTitle variant="subtitle1">
                 <Phone />
-                {translate("common:contact_info")}
+                {translate("Контактная информация")}
+                {hasErrorsInSection('contact_info') && (
+                  <Warning sx={{ color: 'error.main', ml: 1, fontSize: '1.2rem' }} />
+                )}
               </SectionTitle>
 
               <Grid container spacing={3}>
@@ -606,9 +695,10 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                     id="id_f_Customer_sms_1"
                     label={translate("label:CustomerAddEditView.sms_1")}
                     value={store.customer.sms_1}
-                    onChange={(event) => store.handleChangeCustomer(event)}
+                    onChange={handleFieldChange}
                     name="sms_1"
                     mask="+(996)000-00-00-00"
+                    onBlur={() => handleFieldBlur('sms_1')}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -618,7 +708,7 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                     }}
                   />
                 </Grid>
-                
+
                 <Grid item md={3} xs={12}>
                   <StyledMaskedTextField
                     disabled={store.is_application_read_only}
@@ -627,9 +717,10 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                     id="id_f_Customer_sms_2"
                     label={translate("label:CustomerAddEditView.sms_2")}
                     value={store.customer.sms_2}
-                    onChange={(event) => store.handleChangeCustomer(event)}
+                    onChange={handleFieldChange}
                     name="sms_2"
                     mask="+(996)000-00-00-00"
+                    onBlur={() => handleFieldBlur('sms_2')}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -639,7 +730,7 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                     }}
                   />
                 </Grid>
-                
+
                 <Grid item md={3} xs={12}>
                   <StyledTextField
                     disabled={store.is_application_read_only}
@@ -648,8 +739,9 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                     id="id_f_Customer_email_1"
                     label={translate("label:CustomerAddEditView.email_1")}
                     value={store.customer.email_1}
-                    onChange={(event) => store.handleChangeCustomer(event)}
+                    onChange={handleFieldChange}
                     name="email_1"
+                    onBlur={() => handleFieldBlur('email_1')}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -659,7 +751,7 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                     }}
                   />
                 </Grid>
-                
+
                 <Grid item md={3} xs={12}>
                   <StyledTextField
                     disabled={store.is_application_read_only}
@@ -668,8 +760,9 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                     id="id_f_Customer_email_2"
                     label={translate("label:CustomerAddEditView.email_2")}
                     value={store.customer.email_2}
-                    onChange={(event) => store.handleChangeCustomer(event)}
+                    onChange={handleFieldChange}
                     name="email_2"
+                    onBlur={() => handleFieldBlur('email_2')}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -680,6 +773,13 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                   />
                 </Grid>
               </Grid>
+
+              {hasErrorsInSection('contact_info') && (
+                <SectionErrorIndicator>
+                  <Warning />
+                  Проверьте правильность заполнения контактной информации
+                </SectionErrorIndicator>
+              )}
             </SectionPaper>
 
             {/* Fast Input Section */}
@@ -688,7 +788,7 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
             </Box>
           </CardContent>
         </StyledCard>
-        
+
         <PopupApplicationListView />
       </Box>
     </Fade>
