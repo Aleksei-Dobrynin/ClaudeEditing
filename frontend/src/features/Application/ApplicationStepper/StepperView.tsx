@@ -155,7 +155,7 @@ function CustomStepIcon(props: StepIconProps) {
   );
 }
 
-const App: React.FC = observer(() => {
+const StepperView: React.FC = observer(() => {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -199,28 +199,19 @@ const App: React.FC = observer(() => {
     return t(step);
   };
 
-  const handleNext = () => {
+  // Новая логика обработки перехода на следующий шаг
+  const handleNext = async () => {
     setStepDirection("right");
-    if (rootStore.isObjectStep) {
-      if (!ApplicationStore.validateObjectForm()) {
+    
+    try {
+      const success = await rootStore.handleNextStep(ApplicationStore, navigate);
+      if (!success) {
+        // Ошибка уже показана в rootStore
         return;
       }
-      rootStore.service_id = ApplicationStore.service_id;
-    }
-    if (rootStore.isCustomerStep) {
-      ApplicationStore.service_id = rootStore.service_id;
-      ApplicationStore.onSaveClick((id: number) => {
-        if (ApplicationStore.id === 0) {
-          rootStore.applicationId = Number(id);
-          navigate(`/user/ApplicationStepper?id=${id}&tab=2`);
-        }
-        ApplicationStore.doLoad(id);
-      });
-    }
-    if (!rootStore.isLastStep) {
-      rootStore.nextStep();
-    } else {
-      navigate(`/user/Application`);
+    } catch (error) {
+      console.error("Error in handleNext:", error);
+      rootStore.showSnackbar("Произошла ошибка при переходе", "error");
     }
   };
 
@@ -231,6 +222,34 @@ const App: React.FC = observer(() => {
     } else {
       navigate(`/user/Application`);
     }
+  };
+
+  // Определяем текст кнопки и индикатор загрузки
+  const getNextButtonText = () => {
+    if (rootStore.isCurrentStepLoading) {
+      if (rootStore.isCustomerStep && rootStore.isNewApplication) {
+        return "Создание заявки...";
+      }
+      return "Загрузка...";
+    }
+    
+    if (rootStore.isLastStep) {
+      return t("common:finish");
+    }
+    
+    return t("common:next");
+  };
+
+  const getNextButtonIcon = () => {
+    if (rootStore.isCurrentStepLoading) {
+      return <CircularProgress size={16} color="inherit" />;
+    }
+    
+    if (rootStore.isPrintStep) {
+      return <Check />;
+    }
+    
+    return <ChevronRight />;
   };
 
   if (rootStore.isLoading && rootStore.currentStep === 0 && rootStore.applicationId > 0) {
@@ -269,11 +288,28 @@ const App: React.FC = observer(() => {
                   {t("label:ApplicationListView.number")}: {rootStore.applicationNumber}
                 </Typography>
               )}
+              {rootStore.isNewApplication && (
+                <Typography variant="body2" color="warning.main" sx={{ fontWeight: 500 }}>
+                  Черновик (не сохранено)
+                </Typography>
+              )}
             </Box>
-            {rootStore.applicationNumber && (
+            {rootStore.applicationNumber ? (
               <Chip
                 label={`№${rootStore.applicationNumber}`}
                 color="primary"
+                variant="outlined"
+                sx={{ 
+                  fontWeight: 600,
+                  borderWidth: 2,
+                  borderRadius: 2,
+                  fontSize: "1rem"
+                }}
+              />
+            ) : (
+              <Chip
+                label="Черновик"
+                color="warning"
                 variant="outlined"
                 sx={{ 
                   fontWeight: 600,
@@ -315,7 +351,7 @@ const App: React.FC = observer(() => {
               </Step>
             ))}
           </Stepper>
-          {rootStore.isLoading && (
+          {rootStore.isCurrentStepLoading && (
             <LinearProgress 
               sx={{ 
                 mt: 2, 
@@ -365,7 +401,7 @@ const App: React.FC = observer(() => {
                     startIcon={<ChevronLeft />}
                     onClick={handleBack}
                     fullWidth={isMobile}
-                    disabled={rootStore.isLoading}
+                    disabled={rootStore.isCurrentStepLoading || !rootStore.canNavigateBack}
                   >
                     {t("common:back")}
                   </StyledButton>
@@ -373,18 +409,18 @@ const App: React.FC = observer(() => {
                        width={isMobile ? "100%" : "auto"}>
                     <StyledButton
                       variant="contained"
-                      endIcon={rootStore.isPrintStep ? <Check /> : <ChevronRight />}
+                      endIcon={getNextButtonIcon()}
                       onClick={handleNext}
                       color={rootStore.isLastStep ? "success" : "primary"}
                       fullWidth={isMobile}
-                      disabled={rootStore.isLoading}
+                      disabled={rootStore.isCurrentStepLoading}
                       sx={{
                         background: rootStore.isLastStep 
                           ? `linear-gradient(135deg, ${theme.palette.success.main} 0%, ${theme.palette.success.dark} 100%)`
                           : `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
                       }}
                     >
-                      {rootStore.isLastStep ? t("common:finish") : t("common:next")}
+                      {getNextButtonText()}
                     </StyledButton>
                   </Box>
                 </Box>
@@ -419,4 +455,4 @@ const App: React.FC = observer(() => {
   );
 });
 
-export default App;
+export default StepperView;

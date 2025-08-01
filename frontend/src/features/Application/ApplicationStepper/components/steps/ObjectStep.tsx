@@ -5,44 +5,35 @@ import {
   Grid,
   Box,
   Typography,
-  Divider,
-  Tooltip,
-  Chip,
   alpha,
   styled,
   Fade,
-  InputAdornment
+  Alert
 } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import store from "features/Application/ApplicationAddEditView/store";
 import { observer } from "mobx-react";
 import DateField from "components/DateField";
+import SelectField from "components/SelectField";
 import dayjs from "dayjs";
-import Autocomplete from "@mui/material/Autocomplete";
-import TextField from "@mui/material/TextField";
-import customerRepresentativeStoreList from "features/CustomerRepresentative/CustomerRepresentativeListView/store";
-import LookUp from "components/LookUp";
 import ApplicationCommentsListView from "features/ApplicationComments/ApplicationCommentsListView";
 import CustomTextField from "components/TextField";
 import ObjectFormView from "features/Application/ApplicationAddEditView/ObjectForm";
 import mainStore from "../../../../../MainStore";
 import { SelectOrgStructureForWorklofw } from "constants/constant";
 import storeComments from "../../../../ApplicationComments/ApplicationCommentsListView/store";
-import storeObject from "../../../ApplicationAddEditView/storeObject";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router";
+import { rootStore } from "../../stores/RootStore";
 import {
   BusinessCenter,
   Description,
-  DateRange,
   Comment,
-  Info,
-  Schedule,
   Assignment,
-  Numbers
+  Warning
 } from "@mui/icons-material";
 
-// Type definitions based on store structure
+// Types
 interface Service {
   id: string | number;
   name: string;
@@ -74,64 +65,41 @@ const SectionTitle = styled(Typography)(({ theme }) => ({
   color: theme.palette.primary.main,
 }));
 
-const StyledAutocomplete = styled(Autocomplete)(({ theme }) => ({
-  "& .MuiOutlinedInput-root": {
-    borderRadius: theme.spacing(1.5),
-    transition: "all 0.3s ease",
-    "&:hover": {
-      backgroundColor: alpha(theme.palette.primary.main, 0.04),
-    },
-    "&.Mui-focused": {
-      backgroundColor: alpha(theme.palette.primary.main, 0.04),
-      "& .MuiOutlinedInput-notchedOutline": {
-        borderColor: theme.palette.primary.main,
-        borderWidth: 2,
-      }
-    }
-  }
-})) as typeof Autocomplete;
-
-const StyledTextField = styled(TextField)(({ theme }) => ({
-  "& .MuiOutlinedInput-root": {
-    borderRadius: theme.spacing(1.5),
-    transition: "all 0.3s ease",
-    "&:hover": {
-      backgroundColor: alpha(theme.palette.primary.main, 0.04),
-    },
-    "&.Mui-focused": {
-      backgroundColor: alpha(theme.palette.primary.main, 0.04),
-      "& .MuiOutlinedInput-notchedOutline": {
-        borderColor: theme.palette.primary.main,
-        borderWidth: 2,
-      }
-    }
+const RequiredFieldLabel = styled(Typography)(({ theme }) => ({
+  fontWeight: 600,
+  marginBottom: theme.spacing(2),
+  display: "flex",
+  alignItems: "center",
+  gap: theme.spacing(1),
+  color: theme.palette.primary.main,
+  "& .required-star": {
+    color: theme.palette.error.main,
+    marginLeft: theme.spacing(0.5),
+    fontWeight: "bold"
   }
 }));
 
-const RequiredFieldIndicator = styled("span")(({ theme }) => ({
-  color: theme.palette.error.main,
-  marginLeft: theme.spacing(0.5),
-  fontWeight: "bold"
-}));
+const useQuery = () => {
+  return new URLSearchParams(useLocation().search);
+};
 
 type ProjectsTableProps = {
   children?: React.ReactNode;
   isPopup?: boolean;
 };
 
-function useQuery() {
-  return new URLSearchParams(useLocation().search);
-}
-
-const BaseView: FC<ProjectsTableProps> = observer((props) => {
+const ObjectStep: FC<ProjectsTableProps> = observer((props) => {
   const navigate = useNavigate();
   const query = useQuery();
   const id = query.get("id");
+  const { t } = useTranslation();
+  const translate = t;
+
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [showValidationAlert, setShowValidationAlert] = useState(false);
 
   useEffect(() => {
-    if ((id != null) &&
-      (id !== "") &&
-      !isNaN(Number(id.toString()))) {
+    if ((id != null) && (id !== "") && !isNaN(Number(id.toString()))) {
       store.doLoad(Number(id));
       storeComments.setApplicationId(Number(id));
     } else {
@@ -139,111 +107,144 @@ const BaseView: FC<ProjectsTableProps> = observer((props) => {
     }
   }, []);
 
-  const { t } = useTranslation();
-  const translate = t;
-  
-  useEffect(() => {
-  }, [store.errorcustomer_id, store.errorarch_object_id, customerRepresentativeStoreList.data, store.errorservice_id]);
-  
   useEffect(() => {
     if (store.customer_id) {
       store.loadCustomerContacts(store.customer_id);
     }
   }, [store.customer_id]);
-  
+
   useEffect(() => {
-    store.is_application_read_only = !((mainStore.isAdmin || mainStore.isRegistrar) && store.Statuses?.find(s => s.id === store.status_id)?.code !== "done");
+    store.is_application_read_only = !((mainStore.isAdmin || mainStore.isRegistrar) &&
+      store.Statuses?.find(s => s.id === store.status_id)?.code !== "done");
   }, [mainStore.isRegistrar, mainStore.isAdmin, store.status_id]);
+
+  // Валидация в реальном времени
+  useEffect(() => {
+    const errors: string[] = [];
+    
+    if (!store.service_id) {
+      errors.push("Выберите услугу");
+    }
+    
+    if (store.errorservice_id !== "") {
+      errors.push("Исправьте ошибки в форме услуги");
+    }
+
+    setValidationErrors(errors);
+    setShowValidationAlert(errors.length > 0);
+    
+    // Обновляем прогресс шага
+    const progress = errors.length === 0 ? 100 : Math.max(0, 50 - (errors.length * 25));
+    rootStore.updateStepProgress(0, progress);
+  }, [store.service_id, store.errorservice_id]);
 
   // Cast Services to proper type
   const services = store.Services as Service[];
 
+  // Service change handler
+  const handleServiceChange = (event: any) => {
+    const value = event.target.value;
+    const service = services.find(s => s.id == value);
+
+    // Update workflow logic
+    if (service?.code == SelectOrgStructureForWorklofw.GIVE_DUPLICATE) {
+      store.workflow_id_for_structure = service.workflow_id;
+    } else {
+      store.workflow_id_for_structure = null;
+      store.workflow_task_structure_id = null;
+    }
+
+    // Use existing store method
+    store.handleChange(event);
+  };
+
+  // Helper text logic
+  const getServiceHelperText = (): string => {
+    if (store.errorservice_id !== "") {
+      return store.errorservice_id;
+    }
+    if (store.service_id) {
+      return "Услуга выбрана";
+    }
+    return "Обязательное поле - выберите услугу";
+  };
+
+  // Prepare service options
+  const serviceOptions = services.map(service => ({
+    value: service.id,
+    label: `${service.name} (${service.day_count} р.дн.)`,
+    disabled: !service.is_active || !(() => {
+      const today = dayjs();
+      const isWithinDateRange = (!service.date_start || dayjs(service.date_start).isSame(today, "day") || dayjs(service.date_start).isBefore(today, "day")) &&
+        (!service.date_end || dayjs(service.date_end).isSame(today, "day") || dayjs(service.date_end).isAfter(today, "day"));
+      return isWithinDateRange;
+    })(),
+    description: `${service.day_count} рабочих дней`,
+    group: service.is_active ? "Активные" : "Неактивные"
+  }));
+
+  const workflowOptions = store.WorkflowTaskTemplates
+    ?.filter(x => x.workflow_id == store.workflow_id_for_structure)
+    .map(template => ({
+      value: template.id,
+      label: template.structure_name || "",
+      disabled: false
+    })) || [];
+
   return (
     <Fade in timeout={600}>
       <Box>
+        {/* Validation Alert */}
+        {showValidationAlert && validationErrors.length > 0 && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              <Warning sx={{ mr: 1 }} />
+              Необходимо заполнить обязательные поля
+            </Typography>
+            <Box component="ul" sx={{ margin: 0, paddingLeft: 2 }}>
+              {validationErrors.map((error, index) => (
+                <Typography key={index} component="li" variant="body2">
+                  {error}
+                </Typography>
+              ))}
+            </Box>
+          </Alert>
+        )}
+
         <Grid container spacing={3}>
           {/* Service Selection Section */}
           <Grid item xs={12}>
             <StyledCard>
               <CardContent>
-                <SectionTitle variant="h6">
+                <RequiredFieldLabel variant="h6">
                   <BusinessCenter />
                   {translate("label:ApplicationAddEditView.service_id")}
-                  <RequiredFieldIndicator>*</RequiredFieldIndicator>
-                </SectionTitle>
-                
+                  <span className="required-star">*</span>
+                </RequiredFieldLabel>
+
                 <Grid container spacing={3}>
-                  <Grid item md={8} xs={12}>
-                    <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
-                      <StyledAutocomplete
-                        disabled={store.is_application_read_only}
-                        value={services.find(arch => arch.id === store.service_id) || null}
-                        onChange={(event, newValue) => {
-                          let value = newValue ? newValue.id : "";
-                          let service = services.find(arch => arch.id == value);
-                          if (service?.code == SelectOrgStructureForWorklofw.GIVE_DUPLICATE) {
-                            store.workflow_id_for_structure = service.workflow_id;
-                          } else {
-                            store.workflow_id_for_structure = null;
-                            store.workflow_task_structure_id = null;
-                          }
-                          store.handleChange({
-                            target: { name: "service_id", value: value }
-                          });
-                        }}
-                        options={services || []}
-                        getOptionLabel={(Service: Service) => Service ? `${Service.name} (${Service.day_count} р.дн.)` : ""}
-                        id="id_f_service_id"
-                        isOptionEqualToValue={(option: Service, value: Service) => option.id === value.id}
-                        fullWidth
-                        getOptionDisabled={(option: Service) => {
-                          const today = dayjs();
-                          const isWithinDateRange = (!option.date_start || dayjs(option.date_start).isSame(today, "day") || dayjs(option.date_start).isBefore(today, "day")) &&
-                            (!option.date_end || dayjs(option.date_end).isSame(today, "day") || dayjs(option.date_end).isAfter(today, "day"));
-
-                          return !option.is_active || !isWithinDateRange;
-                        }}
-                        renderOption={(props, option: Service) => (
-                          <Box component="li" {...props}>
-                            <Box sx={{ display: "flex", alignItems: "center", width: "100%" }}>
-                              <Box sx={{ flexGrow: 1 }}>
-                                <Typography variant="body1">{option.name}</Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  {option.day_count} рабочих дней
-                                </Typography>
-                              </Box>
-                              {!option.is_active && (
-                                <Chip label="Неактивно" size="small" color="error" />
-                              )}
-                            </Box>
-                          </Box>
-                        )}
-                        renderInput={(params) => (
-                          <StyledTextField
-                            {...params}
-                            label={translate("label:ApplicationAddEditView.service_id")}
-                            helperText={store.errorservice_id}
-                            error={store.errorservice_id != ""}
-                            size={"small"}
-                            InputProps={{
-                              ...params.InputProps,
-                              startAdornment: (
-                                <>
-                                  <InputAdornment position="start">
-                                    <BusinessCenter color="action" />
-                                  </InputAdornment>
-                                  {params.InputProps.startAdornment}
-                                </>
-                              ),
-                            }}
-                          />
-                        )}
-                      />
-
-                    </Box>
+                  <Grid item md={12} xs={12}>
+                    <SelectField
+                      id="id_f_service_id"
+                      name="service_id"
+                      label={translate("label:ApplicationAddEditView.service_id")}
+                      value={store.service_id || ''}
+                      onChange={handleServiceChange}
+                      options={serviceOptions}
+                      required={true}
+                      error={!store.service_id || store.errorservice_id !== ""}
+                      helperText={getServiceHelperText()}
+                      disabled={store.is_application_read_only}
+                      searchable={true}
+                      clearable={true}
+                      showDescription={true}
+                      groupBy={true}
+                      size="small"
+                      fullWidth
+                    />
                   </Grid>
 
-                  {store.id > 0 &&
+                  {store.id > 0 && (
                     <Grid item md={4} xs={12}>
                       <DateField
                         value={store.deadline ? dayjs(store.deadline) : null}
@@ -256,22 +257,24 @@ const BaseView: FC<ProjectsTableProps> = observer((props) => {
                         disabled={store.is_application_read_only}
                       />
                     </Grid>
-                  }
+                  )}
 
-                  {store.workflow_id_for_structure &&
+                  {store.workflow_id_for_structure && (
                     <Grid item md={12} xs={12}>
-                      <LookUp
-                        disabled={store.id > 0}
-                        data={store.WorkflowTaskTemplates?.filter(x => x.workflow_id == store.workflow_id_for_structure) || []}
+                      <SelectField
                         id="id_f_Application_workflow_task_structure_id"
-                        label={translate("label:ApplicationAddEditView.workflow_task_structure_id")}
-                        value={store.workflow_task_structure_id}
-                        fieldNameDisplay={(x) => x?.structure_name || ""}
-                        onChange={(event) => store.handleChange(event)}
                         name="workflow_task_structure_id"
+                        label={translate("label:ApplicationAddEditView.workflow_task_structure_id")}
+                        value={store.workflow_task_structure_id || ''}
+                        onChange={(event) => store.handleChange(event)}
+                        options={workflowOptions}
+                        disabled={store.id > 0}
+                        multiple={true}
+                        size="small"
+                        fullWidth
                       />
                     </Grid>
-                  }
+                  )}
                 </Grid>
               </CardContent>
             </StyledCard>
@@ -285,7 +288,7 @@ const BaseView: FC<ProjectsTableProps> = observer((props) => {
                   <Description />
                   {translate("label:ApplicationAddEditView.work_description")}
                 </SectionTitle>
-                
+
                 <Grid container spacing={3}>
                   <Grid item md={12} xs={12}>
                     <CustomTextField
@@ -301,7 +304,7 @@ const BaseView: FC<ProjectsTableProps> = observer((props) => {
                       name="work_description"
                     />
                   </Grid>
-                  
+
                   <Grid item md={6} xs={12}>
                     <CustomTextField
                       helperText={store.errorincoming_numbers}
@@ -314,7 +317,7 @@ const BaseView: FC<ProjectsTableProps> = observer((props) => {
                       name="incoming_numbers"
                     />
                   </Grid>
-                  
+
                   <Grid item md={6} xs={12}>
                     <CustomTextField
                       helperText={store.erroroutgoing_numbers}
@@ -347,6 +350,22 @@ const BaseView: FC<ProjectsTableProps> = observer((props) => {
             </StyledCard>
           </Grid>
 
+          {/* Info Section */}
+          <Grid item xs={12}>
+            <Alert 
+              severity={validationErrors.length === 0 ? "success" : "info"} 
+              sx={{ borderRadius: 2 }}
+            >
+              <Typography variant="body2">
+                {validationErrors.length === 0 ? (
+                  <><strong>Готово!</strong> Все обязательные поля заполнены корректно.</>
+                ) : (
+                  <><strong>Обратите внимание:</strong> Поля отмеченные звездочкой (*) являются обязательными для заполнения.</>
+                )}
+              </Typography>
+            </Alert>
+          </Grid>
+
           {/* Comments Section */}
           {store.id > 0 && (
             <Grid item xs={12}>
@@ -369,4 +388,4 @@ const BaseView: FC<ProjectsTableProps> = observer((props) => {
   );
 });
 
-export default BaseView;
+export default ObjectStep;

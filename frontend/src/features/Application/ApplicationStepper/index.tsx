@@ -7,7 +7,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import ruLocale from 'date-fns/locale/ru';
-import App from './App';
+import App from './StepperView';
 
 // Create MUI theme
 const theme = createTheme({

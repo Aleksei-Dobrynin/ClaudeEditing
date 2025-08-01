@@ -34,6 +34,7 @@ import CustomTextField from "components/TextField";
 import ObjectFormView from "./ObjectForm";
 import mainStore from "../../../MainStore";
 import { SelectOrgStructureForWorklofw } from "constants/constant";
+import SelectField from "components/SelectField";
 
 
 type ProjectsTableProps = {
@@ -93,11 +94,13 @@ const BaseView: FC<ProjectsTableProps> = observer((props) => {
 
                   <Grid item md={8} xs={12}>
                     <Box sx={{ display: "flex", alignItems: "center" }}>
-                      <Autocomplete
-                        disabled={store.is_application_read_only}
-                        value={store.Services.find(arch => arch.id === store.service_id) || null}
-                        onChange={(event, newValue) => {
-                          let value = newValue ? newValue.id : "";
+                      <SelectField
+                        id="id_f_service_id"
+                        name="service_id"
+                        label={translate("label:ApplicationAddEditView.service_id")}
+                        value={store.service_id}
+                        onChange={(event) => {
+                          let value = event.target.value;
                           let service = store.Services.find(arch => arch.id == value)
                           if (service?.code == SelectOrgStructureForWorklofw.GIVE_DUPLICATE) {
                             store.workflow_id_for_structure = service.workflow_id;
@@ -107,30 +110,24 @@ const BaseView: FC<ProjectsTableProps> = observer((props) => {
                           }
                           store.handleChange({
                             target: { name: "service_id", value: value }
-
                           });
                         }}
-                        options={store.Services}
-                        getOptionLabel={(Service) => `${Service.name} (${Service.day_count} р.дн.)` || ""}
-                        id="id_f_service_id"
-                        isOptionEqualToValue={(option, value) => option.id === value.id}
+                        options={store.Services.map(service => ({
+                          value: service.id,
+                          label: `${service.name} (${service.day_count} р.дн.)`,
+                          disabled: (() => {
+                            const today = dayjs();
+                            const isWithinDateRange = (!service.date_start || dayjs(service.date_start).isSame(today, 'day') || dayjs(service.date_start).isBefore(today, 'day')) &&
+                              (!service.date_end || dayjs(service.date_end).isSame(today, 'day') || dayjs(service.date_end).isAfter(today, 'day'));
+                            return !service.is_active || !isWithinDateRange;
+                          })()
+                        }))}
+                        error={!!store.errorservice_id}
+                        helperText={store.errorservice_id}
+                        disabled={store.is_application_read_only}
+                        required
+                        clearable
                         fullWidth
-                        getOptionDisabled={(option) => {
-                          const today = dayjs();
-                          const isWithinDateRange = (!option.date_start || dayjs(option.date_start).isSame(today, 'day') || dayjs(option.date_start).isBefore(today, 'day')) &&
-                            (!option.date_end || dayjs(option.date_end).isSame(today, 'day') || dayjs(option.date_end).isAfter(today, 'day'));
-
-                          return !option.is_active || !isWithinDateRange;
-                        }}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label={translate("label:ApplicationAddEditView.service_id")}
-                            helperText={store.errorservice_id}
-                            error={store.errorservice_id != ""}
-                            size={"small"}
-                          />
-                        )}
                       />
                     </Box>
                   </Grid>
@@ -152,15 +149,20 @@ const BaseView: FC<ProjectsTableProps> = observer((props) => {
 
                   {store.workflow_id_for_structure &&
                     <Grid item md={12} xs={12}>
-                      <LookUp
-                        disabled={store.id > 0}
-                        data={store.WorkflowTaskTemplates.filter(x => x.workflow_id == store.workflow_id_for_structure)}
+                      <SelectField
                         id="id_f_Application_workflow_task_structure_id"
+                        name="workflow_task_structure_id"
                         label={translate("label:ApplicationAddEditView.workflow_task_structure_id")}
                         value={store.workflow_task_structure_id}
-                        fieldNameDisplay={(x) => x.structure_name}
                         onChange={(event) => store.handleChange(event)}
-                        name="workflow_task_structure_id"
+                        options={store.WorkflowTaskTemplates
+                          .filter(x => x.workflow_id == store.workflow_id_for_structure)
+                          .map(template => ({
+                            value: template.id,
+                            label: template.structure_name
+                          }))}
+                        disabled={store.id > 0}
+                        fullWidth
                       />
                     </Grid>
                   }

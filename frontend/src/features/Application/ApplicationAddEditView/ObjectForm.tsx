@@ -17,6 +17,7 @@ import PopupApplicationStore from "../PopupAplicationListView/store";
 import ContentPasteSearchIcon from "@mui/icons-material/ContentPasteSearch";
 import BadgeButton from "../../../components/BadgeButton";
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import SelectField from "components/SelectField";
 
 type ProjectsTableProps = {
   children?: React.ReactNode;
@@ -197,7 +198,7 @@ const ObjectFormView: FC<ProjectsTableProps> = observer((props) => {
                   <Grid item md={12} xs={12}>
 
                     <Grid container spacing={1} alignItems="center">
-                      <Grid item xs={12} sm={ store.legalRecords ? 11 : 12}>
+                      <Grid item xs={12} sm={store.legalRecords ? 11 : 12}>
                         <GisSearch
                           id="id_f_ArchObject_address"
                           index={i}
@@ -208,10 +209,10 @@ const ObjectFormView: FC<ProjectsTableProps> = observer((props) => {
                         />
                       </Grid>
                       {
-                        <Grid item xs={12} sm={ store.legalRecords ? 11 : 12}>
+                        <Grid item xs={12} sm={store.legalRecords ? 11 : 12}>
                           <CustomTextField
                             value={store.arch_objects[i]?.street || ""}
-                            onChange={(event) => {}}
+                            onChange={(event) => store.handleChange(event, i)} // ✅ ИСПРАВЛЕНО
                             name="street"
                             id="id_f_arch_object_street"
                             data-testid="id_f_arch_object_street"
@@ -221,10 +222,10 @@ const ObjectFormView: FC<ProjectsTableProps> = observer((props) => {
                         </Grid>
                       }
                       {
-                        <Grid item xs={12} sm={ store.legalRecords ? 11 : 12}>
+                        <Grid item xs={12} sm={store.legalRecords ? 11 : 12}>
                           <CustomTextField
                             value={store.arch_objects[i]?.house || ""}
-                            onChange={(event) => {}}
+                            onChange={(event) => store.handleChange(event, i)} // ✅ ИСПРАВЛЕНО
                             name="house"
                             id="id_f_arch_object_house"
                             data-testid="id_f_arch_object_house"
@@ -234,10 +235,10 @@ const ObjectFormView: FC<ProjectsTableProps> = observer((props) => {
                         </Grid>
                       }
                       {
-                        <Grid item xs={12} sm={ store.legalRecords ? 11 : 12}>
+                        <Grid item xs={12} sm={store.legalRecords ? 11 : 12}>
                           <CustomTextField
                             value={store.arch_objects[i]?.apartment || ""}
-                            onChange={(event) => {}}
+                            onChange={(event) => store.handleChange(event, i)} // ✅ ИСПРАВЛЕНО
                             name="apartment"
                             id="id_f_arch_object_apartment"
                             data-testid="id_f_arch_object_apartment"
@@ -247,7 +248,7 @@ const ObjectFormView: FC<ProjectsTableProps> = observer((props) => {
                         </Grid>
                       }
                       <Grid item xs={12} sm={1}>
-                        {((obj.legalActs && obj.legalActs.length > 0) || (obj.legalRecords &&obj.legalRecords.length > 0))  && (
+                        {((obj.legalActs && obj.legalActs.length > 0) || (obj.legalRecords && obj.legalRecords.length > 0)) && (
                           <Tooltip title={"Адрес фигурирует в правовой записи"}>
                             <IconButton
                               sx={{ maxHeight: 30 }}
@@ -263,16 +264,20 @@ const ObjectFormView: FC<ProjectsTableProps> = observer((props) => {
                   </Grid>
 
                   <Grid item md={12} xs={12}>
-                    <LookUp
-                      value={obj.district_id}
-                      disabled={applicationStore.is_application_read_only}
-                      onChange={(event) => store.handleChange(event, i)}
-                      name="district_id"
-                      data={store.Districts}
+                    <SelectField
                       id="id_f_district_id"
+                      name="district_id"
                       label={translate("label:ArchObjectAddEditView.district_id")}
-                      helperText={obj.errordistrict_id}
+                      value={obj.district_id}
+                      onChange={(event) => store.handleChange(event, i)}
+                      options={store.Districts.map(district => ({
+                        value: district.id,
+                        label: district.name
+                      }))}
                       error={!!obj.errordistrict_id}
+                      helperText={obj.errordistrict_id}
+                      disabled={applicationStore.is_application_read_only}
+                      fullWidth
                     />
                   </Grid>
                 </Grid>
@@ -303,16 +308,20 @@ const ObjectFormView: FC<ProjectsTableProps> = observer((props) => {
               />
             </Grid>
             <Grid item md={12} xs={12}>
-              <LookUp
-                value={applicationStore.object_tag_id}
-                disabled={applicationStore.is_application_read_only}
-                onChange={(event) => applicationStore.handleChange(event)}
-                name="object_tag_id"
-                data={applicationStore.ObjectTags}
+              <SelectField
                 id="object_tag_id"
+                name="object_tag_id"
                 label={translate("Тип объекта")}
-                helperText={applicationStore.errorobject_tag_id}
+                value={applicationStore.object_tag_id}
+                onChange={(event) => applicationStore.handleChange(event)}
+                options={applicationStore.ObjectTags.map(tag => ({
+                  value: tag.id,
+                  label: tag.name
+                }))}
                 error={!!applicationStore.errorobject_tag_id}
+                helperText={applicationStore.errorobject_tag_id}
+                disabled={applicationStore.is_application_read_only}
+                fullWidth
               />
             </Grid>
           </Grid>

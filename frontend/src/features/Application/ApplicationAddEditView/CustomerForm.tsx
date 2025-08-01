@@ -48,6 +48,7 @@ import {
   Badge,
   Warning
 } from "@mui/icons-material";
+import SelectField from "components/SelectField";
 
 // Styled components
 const StyledCard = styled(Card)(({ theme }) => ({
@@ -316,17 +317,23 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
 
                 <Grid item md={4} xs={12}>
                   <Collapse in={store.customer.is_foreign}>
-                    <AutocompleteCustomImg
-                      helperText={store.customerErrors.foreign_country}
-                      error={!!store.customerErrors.foreign_country}
-                      disabled={store.is_application_read_only}
-                      data={store.Countries}
+                    <SelectField
+                      id="id_f_customer_identity_foreign_country_id"
+                      name="foreign_country"
                       label={translate("common:country")}
-                      name={"foreign_country"}
                       value={store.customer.foreign_country}
-                      id={"id_f_customer_identity_foreign_country_id"}
                       onChange={handleFieldChange}
-                      fieldNameDisplay={(field) => field.name}
+                      options={store.Countries.map(country => ({
+                        value: country.id,
+                        label: country.name,
+                        icon: country.icon_svg ? <img src={country.icon_svg} alt="flag" style={{ width: 20, height: 15 }} /> : undefined
+                      }))}
+                      error={!!store.customerErrors.foreign_country}
+                      helperText={store.customerErrors.foreign_country}
+                      disabled={store.is_application_read_only}
+                      required
+                      searchable
+                      fullWidth
                     />
                   </Collapse>
                 </Grid>
@@ -473,16 +480,21 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                   </Grid>
 
                   <Grid item md={4} xs={12}>
-                    <LookUp
-                      disabled={store.is_application_read_only}
-                      helperText={store.customerErrors.organization_type_id}
-                      error={!!store.customerErrors.organization_type_id}
-                      data={store.OrganizationTypes}
+                    <SelectField
                       id="id_f_Customer_organization_type_id"
+                      name="organization_type_id"
                       label={translate("label:CustomerAddEditView.organization_type_id")}
                       value={store.customer.organization_type_id}
                       onChange={handleFieldChange}
-                      name="organization_type_id"
+                      options={store.OrganizationTypes.map(type => ({
+                        value: type.id,
+                        label: type.name
+                      }))}
+                      error={!!store.customerErrors.organization_type_id}
+                      helperText={store.customerErrors.organization_type_id}
+                      disabled={store.is_application_read_only}
+                      required
+                      fullWidth
                     />
                   </Grid>
 
@@ -599,17 +611,21 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
 
                 <Grid container spacing={3}>
                   <Grid item md={4} xs={12}>
-                    <LookUp
-                      disabled={store.is_application_read_only}
+                    <SelectField
+                      id="id_f_customer_identity_document_type_id"
+                      name="identity_document_type_id"
+                      label={translate("label:CustomerAddEditView.identity_document_type_id")}
                       value={store.customer.identity_document_type_id}
                       onChange={handleFieldChange}
-                      name="identity_document_type_id"
-                      data={store.Identity_document_types}
-                      data-testid="id_f_customer_identity_document_type_id"
-                      id="id_f_customer_identity_document_type_id"
-                      label={translate("label:CustomerAddEditView.identity_document_type_id")}
-                      helperText={store.customerErrors.identity_document_type_id}
+                      options={store.Identity_document_types.map(type => ({
+                        value: type.id,
+                        label: type.name
+                      }))}
                       error={!!store.customerErrors.identity_document_type_id}
+                      helperText={store.customerErrors.identity_document_type_id}
+                      disabled={store.is_application_read_only}
+                      required
+                      fullWidth
                     />
                   </Grid>
 
