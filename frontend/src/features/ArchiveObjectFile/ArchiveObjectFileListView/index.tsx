@@ -22,6 +22,7 @@ import MainStore from 'MainStore';
 type ArchiveObjectFileListViewProps = {
   idArchiveObject: number;
   idFolder?: number;
+  isReadOnly?: boolean;
 };
 
 
@@ -115,7 +116,8 @@ const ArchiveObjectFileListView: FC<ArchiveObjectFileListViewProps> = observer((
         onDeleteClicked={(id: number) => store.deleteArchiveObjectFile(id)}
         columns={columns}
         data={store.data}
-        tableName="ArchiveObjectFile" />
+        tableName="ArchiveObjectFile"
+        />
       break
     case 'popup':
       component = <PopupGrid
@@ -129,6 +131,8 @@ const ArchiveObjectFileListView: FC<ArchiveObjectFileListViewProps> = observer((
           </CustomButton>}</>}
         hideEditButton={true}
         data={store.data}
+        hideActions = {props.isReadOnly}
+        hideAddButton={props.isReadOnly}
         tableName="ArchiveObjectFile" />
       break
   }

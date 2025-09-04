@@ -601,17 +601,16 @@
     "email_2": "Адрес электронной почты 2",
     "telegram_1": "Телеграм 1",
     "telegram_2": "Телеграм 2",
-    "is_foreign": "Иностранный",
-    "customer_selection": "Выбор заявителя",
-    "main_info": "Основная информация",
-    "organization_details": "Реквизиты организации",
-    "banking_details": "Банковские реквизиты",
-    "identity_documents": "Документы удостоверяющие личность",
-    "contact_info": "Контактная информация"
+    "is_foreign": "Иностранный"
   },
   "ApplicationListView": {
     "Application": "Заявка",
     "entityTitle": "Заявка",
+    "arch_objects_extracted": "Объекты",
+    "customer_pin_extracted": "ИНН заказчика",
+    "customer_name_extracted": "Заказчик",
+    "customer_contacts_extracted": "Контакты заказчика",
+    "is_electronic_only": "Только электронная выдача",
     "registration_date": "Дата регистрации",
     "deadline": "Крайний срок",
     "customer_name": "Заказчик",
@@ -620,6 +619,7 @@
     "searchByPin": "Поиск по ИНН",
     "searchCustomerName": "Поиск по заявителю",
     "filterByService": "Поиск по услуге",
+    "filterByStructure": "Поиск по отделу",
     "filterByStatus": "Поиск по статусу",
     "filterByDistrict": "Поиск по району",
     "filterByDeadline": "Дней до крайнего срока",
@@ -702,9 +702,11 @@
     "totalSumTo": "Сумма калькуляции до",
     "totalPayedFrom": "Оплачено от",
     "totalPayedTo": "Оплачено до",
-    "go_to_task": "Перейти к задаче",
-    "my_tasks_title": "Мои задачи",
-    "structure_tasks_title": "Задачи структуры"
+    "filterByTundukDistrict": "Район",
+    "filterByTundukResidentialArea": "Жилмассив (адм. единица)",
+    "filterByTundukStreet": "Улица",
+    "select_application": "Выбор",
+    "print_template": "Печать шаблона"
   },
   "ApplicationAddEditView": {
     "entityTitle": "Заявка",
@@ -750,49 +752,7 @@
     "notify_history_date_message": "Дата",
     "notify_history_none": "Нет истории уведомлений",
     "customer_sendDocument": "Отправить документа на почту",
-    "only_electronic": "Только электронная выдача",
-    "steps_objects": "Объекты",
-    "steps_applicant": "Заявитель",
-    "steps_documents": "Документы",
-    "steps_review": "Шаблоны документов",
-    "editApplication": "Редактирование заявки",
-    "newApplication": "Регистрация новой заявки",
-    "service_section": "Выбор услуги",
-    "work_details": "Детали работы",
-    "object_section": "Объект",
-    "comments_section": "Комментарии",
-    "customer_selection": "Выбор заявителя",
-    "main_info": "Основная информация",
-    "organization_details": "Реквизиты организации",
-    "banking_details": "Банковские реквизиты",
-    "identity_documents": "Документы удостоверяющие личность",
-    "contact_info": "Контактная информация",
-    "required": "Обязательно",
-    "incoming_documents": "Входящие документы",
-    "incoming_documents_description": "Загрузите документы, полученные от заявителя",
-    "outgoing_documents": "Исходящие документы",
-    "outgoing_documents_description": "Документы, которые будут выданы заявителю",
-    "work_documents": "Рабочие документы",
-    "work_documents_description": "Внутренние документы по заявке",
-    "documents_info_title": "Управление документами",
-    "documents_info_description": "Загрузите все необходимые документы для обработки заявки",
-    "drag_drop_files": "Перетащите файлы сюда",
-    "or_click_to_browse": "или нажмите для выбора",
-    "application_ready": "Заявка готова к отправке",
-    "review_and_sign": "Проверьте данные и подпишите документы",
-    "application_preview": "Просмотр заявки",
-    "customer": "Заявитель",
-    "no_description": "Описание не указано",
-    "documents_to_sign": "Документы для подписания",
-    "documents_sign_description": "Скачайте, подпишите и загрузите обратно подписанные документы",
-    "next_steps": "Следующие шаги",
-    "step1_download": "Скачайте документы для подписания",
-    "step2_sign": "Подпишите документы с помощью ЭЦП",
-    "step3_upload": "Загрузите подписанные документы обратно",
-    "digital_signature": "Электронная подпись",
-    "sign_with_eds": "Подписать ЭЦП",
-    "download_all": "Скачать все",
-    "documents_signed_success": "Документы успешно подписаны"
+    "only_electronic": "Только электронная выдача"
   },
   "DistrictListView": {
     "District": "Район",
@@ -828,13 +788,14 @@
   "ArchObjectAddEditView": {
     "entityTitle": "Архитектурный объект",
     "address": "Адрес",
-    "street": "Улица",
-    "house": "Дом",
-    "apartment": "Квартира",
     "name": "Название",
     "identifier": "ЕНИ",
     "district_id": "Район",
-    "description": "Описание"
+    "description": "Описание",
+    "tunduk_district_id": "Район",
+    "tunduk_address_unit_id": "Жилмассив (адм. единица)",
+    "tunduk_street_id": "Улица",
+    "tunduk_building_id": "Выбор адреса"
   },
   "CustomerRepresentativeListView": {
     "ArchObject": "Доверенное лицо",
@@ -935,7 +896,8 @@
     "head_structure_id": "Начальник",
     "implementer_id": "Исполнитель",
     "add_discount": "Добавить скидку",
-    "is_free_calculation": "Калькуляция не требуется"
+    "is_free_calculation": "Калькуляция не требуется",
+    "addStandard": "Добавить стандартную"
   },
   "application_paymentListView": {
     "searchByStructure": "Поиск по структуре",
@@ -979,6 +941,7 @@
     "nsp": "НСП",
     "reason": "Описание скидки",
     "file_id": "Файл",
+    "invoice_id": "Id инвойса",
     "discount_value": "Сумма скидки",
     "nds_value": "Сумма НДС",
     "nsp_value": "Сумма НСП",
@@ -986,6 +949,7 @@
     "implementer_name": "Исполнитель",
     "head_structure_name": "Начальник",
     "sum_wo_discount": "Сумма без скидки",
+    "sum_with_discount": "Сумма со скидкой",
     "head_structure_id": "Начальник",
     "file_name": "Название файла",
     "discount_percentage": "Скидка в процентах",
@@ -1330,7 +1294,8 @@
     "language_name": "Язык",
     "language_id": "Язык",
     "download": "Скачать",
-    "body": "Документ"
+    "body": "Документ",
+    "created_at": "Дата"
   },
   "releaseAddEditView": {
     "entityTitle": "Релиз",
@@ -1586,6 +1551,8 @@
     "created_at_history": "Дата загрузки",
     "created_by_name_history": "Сотрудник \\ отдел",
     "unknown_name_history": "Неизвестно",
+    "cabinet_upload_id": "Id из кабинета",
+    "status": "Статус",
     "view_history": "Просмотр"
   },
   "ApplicationCommentsListView": {
@@ -3138,7 +3105,8 @@
     "entityTitle": "Цена услуги",
     "service_id": "Услуга",
     "structure_id": "Отдел",
-    "price": "Сумма без налогов"
+    "price": "Сумма без налогов",
+    "document_template_id": "Шаблон"
   },
   "ServicePriceListView": {
     "entityTitle": "Цена услуги",
@@ -3158,6 +3126,7 @@
   "incomeListView": {
     "entityTitle": "Поступления",
     "application_number": "Номер заявки",
+    "reestr_name": "Реестр",
     "invoice_date": "Дата платежа",
     "invoice_sum": "Сумма",
     "payment_identifier": "Идентификатор платежа",
@@ -3322,8 +3291,120 @@
     "arch_object_address": "Адрес объекта",
     "customer_name": "Заявитель",
     "registration_date": "Дата регистрации",
+    "added_at": "Дата добавления в журнал",
     "deadline": "Срок",
     "application_status_id": "Статус заявления",
     "outgoing_number": "Исходящий номер"
+  },
+  "dashboard": {
+    "statistics": {
+      "title": "Статистика",
+      "new_applications": "Новые заявки",
+      "completed_applications": "Завершено",
+      "assigned_to_me": "Назначено на меня",
+      "overdue_applications": "Просрочено",
+      "unsigned_documents": "На подписание",
+      "startDate": "Дата начала",
+      "endDate": "Дата окончания"
+    }
+  },
+  "applications": {
+    "assigned_to_me": "Назначено на меня",
+    "completed_applications": "Завершено",
+    "overdue_applications": "Просрочено",
+    "unsigned_documents": "На подписание",
+    "show_all": "Показать все критичные заявки →"
+  },
+  "time_control": {
+    "title": "Контроль сроков",
+    "overdue": "Просрочено",
+    "due_soon_2": "Осталось 3 дня",
+    "due_soon_5": "Осталось 5 дней",
+    "in_work": "В работе"
+  },
+  "AddressUnitTypeAddEditView": {
+    "entityTitle": "Тип административной единицы",
+    "code": "Код",
+    "name": "Название",
+    "name_kg": "Название (кырг.)",
+    "description": "Описание",
+    "description_kg": "Описание (кырг.)"
+  },
+  "AddressUnitTypeListView": {
+    "entityTitle": "Типы административной единиц",
+    "code": "Код",
+    "name": "Название",
+    "name_kg": "Название (кырг.)",
+    "description": "Описание",
+    "description_kg": "Описание (кырг.)"
+  },
+  "AddressUnitAddEditView": {
+    "entityTitle": "Административная единица",
+    "code": "Код",
+    "name": "Название",
+    "name_kg": "Название (кырг.)",
+    "description": "Описание",
+    "description_kg": "Описание (кырг.)",
+    "type_id": "Тип адресной единицы",
+    "expired": "Устаревший",
+    "street_id": "ID улицы",
+    "parent_id": "Отностится к территориальной единице"
+  },
+  "AddressUnitListView": {
+    "entityTitle": "Административная единица",
+    "code": "Код",
+    "name": "Название",
+    "name_kg": "Название (кырг.)",
+    "description": "Описание",
+    "description_kg": "Описание (кырг.)",
+    "type_id": "Тип",
+    "expired": "Статус",
+    "expired_yes": "Устаревший",
+    "expired_no": "Активный",
+    "street_id": "ID улицы",
+    "parent_name": "Относится к территориальной единице"
+  },
+  "StreetAddEditView": {
+    "entityTitle": "Улица",
+    "code": "Код",
+    "name": "Название",
+    "name_kg": "Название (кырг.)",
+    "type_id": "Тип улицы",
+    "expired": "Истек срок действия",
+    "street_id": "ID улицы",
+    "description": "Описание",
+    "description_kg": "Описание (кырг.)",
+    "address_unit_id": "Территориальныя единица"
+  },
+  "StreetListView": {
+    "entityTitle": "Улицы",
+    "Street": "Улица",
+    "code": "Код",
+    "name": "Название",
+    "name_kg": "Название (кырг.)",
+    "type_id": "Тип улицы",
+    "expired": "Статус",
+    "expired_yes": "Истек",
+    "expired_no": "Действующий",
+    "description": "Описание",
+    "description_kg": "Описание (кырг.)",
+    "address_unit_name": "Административная единица"
+  },
+  "StreetTypeAddEditView": {
+    "entityTitle": "Тип улицы",
+    "code": "Код",
+    "name": "Название",
+    "name_kg": "Название (кырг.)",
+    "description": "Описание",
+    "description_kg": "Описание (кырг.)"
+  },
+  "StreetTypeListView": {
+    "entityTitle": "Типы улиц",
+    "StreetType": "Тип улицы",
+    "code": "Код",
+    "name": "Название",
+    "name_kg": "Название (кырг.)",
+    "description": "Описание",
+    "description_kg": "Описание (кырг.)"
   }
 }

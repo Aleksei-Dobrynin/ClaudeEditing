@@ -245,7 +245,16 @@ namespace Messaging.Services
                             description = obj.Description,
                             //district_id = districtRepository.GetAll().Result.FirstOrDefault(d => d.code == "not defined")?.id
                             district_id = obj.DistrictId,
-                            tags = obj.Tags
+                            tags = obj.Tags,
+                            xcoordinate = obj.XCoord,
+                            ycoordinate = obj.YCoord,
+                            tunduk_district_id = obj.TundukDistrictId,
+                            tunduk_address_unit_id = obj.TundukAddressUnitId,
+                            tunduk_street_id = obj.TundukStreetId,
+                            tunduk_building_num = obj.TundukBuildingNum,
+                            tunduk_flat_num = obj.TundukFlatNum,
+                            tunduk_uch_num = obj.TundukUchNum,
+                            is_manual = obj.IsManual
                         }).ToList(),
                         customer = new Customer
                         {
@@ -708,6 +717,15 @@ namespace Messaging.Services
         public string Description { get; set; }
         public int ApplicationId { get; set; }
         public int[] Tags { get; set; }
+        public double? XCoord { get; set; }
+        public double? YCoord { get; set; }
+        public int? TundukDistrictId { get; set; }
+        public int? TundukAddressUnitId { get; set; }
+        public int? TundukStreetId { get; set; }
+        public string? TundukBuildingNum { get; set; }
+        public string? TundukFlatNum { get; set; }
+        public string? TundukUchNum { get; set; }
+        public bool? IsManual { get; set; }
     }
         
     public class UploadedApplicationDocumentData

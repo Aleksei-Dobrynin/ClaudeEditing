@@ -73,6 +73,25 @@ const ApplicationStepsBaseView: FC<ApplicationStepsBaseViewProps> = observer(({ 
   const { t } = useTranslation();
   const navigate = useNavigate();
 
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const stepParam = params.get("app_step_id");
+
+    if (stepParam && store.data.length > 0) {
+      const stepId = parseInt(stepParam, 10);
+      const foundStep = store.data.find(s => s.id === stepId);
+      if (foundStep) {
+        store.expandedStepId = foundStep.id;
+        setTimeout(() => {
+          const el = document.getElementById(`step-${stepId}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 100);
+      }
+    }
+  }, [store.expandedStepId, store.data]);
+
   const hasAccessToStepStatuses = (structureId: number) => {
     let str_ids = taskStore.OrgStructures.filter(x => x.parent_id === structureId).map(x => x.id) // children structures
     str_ids.push(structureId);
@@ -203,6 +222,7 @@ const ApplicationStepsBaseView: FC<ApplicationStepsBaseViewProps> = observer(({ 
       {/* Steps List */}
       <Stack spacing={2}>
         {store.data.map((step) => (
+          <div key={step.id} id={`step-${step.id}`}>
           <Accordion
             key={step.id}
             expanded={store.expandedStepId === step.id}
@@ -598,6 +618,7 @@ const ApplicationStepsBaseView: FC<ApplicationStepsBaseViewProps> = observer(({ 
               </Box>
             </AccordionDetails>
           </Accordion>
+          </div>
         ))}
         {/* Диалоги */}
         <AddDocumentDialog stepId={store.currentStepId} onSuccess={() => store.loadApplication(store.application_id)} />

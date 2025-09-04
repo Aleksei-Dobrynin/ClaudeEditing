@@ -50,6 +50,10 @@ const DashboardContainer: React.FC<DashboardContainerProps> = observer(({
   useEffect(() => {
   }, [layout, theme, widgets]);
 
+  const handleCardClick = (id: number) => {
+    window.open(`/user/Application/addedit?id=${id}`, '_blank');
+  };
+
   const muiTheme = createTheme({
     palette: {
       primary: {
@@ -120,10 +124,10 @@ const DashboardContainer: React.FC<DashboardContainerProps> = observer(({
               const backgroundColor = categoryColors[item.category] || 'grey.400';
 
               const categoryLabels = {
-                assigned_to_me: 'Назначено на меня',
-                completed_applications: 'Завершено',
-                overdue_applications: 'Просрочено',
-                unsigned_documents: 'На подписание',
+                assigned_to_me: t('applications.assigned_to_me'),
+                completed_applications: t('applications.completed_applications'),
+                overdue_applications: t('applications.overdue_applications'),
+                unsigned_documents: t('applications.unsigned_documents'),
               };
 
               return (
@@ -131,6 +135,7 @@ const DashboardContainer: React.FC<DashboardContainerProps> = observer(({
                 <Paper
                   key={index}
                   elevation={0}
+                  onClick={() => handleCardClick(item.id)}
                   sx={{
                     p: 2,
                     border: '1px solid',
@@ -138,6 +143,12 @@ const DashboardContainer: React.FC<DashboardContainerProps> = observer(({
                     backgroundColor: `${backgroundColor}10`,
                     borderRadius: 2,
                     position: 'relative',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+                    },
                   }}
                 >
                   {/* Метка категории */}
@@ -225,7 +236,8 @@ const DashboardContainer: React.FC<DashboardContainerProps> = observer(({
                     <Link
                       style={{ textDecoration: "underline", marginLeft: 5 }}
                       target="_blank"
-                      to={`/user/Application/addedit?id=${item.id}`}>
+                      to={`/user/Application/addedit?id=${item.id}`}
+                      onClick={(e) => e.stopPropagation()}>
                       Открыть →
                     </Link>
                   </Stack>

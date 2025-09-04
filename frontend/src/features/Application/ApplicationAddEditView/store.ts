@@ -138,30 +138,7 @@ class NewStore {
     foreign_country: null,
     customerRepresentatives: [],
   };
-  customerErrors: { [key: string]: string } = {
-    pin: "",
-    full_name: "",
-    individual_surname: "",
-    individual_name: "",
-    individual_secondname: "",
-    address: "",
-    director: "",
-    organization_type_id: "",
-    ugns: "",
-    registration_number: "",
-    payment_account: "",
-    bank: "",
-    bik: "",
-    sms_1: "",
-    sms_2: "",
-    email_1: "",
-    email_2: "",
-    identity_document_type_id: "",
-    document_serie: "",
-    document_date_issue: "",
-    document_whom_issued: "",
-    foreign_country: "",
-  };
+  customerErrors: { [key: string]: string } = {};
   WorkflowTaskTemplates = [];
   OrganizationTypes = [];
   ObjectTags = [];
@@ -196,11 +173,6 @@ class NewStore {
       () => [this.customerInputValue],
       () => this.onInputValueChanged(),
       { delay: 1000 }
-    );
-    reaction(
-      () => [this.customer.is_organization, this.customer.is_foreign],
-      () => this.clearIrrelevantCustomerErrors(),
-      { delay: 100 }
     );
   }
 
@@ -273,7 +245,6 @@ class NewStore {
       this.selectedOutgoingDocuments = [];
       this.selectedWorkDocuments = [];
       this.is_electronic_only = false;
-      this.clearCustomerErrors();
     });
   }
 
@@ -481,18 +452,8 @@ class NewStore {
   }
 
   handleChangeCustomer(event) {
-    const { name, value, type, checked } = event.target;
-
-    // Обновляем значение
-    if (type === 'checkbox') {
-      this.customer[name] = checked;
-    } else {
-      this.customer[name] = value;
-    }
-
-    // Валидируем поле через основную функцию валидации
-    const validationEvent = { target: { name, value: name === 'pin' ? this.customer : value } };
-    validate(validationEvent);
+    this.customer[event.target.name] = event.target.value;
+    // validate(event);
   }
 
   changeCustomer(value: Customer) {
@@ -533,7 +494,6 @@ class NewStore {
         is_foreign: false,
         foreign_country: null,
       };
-      this.clearCustomerErrors();
     }
   }
   changeArchObject(value: any) {
@@ -667,7 +627,7 @@ class NewStore {
         return;
       }
 
-      if (status.code === APPLICATION_STATUSES.to_technical_council) {
+      if (status.code === APPLICATION_STATUSES.to_technical_council){
         this.isOpenTechCouncil = true;
       }
 
@@ -696,27 +656,6 @@ class NewStore {
     }
   }
 
-  validateObjectForm = () => {
-    let canSave = true;
-    let event: { target: { name: string; value: any } } = {
-      target: { name: "id", value: this.id },
-    };
-    canSave = validate(event) && canSave;
-    event = { target: { name: "customer_id", value: this.customer_id } };
-    canSave = validate(event) && canSave;
-    event = { target: { name: "arch_object_id", value: this.arch_object_id } };
-    canSave = validate(event) && canSave;
-    event = { target: { name: "service_id", value: this.service_id } };
-    canSave = validate(event) && canSave;
-
-    const saveObject = storeObject.onSaveClick()
-
-    if (!(canSave && saveObject.canSave)) {
-      MainStore.openErrorDialog(i18n.t("message:error.alertMessageAlert"));
-    }
-    return canSave && saveObject.canSave;
-  }
-
   onSaveClick = async (onSaved: (id: number) => void, saveWithoutCheck: boolean = false) => {
     let canSave = true;
     let event: { target: { name: string; value: any } } = {
@@ -740,10 +679,8 @@ class NewStore {
       canSave = validate(event) && canSave;
     }
 
-    const customerValid = this.validateCustomerForm();
-    canSave = customerValid && canSave;
-
     const saveObject = storeObject.onSaveClick()
+
     if (canSave && saveObject.canSave) {
       try {
         MainStore.changeLoader(true);
@@ -879,7 +816,7 @@ class NewStore {
       const response = await getServices();
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
         const today = dayjs();
-
+        
         this.Services = response.data
       } else {
         throw new Error();
@@ -990,9 +927,6 @@ class NewStore {
     if (!data.document_whom_issued) {
       this.customer.document_whom_issued = "МКК "
     }
-
-    // Очищаем ошибки валидации при загрузке данных
-    this.clearCustomerErrors();
   };
 
   loadCustomer = async (customer_id: number) => {
@@ -1212,88 +1146,6 @@ class NewStore {
     await this.loadApplication(id);
     commentStore.loadAllComments(id);
   }
-
-  clearCustomerErrors = (): void => {
-    Object.keys(this.customerErrors).forEach(key => {
-      this.customerErrors[key] = "";
-    });
-  };
-
-  // Очистить нерелевантные ошибки при смене типа клиента
-  clearIrrelevantCustomerErrors = (): void => {
-    if (this.customer.is_organization) {
-      // Очищаем ошибки полей физического лица
-      this.customerErrors.individual_surname = "";
-      this.customerErrors.individual_name = "";
-      this.customerErrors.individual_secondname = "";
-      this.customerErrors.identity_document_type_id = "";
-      this.customerErrors.document_serie = "";
-      this.customerErrors.document_date_issue = "";
-      this.customerErrors.document_whom_issued = "";
-    } else {
-      // Очищаем ошибки полей организации
-      this.customerErrors.full_name = "";
-      this.customerErrors.director = "";
-      this.customerErrors.organization_type_id = "";
-      this.customerErrors.ugns = "";
-      this.customerErrors.registration_number = "";
-      this.customerErrors.payment_account = "";
-      this.customerErrors.bank = "";
-      this.customerErrors.bik = "";
-    }
-
-    if (!this.customer.is_foreign) {
-      // Очищаем ошибки поля страны для местных клиентов
-      this.customerErrors.foreign_country = "";
-    }
-  };
-
-  // Валидация поля клиента
-  validateCustomerField = (fieldName: string): void => {
-    const event = { target: { name: fieldName, value: this.customer[fieldName] } };
-    validate(event);
-  };
-
-  // Валидация всей формы клиента
-  validateCustomerForm = (): boolean => {
-    // Валидируем основные поля
-    this.validateCustomerField('pin');
-    this.validateCustomerField('address');
-
-    if (this.customer.is_organization) {
-      this.validateCustomerField('full_name');
-      this.validateCustomerField('director');
-      this.validateCustomerField('organization_type_id');
-      this.validateCustomerField('ugns');
-      this.validateCustomerField('registration_number');
-
-      if (this.customer.payment_account) {
-        this.validateCustomerField('payment_account');
-        this.validateCustomerField('bank');
-        this.validateCustomerField('bik');
-      }
-    } else {
-      this.validateCustomerField('individual_surname');
-      this.validateCustomerField('individual_name');
-      this.validateCustomerField('identity_document_type_id');
-      this.validateCustomerField('document_serie');
-      this.validateCustomerField('document_date_issue');
-      this.validateCustomerField('document_whom_issued');
-    }
-
-    // Валидируем контактные данные если они заполнены
-    if (this.customer.sms_1) this.validateCustomerField('sms_1');
-    if (this.customer.sms_2) this.validateCustomerField('sms_2');
-    if (this.customer.email_1) this.validateCustomerField('email_1');
-    if (this.customer.email_2) this.validateCustomerField('email_2');
-
-    if (this.customer.is_foreign) {
-      this.validateCustomerField('foreign_country');
-    }
-
-    // Проверяем наличие ошибок
-    return !Object.values(this.customerErrors).some(error => error !== "");
-  };
 }
 
 export default new NewStore();

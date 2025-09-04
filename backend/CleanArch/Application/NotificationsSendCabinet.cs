@@ -22,7 +22,7 @@ namespace Messaging.Services
         private readonly IRabbitMQConnection _rabbitMQConnection;
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly IModel _channel;
-        private readonly string _queueName = "send_notifications";
+        private readonly string _queueName = "1dev2008_send_notifications";
 
         public NotificationsSendCabinet(
             ILogger<NotificationsSendCabinet> logger,

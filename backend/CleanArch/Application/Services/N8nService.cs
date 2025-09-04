@@ -73,7 +73,7 @@ namespace Application.Services
         
         public async Task<bool> RegisterInFinBook(Domain.Entities.Application application, bool ready)
         {
-            return true ;
+            return true;
             try
             {
                 string webhookUrl = _configuration["N8n:Webhooks:FinBook"];

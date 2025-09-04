@@ -16,6 +16,19 @@ export const createapplication_payment = (data: application_payment, fileName?: 
   return http.post(`/application_payment`, formData);
 };
 
+export const getTemplate = (data: application_payment): Promise<any> => {
+  const formData = new FormData();
+  for (var key in data) {
+    if (data[key] == null) continue;
+    if (typeof data[key] == "number" || typeof (data[key] - 0) == "number"){
+      formData.append(key, data[key].toString().replace(",","."));
+    } else{
+      formData.append(key, data[key]);
+    }
+  }
+  return http.post(`/application_payment/ApplicationTemplate`, formData);
+};
+
 export const deleteapplication_payment = (id: number, reason?: string): Promise<any> => {
   return http.remove(`/application_payment/${id}`, {
       id,

@@ -3,7 +3,7 @@ import i18n from "i18next";
 import dayjs from "dayjs";
 import MainStore from "MainStore";
 import { validate, validateField } from "./valid";
-import { getapplication_payment } from "api/application_payment";
+import { getapplication_payment, getTemplate } from "api/application_payment";
 import { createapplication_payment } from "api/application_payment";
 import { updateapplication_payment } from "api/application_payment";
 import { downloadFile } from "api/File";
@@ -16,12 +16,14 @@ import { getApplications } from "api/Application/useGetApplications";
 import { getEmployeeInStructureGroup } from "../../../api/EmployeeInStructure/useGetEmployeeInStructure";
 import { getSystemSettingByCodes } from "../../../api/SystemSetting";
 import { number } from "yup";
-import { getByApplicationAndStructure } from "../../../api/ServicePrice";
+import { getByApplicationAndStructure, getServicePricesByStructureAndService } from "../../../api/ServicePrice";
 
 
 class NewStore {
   filterStructureId = 0;
-
+  idService = 0;
+  previewTemplate = "";
+  openPreviewTemplate = false;
   id = 0
   application_id = 0
   description = ""
@@ -60,7 +62,11 @@ class NewStore {
   // Справочники
   org_structures = []
   applications = []
+  servicePrices = []
   openPrint = false;
+  isOpenSelectLang = false;
+  selectedLang = "";
+  selectedServicePrice = 0;
 
 
   constructor() {
@@ -101,8 +107,12 @@ class NewStore {
       this.head_structure_id = 0;
       this.implementer_id = 0;
       this.errors = {}
-
+      this.servicePrices = [];
       this.openPanelDocument = false;
+      this.idService = 0;
+      this.selectedLang = "";
+      this.selectedServicePrice = 0;
+      this.previewTemplate = "";
     });
   }
 
@@ -269,6 +279,8 @@ class NewStore {
       FileName: this.FileName,
       idTask: this.idTask,
       file_id: this.file_id,
+      selectedLang: this.selectedLang,
+      selectedServicePrice: this.selectedServicePrice,
     };
 
     if (this.is_free_calc && (data.FileName == null || data.FileName?.trim() === ""))
@@ -278,7 +290,7 @@ class NewStore {
     if (this.is_free_calc && data.sum_wo_discount == 0)
       data.sum_wo_discount = 1;
 
-    const { isValid, errors } = await validate(data);
+    const { isValid, errors } = await validate(data, { skipFileCheck: this.selectedLang != "" && this.selectedServicePrice > 0 });
     if (!isValid) {
       this.errors = errors;
       MainStore.openErrorDialog(i18n.t("message:error.alertMessageAlert"));
@@ -312,11 +324,74 @@ class NewStore {
     }
   };
 
+  async getTemplate() {
+    var data = {
+
+      id: this.id - 0,
+      application_id: this.application_id - 0,
+      description: this.description,
+      sum: this.sum,
+      structure_id: this.structure_id - 0 === 0 ? null : this.structure_id - 0,
+      sum_wo_discount: this.sum_wo_discount,
+      discount_percentage: this.discount_percentage,
+      discount_value: this.discount_value,
+      reason: this.reason,
+      nds: Number(this.nds),
+      nds_value: Number(this.nds_value),
+      nsp: Number(this.nsp),
+      nsp_value: Number(this.nsp_value),
+      head_structure_id: this.employeeInStructure.find(e => e.id === this.head_structure_id)?.employee_id,
+      implementer_id: this.employeeInStructure.find(e => e.id === this.implementer_id)?.employee_id,
+      FileName: this.FileName,
+      idTask: this.idTask,
+      file_id: this.file_id,
+      selectedLang: this.selectedLang,
+      selectedServicePrice: this.selectedServicePrice,
+    };
+
+    if (this.is_free_calc && (data.FileName == null || data.FileName?.trim() === ""))
+      data.FileName = "."
+
+    let sum_wo_discount = data.sum_wo_discount;
+    if (this.is_free_calc && data.sum_wo_discount == 0)
+      data.sum_wo_discount = 1;
+
+    const { isValid, errors } = await validate(data, { skipFileCheck: this.selectedLang && this.selectedServicePrice > 0 });
+    if (!isValid) {
+      this.errors = errors;
+      MainStore.openErrorDialog(i18n.t("message:error.alertMessageAlert"));
+      return;
+    }
+    data.sum_wo_discount = sum_wo_discount;
+
+
+    try {
+      MainStore.changeLoader(true);
+      let response = await getTemplate(data);
+      if (response.status === 201 || response.status === 200) {
+        this.previewTemplate = response.data;
+        this.openPreviewTemplate = true;
+        if (data.id === 0) {
+          MainStore.setSnackbar(i18n.t("message:snackbar.successSave"), "success");
+        } else {
+          MainStore.setSnackbar(i18n.t("message:snackbar.successEdit"), "success");
+        }
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      MainStore.changeLoader(false);
+    }
+  };
+
   async doLoad(id: number) {
 
     //загрузка справочников
     await this.loadSystemSettings();
     await this.loadorg_structures();
+    await this.loadServicePricesByStructureAndService();
 
 
     if (id === null || id === 0) {
@@ -421,7 +496,6 @@ class NewStore {
         if ((response.status === 201 || response.status === 200) && response?.data !== null) {
           this.org_structures = response.data
           this.structure_id = response.data[0].id;
-          console.log(this.structure_id);
           await this.loadServicePrice(this.application_id, response.data[0].id ?? 0);
           await this.loadEmployeeInStructure(response.data[0].id ?? 0);
         } else {
@@ -494,6 +568,23 @@ class NewStore {
     }
   }
 
+  loadServicePricesByStructureAndService = async () => {
+    try {
+      MainStore.changeLoader(true);
+      const response = await getServicePricesByStructureAndService(this.filterStructureId, this.idService);
+      if ((response.status === 201 || response.status === 200) && response?.data !== null) {
+        runInAction(() => {
+          this.servicePrices = response.data;
+        });
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      MainStore.changeLoader(false);
+    }
+  };
 }
 
 export default new NewStore();

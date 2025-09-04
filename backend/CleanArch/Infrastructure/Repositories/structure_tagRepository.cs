@@ -1,11 +1,12 @@
-using System.Data;
-using Dapper;
-using Domain.Entities;
-using Application.Repositories;
-using Infrastructure.Data.Models;
 using Application.Exceptions;
 using Application.Models;
+using Application.Repositories;
+using Dapper;
+using Domain.Entities;
+using Infrastructure.Data.Models;
+using Infrastructure.FillLogData;
 using System;
+using System.Data;
 
 namespace Infrastructure.Repositories
 {
@@ -13,10 +14,13 @@ namespace Infrastructure.Repositories
     {
         private readonly IDbConnection _dbConnection;
         private IDbTransaction? _dbTransaction;
+        private IUserRepository _userRepository;
 
-        public structure_tagRepository(IDbConnection dbConnection)
+
+        public structure_tagRepository(IDbConnection dbConnection, IUserRepository userRepository)
         {
             _dbConnection = dbConnection;
+            _userRepository = userRepository;
         }
 
         public void SetTransaction(IDbTransaction dbTransaction)
@@ -70,9 +74,11 @@ namespace Infrastructure.Repositories
         {
             try
             {
+                var userId = await UserSessionHelper.SetCurrentUserAsync(_userRepository, _dbConnection, _dbTransaction);
+
                 var model = new structure_tagModel
                 {
-                    
+
                     id = domain.id,
                     name = domain.name,
                     description = domain.description,
@@ -83,6 +89,8 @@ namespace Infrastructure.Repositories
                     updated_by = domain.updated_by,
                     structure_id = domain.structure_id,
                 };
+                await FillLogDataHelper.FillLogDataUpdate(model, userId);
+
                 var sql = @"UPDATE ""structure_tag"" SET ""id"" = @id, ""name"" = @name, ""description"" = @description, ""code"" = @code, ""created_at"" = @created_at, ""updated_at"" = @updated_at, ""created_by"" = @created_by, ""updated_by"" = @updated_by, ""structure_id"" = @structure_id WHERE id = @id";
                 var affected = await _dbConnection.ExecuteAsync(sql, model, transaction: _dbTransaction);
                 if (affected == 0)

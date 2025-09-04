@@ -13,7 +13,9 @@ import CustomButton from "components/Button";
 import MtmTabs from "./mtmTabs";
 import ArchiveObjectFileListView from '../../ArchiveObjectFile/ArchiveObjectFileListView';
 
-type ArchiveObjectProps = {};
+type ArchiveObjectProps = {
+  isReadOnly?: boolean;
+};
 
 const ArchiveObjectAddEditView: FC<ArchiveObjectProps> = observer((props) => {
   const { t } = useTranslation();
@@ -38,7 +40,7 @@ const ArchiveObjectAddEditView: FC<ArchiveObjectProps> = observer((props) => {
   return (
     <ArchiveObjectAddEditBaseView {...props}>
       <br/>
-      {store.id > 0 && <ArchiveObjectFileListView idArchiveObject={store.id} idFolder={0}/>}
+      {store.id > 0 && <ArchiveObjectFileListView idArchiveObject={store.id} idFolder={0} isReadOnly={props.isReadOnly}/>}
 
     </ArchiveObjectAddEditBaseView>
   );

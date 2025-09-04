@@ -82,7 +82,7 @@ export const RoleMenu = {
   head_structure: [
     {
       group: "CustomPage",
-      rows: ["Application", "MyTasks", "MyApps", "OrgTasks", "CustomSubscribtion", "CustomerDiscount", "DashboardHeadDepartment", "TechCouncil", "ArchiveObject"],
+      rows: ["Application", "MyTasks", "MyApps", "OrgTasks", "CustomSubscribtion", "CustomerDiscount", "DashboardHeadDepartment", "TechCouncil", "ArchiveObject", "ServicePrice"],
     },
   ],
   registrar: [
@@ -91,9 +91,10 @@ export const RoleMenu = {
       rows: [
         "Application",
         "AppsFromCabinet",
+        "AppsFrorEO",
         "AppNotification",
         "CustomSubscribtion",
-      
+
       ],
     },
   ],
@@ -118,29 +119,29 @@ export const RoleMenu = {
   employee: [
     {
       group: "CustomPage",
-      rows: ["Application", "MyTasks", "MyApps", "OrgTasks", "CustomSubscribtion", "ArchiveLog","ArchiveObject"],
+      rows: ["Application", "MyTasks", "MyApps", "OrgTasks", "CustomSubscribtion", "ArchiveLog", "ArchiveObject"],
     },
   ],
   accountant: [
     {
       group: "CustomPage",
-      rows: ["Application", "Report", "CustomSubscribtion", "ArchiveLog","Income"],
+      rows: ["Application", "Report", "CustomSubscribtion", "ArchiveLog", "Income"],
     },
   ],
   lawyer: [
     {
       group: "CustomPage",
-      rows: ["Application", ],
+      rows: ["Application",],
     },
     {
       group: "Admin",
-      rows: ["LegalObject", "LegalRecordRegistry","LegalActRegistry","ArchiveObject"],
+      rows: ["LegalObject", "LegalRecordRegistry", "LegalActRegistry", "ArchiveObject"],
     }
   ],
   archive: [
     {
       group: "CustomPage",
-      rows: ["ArchiveLog", "ArchitectureProcessToArchive","ArchiveObject"],
+      rows: ["ArchiveLog", "ArchitectureProcessToArchive", "ArchiveObject"],
     },
   ],
   smm: [
@@ -152,7 +153,7 @@ export const RoleMenu = {
   financial_plan: [
     {
       group: "CustomPage",
-      rows: ["ApplicationFinPlan", "ReestrOtchet", "ReestrRealization", "ReestrTax", "Reestrs", "ReestrSvodnaya", "Report", "Income"],
+      rows: ["ApplicationFinPlan", "ReestrOtchet", "ReestrRealization", "ReestrTax", "Reestrs", "ReestrSvodnaya", "Report", "Income", "ArchiveObject"],
     },
   ],
   duty_plan: [
@@ -164,7 +165,7 @@ export const RoleMenu = {
   deputy_chief: [
     {
       group: "CustomPage",
-      rows: ["Application", "CustomSubscribtion", "employee", "Dashboard", "AllTasks", "Reports", "TechCouncilSession","ArchiveObject",
+      rows: ["Application", "CustomSubscribtion", "employee", "Dashboard", "AllTasks", "Reports", "TechCouncilSession", "ArchiveObject",
         "JournalApplication",
         "DocumentJournals",
         "Services",
@@ -219,7 +220,11 @@ export const RoleMenuHeader = {
   registrar: [
     {
       group: "CustomPage",
-      rows: ["Application", "AppNotification", "AppsFromCabinet"],
+      rows: ["Application", "AppNotification", "AppsFromCabinet", "AppsFrorEO"],
+    },
+    {
+      group: "CustomPage",
+      rows: ["ArchiveObject"],
     },
   ],
   clerk: [
@@ -276,20 +281,20 @@ export const RoleMenuHeader = {
       rows: ["AppFilter"],
     },
   ],
-  lawyer:[
+  lawyer: [
     {
-        group: "CustomPage",
-        rows: ["Application"],
+      group: "CustomPage",
+      rows: ["Application"],
     },
     {
       group: "Admin",
-      rows: ["LegalObject", "LegalRecordRegistry","LegalActRegistry"],
+      rows: ["LegalObject", "LegalRecordRegistry", "LegalActRegistry"],
     },
     {
       group: "CustomPage",
       rows: ["ArchiveObject"],
     },
- ],
+  ],
   archive: [
     {
       group: "CustomPage",
@@ -331,7 +336,7 @@ export const RoleMenuHeader = {
     },
     {
       group: "CustomPage",
-      rows: ["Reestrs", "ReestrSvodnaya", "ReestrOtchet", "ReestrRealization", "ReestrTax", "Report"],
+      rows: ["Reestrs", "ReestrSvodnaya", "ReestrOtchet", "ReestrRealization", "ReestrTax", "Report", "Income"],
     },
   ],
   duty_plan: [
@@ -347,7 +352,8 @@ export const RoleMenuHeader = {
         "Application",
         "AppNotification",
         "TechCouncilSession",
-        "TechCouncilArchiveSession"
+        "TechCouncilArchiveSession",
+        "ArchiveObject"
       ],
     },
   ],
@@ -368,3 +374,17 @@ export const MONTHS = [
   { id: 11, name: "Ноябрь" },
   { id: 12, name: "Декабрь" },
 ]
+
+
+// Маппинг между ID районов Tunduk и ID обычных районов
+export const TUNDUK_TO_REGULAR_DISTRICT_MAP = {
+  7404: 4, // Ленинский р-н → Ленинский район
+  7409: 3, // Октябрьский р-н → Октябрьский район
+  7410: 1, // Первомайский р-н → Первомайский район
+  7411: 2, // Свердловский р-н → Свердловский район
+};
+
+// Функция для получения ID обычного района по ID района Tunduk
+export const getRegularDistrictId = (tundukDistrictId: number): number => {
+  return TUNDUK_TO_REGULAR_DISTRICT_MAP[tundukDistrictId] || 6; // 6 - "Не определено"
+};

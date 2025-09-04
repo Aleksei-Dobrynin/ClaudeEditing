@@ -414,5 +414,21 @@ WHERE temp.""id"" = @id AND l.""code"" = @language LIMIT 1
                 throw new RepositoryException("Failed to get S_DocumentTemplate", ex);
             }
         }
+        
+        public async Task<List<S_DocumentTemplate>> GetApplicationTemplate()
+        {
+            try
+            {
+                var sql = @"select SDT.* from ""S_DocumentTemplate"" SDT
+left join ""S_DocumentTemplateType"" SDTT on SDT.""idDocumentType"" = SDTT.id
+where SDTT.code = 'application'";
+                var result = await _dbConnection.QueryAsync<S_DocumentTemplate>(sql, transaction: _dbTransaction);
+                return result.ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to get S_DocumentTemplate", ex);
+            }
+        }
     }
 }

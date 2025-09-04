@@ -1,5 +1,4 @@
 import { Outlet, RouterProvider, createBrowserRouter } from "react-router-dom";
-import { GlobalStyles } from '@mui/material';
 
 import { ThemeProvider } from "@mui/material/styles";
 import { CssBaseline, StyledEngineProvider } from "@mui/material";
@@ -56,6 +55,7 @@ import CustomerListView from "./features/Customer/CustomerListView";
 import CustomerAddEditView from "./features/Customer/CustomerAddEditView";
 import ApplicationListView from "./features/Application/ApplicationListView";
 import ApplicationFromCabinetListView from "./features/Application/ApplicationsFromCabinet";
+import ApplicationForEoListView from "./features/Application/ApplicationForEOListView";
 import ApplicationAddEditView from "./features/Application/ApplicationAddEditView";
 import ApplicationStatusHistoryListView from "./features/HistoryTable/StatusHistoryTableListView"
 
@@ -82,6 +82,7 @@ import Task_statusAddEditView from "features/task_status/task_statusAddEditView"
 import Faq_questionView from 'features/faq_question/faq_questionListView';
 import Faq_questionAddEditView from 'features/faq_question/faq_questionAddEditView';
 import Faq_questionAccordions from 'features/faq_question/faq_questionListView/accordion';
+import DashboardContainer from 'features/DashboardContainer/DashboardContainer';
 
 import NotificationAddEditView from "features/notification/notificationAddEditView";
 import NotificationListView from "features/notification/notificationListView";
@@ -229,10 +230,20 @@ import ApplicationOutgoingDocumentListView from 'features/ApplicationOutgoingDoc
 import JournalTemplateTypeAddEditView from 'features/JournalTemplateType/JournalTemplateTypeAddEditView';
 import JournalTemplateTypeListView from 'features/JournalTemplateType/JournalTemplateTypeListView';
 import JournalApplicationListView from 'features/JournalApplication/JournalApplicationListView';
-import ApplicationStepper from 'features/Application/ApplicationStepper';
+import JournalApplicationListViewApp from 'features/JournalApplication/JournalApplicationListViewApp';
+import AddressUnitTypeListView from "features/AddressUnitType/AddressUnitTypeListView/index";
+import AddressUnitTypeAddEditView from "features/AddressUnitType/AddressUnitTypeAddEditView/index"
+import AddressUnitListView from "features/AddressUnit/AddressUnitListView/index";
+import AddressUnitAddEditView from "features/AddressUnit/AddressUnitAddEditView/index";
+
+import StreetTypeListView from "features/StreetType/StreetTypeListView/index";
+import StreetTypeAddEditView from "features/StreetType/StreetTypeAddEditView/index"
+import StreetListView from "features/Street/StreetListView/index";
+import StreetAddEditView from "features/Street/StreetAddEditView/index";
 
 import Reports from 'features/Dashboard_headDepartment/reports';
 import { JournalTemplateType } from "./constants/JournalTemplateType";
+import MainStore from "./MainStore";
 
 const router = createBrowserRouter([
   {
@@ -294,6 +305,8 @@ const router = createBrowserRouter([
               { path: "Customer/addedit", element: <CustomerAddEditView /> },
               { path: "Application", element: <ApplicationListView /> },
               { path: "AppsFromCabinet", element: <ApplicationFromCabinetListView /> },
+              { path: "AppsForEO", element: <ApplicationForEoListView /> },
+
               { path: "ApplicationFinPlan", element: <ApplicationListView finPlan /> },
               { path: "Application/addedit", element: <ApplicationAddEditView /> },
               // { path: "ApplicationStatusHistory/", element: <ApplicationStatusHistoryListView /> },
@@ -328,13 +341,9 @@ const router = createBrowserRouter([
               { path: "comments", element: <ApplicationCommentsListView /> },
               { path: "ApplicationReport", element: <ApplicationReportListView isOrg={false} /> },
               { path: "ApplicationOrganizationReport", element: <ApplicationReportListView isOrg={true} /> },
-              // { path: 'my_tasks', element: <MyTasks my_tasks /> },
+              { path: 'my_tasks', element: <MyTasks my_tasks /> },
               { path: 'my_apps', element: <MyApps /> },
-              // { path: 'structure_tasks', element: <MyTasks /> },
-
-              { path: 'my_tasks', element: <ApplicationListView key="my_tasks" filterByEmployee={true} /> },
-              { path: 'structure_tasks', element: <ApplicationListView key="structure_tasks" filterByOrgStructure={true} /> },
-
+              { path: 'structure_tasks', element: <MyTasks /> },
               { path: 'all_tasks', element: <AllTasks /> },
               { path: 'task_type', element: <Task_typeListView /> },
               { path: 'task_type/addedit', element: <Task_typeAddEditView /> },
@@ -360,7 +369,8 @@ const router = createBrowserRouter([
               { path: 'DashboardHead', element: <DashboardHead /> },
               { path: 'DashboardEmployee', element: <DashboardEmployeeView /> },
               { path: 'faq_question/addedit', element: <Faq_questionAddEditView /> },
-              { path: '', element: <Faq_questionAccordions /> },
+              // { path: '', element: <Faq_questionAccordions /> },
+              { path: '', element: <DashboardContainer /> },
               { path: "MyCustomSubscribtion", element: <CustomSubscribtionListView forMe={true} /> },
               { path: "MyCustomSubscribtion/addedit", element: <CustomSubscribtionAddEditView forMe={true} /> },
               { path: "CustomSubscribtion", element: <CustomSubscribtionListView /> },
@@ -370,6 +380,7 @@ const router = createBrowserRouter([
               { path: "TelegramAdmin/addedit", element: <TelegramAdminAddEditView /> },
               { path: "ArchiveObject", element: <ArchiveObjectListVew /> },
               { path: "ArchiveObject/addedit", element: <ArchiveObjectAddEditView /> },
+              { path: "ArchiveObject/view", element: <ArchiveObjectAddEditView isReadOnly={true}/> },
               { path: "ArchitectureProcess", element: <ArchitectureProcess /> },
               { path: "ArchitectureProcessToArchive", element: <ArchitectureProcess toArchive={true} /> },
               { path: "ArchitectureProcess/addedit", element: <ArchiveObjectFromAppEdit /> },
@@ -463,6 +474,16 @@ const router = createBrowserRouter([
               { path: 'step_dependency', element: <Step_dependencyListView /> },
               { path: 'step_dependency/addedit', element: <Step_dependencyAddEditView /> },
 
+              { path: 'AddressUnit', element: <AddressUnitListView /> },
+              { path: 'AddressUnit/addedit', element: <AddressUnitAddEditView /> },
+              { path: 'AddressUnitType', element: <AddressUnitTypeListView /> },
+              { path: 'AddressUnitType/addedit', element: <AddressUnitTypeAddEditView /> },
+
+              { path: 'Street', element: <StreetListView /> },
+              { path: 'Street/addedit', element: <StreetAddEditView /> },
+              { path: 'StreetType', element: <StreetTypeListView /> },
+              { path: 'StreetType/addedit', element: <StreetTypeAddEditView /> },
+
               { path: 'LawDocumentType', element: <LawDocumentTypeListView /> },
               { path: 'LawDocumentType/addedit', element: <LawDocumentTypeAddEditView /> },
               { path: 'LawDocument', element: <LawDocumentListView /> },
@@ -476,8 +497,7 @@ const router = createBrowserRouter([
               { path: 'ApplicationOutgoingDocument', element: <ApplicationOutgoingDocumentListView /> },
               { path: 'JournalTemplateType', element: <JournalTemplateTypeListView /> },
               { path: 'JournalTemplateType/addedit', element: <JournalTemplateTypeAddEditView /> },
-              { path: 'JournalApplication', element: <JournalApplicationListView /> },
-              { path: 'ApplicationStepper', element: <ApplicationStepper /> },
+              { path: 'JournalApplication', element: <JournalApplicationListViewApp /> },
             ]
           }]
       },
@@ -511,49 +531,6 @@ const App = () => {
       </NavigationScroll>
     </ThemeProvider>
   </StyledEngineProvider>;
-};
-
-export const DataGridPanelStyles = () => {
-  return (
-    <GlobalStyles
-      styles={{
-        // Переопределяем позиционирование для всех панелей DataGrid
-        '.MuiDataGrid-panel': {
-          // Убираем стандартное позиционирование
-          position: 'fixed !important',
-          
-          // Позиционируем относительно кнопки, которая открыла панель
-          '&[data-placement="bottom-start"]': {
-            transform: 'translateX(calc(-100% + 40px)) !important',
-          },
-          
-          // Альтернативный вариант - всегда справа
-          '&.MuiDataGrid-columnsPanel, &.MuiDataGrid-filterPanel': {
-            right: '16px !important',
-            left: 'auto !important',
-          },
-        },
-        
-        // Для Popper компонента, который обертывает панели
-        '.MuiPopper-root[role="tooltip"]': {
-          '& .MuiDataGrid-panel': {
-            position: 'relative !important',
-          },
-        },
-        
-        // Специфично для панелей в toolbar
-        '.MuiDataGrid-toolbarContainer': {
-          '& + .MuiPopper-root, & ~ .MuiPopper-root': {
-            '& .MuiDataGrid-columnsPanel, & .MuiDataGrid-filterPanel': {
-              // Сдвигаем панель вправо
-              marginLeft: 'auto',
-              transform: 'none !important',
-            },
-          },
-        },
-      }}
-    />
-  );
 };
 
 export default App;

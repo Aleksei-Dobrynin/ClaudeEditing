@@ -301,7 +301,7 @@ namespace Application.UseCases
             public string personIdnp { get; set; }
 
             [JsonProperty("method")]
-            public string method { get; set; }     
+            public string method { get; set; }
             [JsonProperty("organizationInn")]
             public string organizationInn { get; set; }
 
@@ -326,7 +326,7 @@ namespace Application.UseCases
             public string Sign { get; set; }
 
             [JsonProperty("isSuccesfull")]
-            public bool IsSuccesfull { get; set; }     
+            public bool IsSuccesfull { get; set; }
             [JsonProperty("timestamp")]
             public long Timestamp { get; set; }
 

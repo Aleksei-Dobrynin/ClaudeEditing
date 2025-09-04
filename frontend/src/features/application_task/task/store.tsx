@@ -44,6 +44,7 @@ import PopupApplicationStore from "../../Application/PopupAplicationListView/sto
 import { applicationResolvedStatuses } from "constants/constant"
 import LayoutStore from "layouts/MainLayout/store";
 import { sendToTechCouncil } from "../../../api/TechCouncil";
+import { getCommentsByApplicationId } from "../../../api/ApplicationComments/useGetByApplicationCommentByAplicationId";
 
 
 interface MapLayer {
@@ -71,6 +72,7 @@ class NewStore {
   application_id = 0
   application_number = ""
   openCabinetReject = false
+  isCheckList = false
   task_template_id = 0
   comment = ""
   name = ""
@@ -111,7 +113,7 @@ class NewStore {
   isOpenStructureTemplates = false
   isOpenTechCouncil = false
   isPaymentDialogOpen = false;
-
+  applicationComments = [];
 
   changed = false
   searchField = ""
@@ -240,7 +242,7 @@ class NewStore {
     return !(
       MainStore.isAdmin ||
       // MainStore.isHeadStructure ||
-      this.task_assigneeIds.includes(LayoutStore.employee_id) 
+      this.task_assigneeIds.includes(LayoutStore.employee_id)
       // || !(this.application_resolved && MainStore.isAdmin == false)
     );
 
@@ -306,6 +308,7 @@ class NewStore {
       this.is_done = false;
       this.application_resolved = false;
       this.isOpenStructureTemplates = false;
+      this.applicationComments = [];
     });
   }
 
@@ -471,42 +474,42 @@ class NewStore {
     this.addAssigneePanelTaskId = 0
     this.structure_employee_id = 0
   }
-async onAddAssigneeDoneClick() {
-  if (this.structure_employee_id == 0) {
-    this.errors.structure_employee_id = "Нужно кого-то выбрать!"
-    return;
-  }
-  var data = {
-    id: this.id - 0,
-    structure_employee_id: this.structure_employee_id - 0,
-    application_task_id: this.addAssigneePanelTaskId,
-  };
-  try {
-    MainStore.changeLoader(true);
-    let response = await createapplication_task_assignee(data);
-    if (response.status === 201 || response.status === 200) {
-      MainStore.setSnackbar(i18n.t("message:snackbar.successSave"), "success");
-      this.addAssigneePanelTaskId = 0
-      this.structure_employee_id = 0
-      this.errors.structure_employee_id = ""
-      
-      // Перезагружаем задачи
-      await this.loadTasks()
-      
-      // Перезагружаем данные заявки для обновления статуса
-      await this.loadAppication(this.application_id)
-      
-      // Обновляем список исполнителей
-      await this.loadapplication_task_assignees()
-    } else {
-      throw new Error();
+  async onAddAssigneeDoneClick() {
+    if (this.structure_employee_id == 0) {
+      this.errors.structure_employee_id = "Нужно кого-то выбрать!"
+      return;
     }
-  } catch (err) {
-    MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
-  } finally {
-    MainStore.changeLoader(false);
+    var data = {
+      id: this.id - 0,
+      structure_employee_id: this.structure_employee_id - 0,
+      application_task_id: this.addAssigneePanelTaskId,
+    };
+    try {
+      MainStore.changeLoader(true);
+      let response = await createapplication_task_assignee(data);
+      if (response.status === 201 || response.status === 200) {
+        MainStore.setSnackbar(i18n.t("message:snackbar.successSave"), "success");
+        this.addAssigneePanelTaskId = 0
+        this.structure_employee_id = 0
+        this.errors.structure_employee_id = ""
+
+        // Перезагружаем задачи
+        await this.loadTasks()
+
+        // Перезагружаем данные заявки для обновления статуса
+        await this.loadAppication(this.application_id)
+
+        // Обновляем список исполнителей
+        await this.loadapplication_task_assignees()
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      MainStore.changeLoader(false);
+    }
   }
-}
 
 
   async saveTags() {
@@ -632,6 +635,32 @@ async onAddAssigneeDoneClick() {
       // console.error('Ошибка поиска:', error);
     }
   }
+  loadAllComments = async (id) => {
+    try {
+      console.log('Loading comments for application_id:', id); // Для отладки
+      MainStore.changeLoader(true);
+      const response = await getCommentsByApplicationId(id);
+      if ((response.status === 201 || response.status === 200) && response?.data !== null) {
+        console.log('Comments loaded:', response.data); // Для отладки
+        runInAction(() => {
+          this.applicationComments = response.data;
+        });
+      } else {
+        console.log('No comments found or error response'); // Для отладки
+        runInAction(() => {
+          this.applicationComments = [];
+        });
+      }
+    } catch (err) {
+      console.error('Error loading comments:', err); // Для отладки
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+      runInAction(() => {
+        this.applicationComments = [];
+      });
+    } finally {
+      MainStore.changeLoader(false);
+    }
+  };
 
   async doLoad(id: number) {
     this.getMyAppications(true);
@@ -648,8 +677,7 @@ async onAddAssigneeDoneClick() {
     this.loadApplicationRoads();
     this.loadStatuses();
     this.loadTechDesisions();
-
-
+    this.loadArchObjects(this.application_id);
 
     if (id === null || id === 0) {
       return;
@@ -657,7 +685,6 @@ async onAddAssigneeDoneClick() {
     this.id = id;
 
     this.loadTaskInformation(id)
-
   }
 
   changeDeadline(date: Dayjs) {
@@ -668,36 +695,36 @@ async onAddAssigneeDoneClick() {
     }
   }
 
-async changeStatus(status_id: number) {
-  try {
-    let status = this.Statuses.find(x => x.id === status_id);
+  async changeStatus(status_id: number) {
+    try {
+      let status = this.Statuses.find(x => x.id === status_id);
 
-    if (status.code == APPLICATION_STATUSES.rejected_cabinet) {
-      this.openCabinetReject = true;
-      return;
+      if (status.code == APPLICATION_STATUSES.rejected_cabinet) {
+        this.openCabinetReject = true;
+        return;
+      }
+
+
+      MainStore.changeLoader(true);
+      const response = await changeTaskStatus(this.id, status_id)
+      if ((response.status === 201 || response.status === 200) && response?.data !== null) {
+        MainStore.setSnackbar(i18n.t("message:statusChanged"));
+        this.status_id = status_id
+
+        // Перезагружаем задачи
+        await this.loadTasks()
+
+        // Перезагружаем данные заявки для обновления статуса
+        await this.loadAppication(this.application_id)
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      MainStore.changeLoader(false);
     }
-
-
-    MainStore.changeLoader(true);
-    const response = await changeTaskStatus(this.id, status_id)
-    if ((response.status === 201 || response.status === 200) && response?.data !== null) {
-      MainStore.setSnackbar(i18n.t("message:statusChanged"));
-      this.status_id = status_id
-      
-      // Перезагружаем задачи
-      await this.loadTasks()
-      
-      // Перезагружаем данные заявки для обновления статуса
-      await this.loadAppication(this.application_id)
-    } else {
-      throw new Error();
-    }
-  } catch (err) {
-    MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
-  } finally {
-    MainStore.changeLoader(false);
   }
-}
 
   loadapplication_task = async () => {
     try {
@@ -866,7 +893,7 @@ async changeStatus(status_id: number) {
       MainStore.changeLoader(true);
       const response = await getapplication_tasksByapplication_id(this.application_id);
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
-        const res =response.data.sort((a, b) => {
+        const res = response.data.sort((a, b) => {
           if (a.structure_id === this.structure_id && b.structure_id !== this.structure_id) {
             return -1; // Если `a.str_id` равно 3, перемещаем его вверх
           }
@@ -1163,7 +1190,7 @@ async changeStatus(status_id: number) {
         MainStore.setSnackbar(i18n.t("message:statusChanged"));
         this.Application.status_id = id;
         this.Application.status_code = status_code;
-        if (status_code === 'to_technical_council'){
+        if (status_code === 'to_technical_council') {
           this.isOpenTechCouncil = true;
         }
         this.application_resolved = applicationResolvedStatuses.includes(status_code)
@@ -1187,31 +1214,31 @@ async changeStatus(status_id: number) {
     this.loadapplication_task_assignees()
   }
 
-async changeTaskStatus(status_id: number, task_id: number) {
-  try {
-    MainStore.changeLoader(true);
-    const response = await changeTaskStatus(task_id, status_id)
-    if ((response.status === 201 || response.status === 200) && response?.data !== null) {
-      MainStore.setSnackbar(i18n.t("message:statusChanged"));
-      this.status_id = status_id
-      
-      // Перезагружаем задачи
-      await this.loadTasks()
-      
-      // Перезагружаем данные заявки для обновления статуса
-      await this.loadAppication(this.application_id)
-      
-      // Проверяем калькуляции
-      await this.checkCalculations()
-    } else {
-      throw new Error();
+  async changeTaskStatus(status_id: number, task_id: number) {
+    try {
+      MainStore.changeLoader(true);
+      const response = await changeTaskStatus(task_id, status_id)
+      if ((response.status === 201 || response.status === 200) && response?.data !== null) {
+        MainStore.setSnackbar(i18n.t("message:statusChanged"));
+        this.status_id = status_id
+
+        // Перезагружаем задачи
+        await this.loadTasks()
+
+        // Перезагружаем данные заявки для обновления статуса
+        await this.loadAppication(this.application_id)
+
+        // Проверяем калькуляции
+        await this.checkCalculations()
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      MainStore.changeLoader(false);
     }
-  } catch (err) {
-    MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
-  } finally {
-    MainStore.changeLoader(false);
   }
-}
 
   async checkCalculations() {
     try {
@@ -1251,39 +1278,39 @@ async changeTaskStatus(status_id: number, task_id: number) {
   };
 
 
-deleteapplication_task_assignee(id: number) {
-  MainStore.openErrorConfirm(
-    i18n.t("areYouSure"),
-    i18n.t("delete"),
-    i18n.t("no"),
-    async () => {
-      try {
-        MainStore.changeLoader(true);
-        const response = await deleteapplication_task_assignee(id);
-        if (response.status === 201 || response.status === 200) {
-          // Перезагружаем задачи
-          await this.loadTasks();
-          
-          // Перезагружаем данные заявки для обновления статуса
-          await this.loadAppication(this.application_id)
-          
-          // Обновляем список исполнителей
-          await this.loadapplication_task_assignees()
-          
-          MainStore.setSnackbar(i18n.t("message:snackbar.successDelete"));
-        } else {
-          throw new Error();
+  deleteapplication_task_assignee(id: number) {
+    MainStore.openErrorConfirm(
+      i18n.t("areYouSure"),
+      i18n.t("delete"),
+      i18n.t("no"),
+      async () => {
+        try {
+          MainStore.changeLoader(true);
+          const response = await deleteapplication_task_assignee(id);
+          if (response.status === 201 || response.status === 200) {
+            // Перезагружаем задачи
+            await this.loadTasks();
+
+            // Перезагружаем данные заявки для обновления статуса
+            await this.loadAppication(this.application_id)
+
+            // Обновляем список исполнителей
+            await this.loadapplication_task_assignees()
+
+            MainStore.setSnackbar(i18n.t("message:snackbar.successDelete"));
+          } else {
+            throw new Error();
+          }
+        } catch (err) {
+          MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+        } finally {
+          MainStore.changeLoader(false);
+          MainStore.onCloseConfirm();
         }
-      } catch (err) {
-        MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
-      } finally {
-        MainStore.changeLoader(false);
-        MainStore.onCloseConfirm();
-      }
-    },
-    () => MainStore.onCloseConfirm()
-  );
-}
+      },
+      () => MainStore.onCloseConfirm()
+    );
+  }
 
 
   loadCustomer = async (customer_id: number) => {

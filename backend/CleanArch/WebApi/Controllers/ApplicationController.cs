@@ -75,6 +75,18 @@ namespace WebApi.Controllers
             return Ok(response);
         }
 
+        [HttpPost]
+        [Route("GetByFilterForEO")]
+        public async Task<IActionResult> GetByFilterForEO(PaginationFields model)
+        {
+            if (model.district_id == 0)
+            {
+                model.district_id = null;
+            }
+            var response = await _applicationUseCases.GetByFilterForEO(model);
+            return Ok(response);
+        }
+
         [HttpGet]
         [Route("GetCountAppsFromCabinet")]
         public async Task<IActionResult> GetCountAppsFromCabinet()
@@ -90,6 +102,15 @@ namespace WebApi.Controllers
         {
             //throw new PermissionException("��� �� ����� �� ���", new PermissionExceptionDetails { Code = "test", Role = "d"}, null);
             var response = await _applicationUseCases.GetOneByID(id);
+            return Ok(response);
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        [Route("GetPaidInfoByApplicationGuid")]
+        public async Task<IActionResult> GetPaidInfoByApplicationGuid(string guid)
+        {
+            var response = await _applicationUseCases.GetPaidInfoByApplicationGuid(guid);
             return Ok(response);
         }
 
@@ -205,6 +226,13 @@ namespace WebApi.Controllers
                 tags = x.tags,
                 xcoordinate = x.xcoordinate,
                 ycoordinate = x.ycoordinate,
+                tunduk_district_id = x.tunduk_district_id,
+                tunduk_street_id = x.tunduk_street_id,
+                tunduk_address_unit_id = x.tunduk_address_unit_id,
+                tunduk_uch_num = x.tunduk_uch_num,
+                tunduk_flat_num = x.tunduk_flat_num,
+                tunduk_building_num = x.tunduk_building_num,
+                is_manual = x.is_manual
             }).ToList();
             request.archObjects = archObjects;
 
@@ -281,6 +309,13 @@ namespace WebApi.Controllers
                 tags = x.tags,
                 xcoordinate = x.xcoordinate,
                 ycoordinate = x.ycoordinate,
+                tunduk_district_id = x.tunduk_district_id,
+                tunduk_street_id = x.tunduk_street_id,
+                tunduk_address_unit_id = x.tunduk_address_unit_id,
+                tunduk_uch_num = x.tunduk_uch_num,
+                tunduk_flat_num = x.tunduk_flat_num,
+                tunduk_building_num = x.tunduk_building_num,
+                is_manual = x.is_manual
             }).ToList();
             request.customer = customer;
             request.archObjects = archObjects;

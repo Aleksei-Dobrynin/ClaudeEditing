@@ -13,10 +13,19 @@ namespace WebApi.Controllers
     public class application_paymentController : ControllerBase
     {
         private readonly application_paymentUseCases _application_paymentUseCases;
-
-        public application_paymentController(application_paymentUseCases application_paymentUseCases)
+        private readonly ServicePriceUseCase _servicePriceUseCase;
+        private readonly FileUseCases _fileUseCases;
+        private readonly S_DocumentTemplateUseCases _documentTemplateUseCases;
+        
+        public application_paymentController(application_paymentUseCases application_paymentUseCases, 
+            FileUseCases fileUseCases, 
+            ServicePriceUseCase servicePriceUseCase,
+            S_DocumentTemplateUseCases documentTemplateUseCases)
         {
             _application_paymentUseCases = application_paymentUseCases;
+            _fileUseCases = fileUseCases;
+            _servicePriceUseCase = servicePriceUseCase;
+            _documentTemplateUseCases = documentTemplateUseCases;
         }
 
         [HttpGet]
@@ -66,6 +75,40 @@ namespace WebApi.Controllers
                 implementer_id = requestDto.implementer_id,
                 idTask = requestDto.idTask,
             };
+
+            if (requestDto.selectedServicePrice != null && requestDto.selectedServicePrice > 0)
+            {
+                var servicePrice = await _servicePriceUseCase.GetOneByID(requestDto.selectedServicePrice.Value);
+                var parametrs = new Dictionary<string, object>
+                {
+                    { "head_structure_id", requestDto.head_structure_id },
+                    { "implementer_id", requestDto.implementer_id },
+                    { "application_id", requestDto.application_id },
+                    { "structure_id", requestDto.structure_id },
+                    { "sum", requestDto.sum },
+                    { "sum_wo_discount", requestDto.sum_wo_discount },
+                    { "discount_percentage", requestDto.discount_percentage },
+                    { "discount_value", requestDto.discount_value },
+                    { "reason", requestDto.reason },
+                    { "nds", requestDto.nds },
+                    { "nds_value", requestDto.nds_value },
+                    { "nsp", requestDto.nsp },
+                    { "nsp_value", requestDto.nsp_value },
+                };
+                var sDocumentTemplate = await _documentTemplateUseCases.GetOne(servicePrice.document_template_id);
+                var filledDocument = await _documentTemplateUseCases.GetFilledDocumentHtml(servicePrice.document_template_id, requestDto.selectedLang, parametrs);
+                var pdfFile = await _fileUseCases.HtmlToFile(filledDocument.Value);
+                if (pdfFile == null) return null;
+
+                var stream = new MemoryStream(pdfFile.body);
+                IFormFile formFile = new FormFile(stream, 0, stream.Length, "file", sDocumentTemplate.name)
+                {
+                    Headers = new HeaderDictionary(),
+                    ContentType = "application/octet-stream"
+                };
+                requestDto.document.file = formFile;
+                requestDto.document.name = sDocumentTemplate.name;
+            }
             
             if (requestDto?.document?.file != null)
             {
@@ -85,6 +128,52 @@ namespace WebApi.Controllers
             
             var response = await _application_paymentUseCases.Create(request);
             return Ok(response);
+        }
+        
+        [HttpPost]
+        [Route("ApplicationTemplate")]
+        public async Task<IActionResult> ApplicationTemplate([FromForm] Createapplication_paymentRequest requestDto)
+        {
+            
+            var request = new Domain.Entities.application_payment
+            {                
+                application_id = requestDto.application_id,
+                description = requestDto.description,
+                sum = requestDto.sum,
+                structure_id = requestDto.structure_id,
+                sum_wo_discount = requestDto.sum_wo_discount,
+                discount_percentage = requestDto.discount_percentage,
+                discount_value = requestDto.discount_value,
+                reason = requestDto.reason,
+                file_id = requestDto.file_id,
+                nds = requestDto.nds,
+                nds_value = requestDto.nds_value,
+                nsp = requestDto.nsp,
+                nsp_value = requestDto.nsp_value,
+                head_structure_id = requestDto.head_structure_id,
+                implementer_id = requestDto.implementer_id,
+                idTask = requestDto.idTask,
+            };
+            var servicePrice = await _servicePriceUseCase.GetOneByID(requestDto.selectedServicePrice.Value);
+            var parametrs = new Dictionary<string, object>
+            {
+                { "head_structure_id", requestDto.head_structure_id },
+                { "implementer_id", requestDto.implementer_id },
+                { "application_id", requestDto.application_id },
+                { "structure_id", requestDto.structure_id },
+                { "sum", requestDto.sum },
+                { "sum_wo_discount", requestDto.sum_wo_discount },
+                { "discount_percentage", requestDto.discount_percentage },
+                { "discount_value", requestDto.discount_value },
+                { "reason", requestDto.reason },
+                { "nds", requestDto.nds },
+                { "nds_value", requestDto.nds_value },
+                { "nsp", requestDto.nsp },
+                { "nsp_value", requestDto.nsp_value },
+            };
+            var sDocumentTemplate = await _documentTemplateUseCases.GetOne(servicePrice.document_template_id);
+            var filledDocument = await _documentTemplateUseCases.GetFilledDocumentHtml(servicePrice.document_template_id, requestDto.selectedLang, parametrs);
+            return Ok(filledDocument.Value);
         }
 
         [HttpPut]

@@ -10,9 +10,14 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Typography
+  Typography, Checkbox, Menu, MenuItem, RadioGroup, FormControlLabel, Radio,
+  Autocomplete,        // Добавлено
+  TextField,            // Добавлено
+  CircularProgress     // Добавлено
 } from "@mui/material";
+import { runInAction } from "mobx";  // Добавлено
 import PageGridPagination from "components/PageGridPagination";
+import PageGridScrollLoading from "components/PageGridScrollLoading";
 import Accordion from "@mui/material/Accordion";
 import AccordionActions from "@mui/material/AccordionActions";
 import AccordionSummary from "@mui/material/AccordionSummary";
@@ -36,63 +41,50 @@ import FileField from "../../../components/FileField";
 import MainStore from "MainStore";
 import CustomCheckbox from "../../../components/Checkbox";
 import AutocompleteCustom from "components/Autocomplete";
-import TextField from "@mui/material/TextField";
 import { Link } from "react-router-dom";
 import { APPLICATION_STATUSES } from "constants/constant";
 import ReestrListView from "features/reestr/reestrListView";
 import Tooltip from '@mui/material/Tooltip';
 import RemoveRedEyeIcon from '@mui/icons-material/RemoveRedEye';
 import printJS from 'print-js';
-import { useLocation } from 'react-router-dom';
+import * as XLSX from 'xlsx';
+import Button from "@mui/material/Button";
+import CloseIcon from "@mui/icons-material/Close";
 
 type ApplicationListViewProps = {
   finPlan: boolean;
   forFilter?: boolean;
-  filterByEmployee?: boolean;
-  filterByOrgStructure?: boolean;
+  forJournal?: boolean;
 };
-
-
 
 const ApplicationListView: FC<ApplicationListViewProps> = observer((props) => {
   const { t } = useTranslation();
   const translate = t;
-  const location = useLocation();
-
-  const isTaskView = props.filterByEmployee || props.filterByOrgStructure;
-
-  const getTitle = () => {
-    if (props.filterByEmployee) {
-      return `${translate("label:ApplicationListView.my_tasks_title") || "Мои задачи"} `;
-    } else if (props.filterByOrgStructure) {
-      return `${translate("label:ApplicationListView.structure_tasks_title") || "Задачи отдела"}`;
-    }
-    return translate("label:ApplicationListView.entityTitle");
-  };
 
   useEffect(() => {
-    store.clearStore();
     store.getValuesFromLocalStorage();
-
-    store.doLoad(
-      props.finPlan,
-      props.filterByEmployee || false,
-      props.filterByOrgStructure || false
-    );
-
+    store.doLoad(props.finPlan, props.forJournal);
     return () => {
       store.clearStore();
     };
-  }, [
-    props.finPlan,
-    props.filterByEmployee,
-    props.filterByOrgStructure,
-    location.pathname
-  ]);
+  }, []);
 
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  // Замените handlePrint в index.tsx:
+  // Оригинальная функция handlePrint для печати (используйте store.data)
   const handlePrint = () => {
     const printableData = store.data.map((row) => ({
       number: row.number,
+      journal_outgoing_number: row.journal_outgoing_number ?? '',
+      journal_added_at: row.journal_added_at ? `${dayjs(row.journal_added_at).format("DD.MM.YYYY HH:mm")}` : "",
       status_name: row.status_name,
       service_name: `${row.service_name} (${row.day_count} р.дн.)`,
       arch_object_address: `${row.arch_object_address}, ${row.arch_object_district}`,
@@ -109,6 +101,8 @@ const ApplicationListView: FC<ApplicationListViewProps> = observer((props) => {
       printable: printableData,
       properties: [
         { field: 'number', displayName: translate("label:ApplicationListView.number") },
+        store.isJournal && { field: 'journal_outgoing_number', displayName: translate("label:JournalApplicationListView.outgoing_number") },
+        store.isJournal && { field: 'journal_added_at', displayName: translate("label:JournalApplicationListView.added_at") },
         { field: 'status_name', displayName: translate("label:ApplicationListView.status_name") },
         { field: 'service_name', displayName: translate("label:ApplicationListView.service_name") },
         { field: 'arch_object_address', displayName: translate("label:ApplicationListView.arch_object_address") },
@@ -117,29 +111,95 @@ const ApplicationListView: FC<ApplicationListViewProps> = observer((props) => {
         { field: 'created_by_name', displayName: translate("label:ApplicationListView.registrar") },
         { field: 'assigned_employees_names', displayName: translate("label:ApplicationListView.Performers") },
         { field: 'total_sum', displayName: translate("Калькуляция") },
-      ],
+      ].filter(Boolean),
       type: 'json',
       style: `
-        @media print {
-          @page { size: A4; margin: 10mm; }
-          body { font-family: Arial, sans-serif; font-size: 10pt; }
-          table { width: 100%; border-collapse: collapse; }
-          th, td { border: 1px solid #ddd; padding: 4px; text-align: left; word-wrap: break-word; }
-          th { background-color: #f2f2f2; font-weight: bold; }
-          tr:nth-child(even) { background-color: #f9f9f9; }
-          th:nth-child(1), td:nth-child(1) { width: 10%; } /* number */
-          th:nth-child(2), td:nth-child(2) { width: 12%; } /* status_name */
-          th:nth-child(3), td:nth-child(3) { width: 15%; } /* service_name */
-          th:nth-child(4), td:nth-child(4) { width: 15%; } /* arch_object_address */
-          th:nth-child(5), td:nth-child(5) { width: 15%; } /* customer_name */
-          th:nth-child(6), td:nth-child(6) { width: 12%; } /* deadline */
-          th:nth-child(7), td:nth-child(7) { width: 10%; } /* created_by_name */
-          th:nth-child(8), td:nth-child(8) { width: 15%; } /* assigned_employees_names */
-          th:nth-child(9), td:nth-child(9) { width: 10%; } /* total_sum */
-        }
-      `,
-      header: `<h2 style="text-align: center; margin-bottom: 10px;">${getTitle()}</h2>`,
+      @media print {
+          @page { size: A4 landscape; margin: 10mm; }
+        body { font-family: Arial, sans-serif; font-size: 10pt; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 4px; text-align: left; word-wrap: break-word; }
+        th { background-color: #f2f2f2; font-weight: bold; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        th:nth-child(1), td:nth-child(1) { width: 10%; } /* number */
+        th:nth-child(2), td:nth-child(2) { width: 12%; } /* status_name */
+        th:nth-child(3), td:nth-child(3) { width: 15%; } /* service_name */
+        th:nth-child(4), td:nth-child(4) { width: 15%; } /* arch_object_address */
+        th:nth-child(5), td:nth-child(5) { width: 15%; } /* customer_name */
+        th:nth-child(6), td:nth-child(6) { width: 12%; } /* deadline */
+        th:nth-child(7), td:nth-child(7) { width: 10%; } /* created_by_name */
+        th:nth-child(8), td:nth-child(8) { width: 15%; } /* assigned_employees_names */
+        th:nth-child(9), td:nth-child(9) { width: 10%; } /* total_sum */
+      }
+    `,
+      header: `<h2 style="text-align: center; margin-bottom: 10px;">${translate("label:ApplicationListView.entityTitle")}</h2>`,
     });
+  };
+
+  // Новая функция handleExportExcel для экспорта в Excel всех данных по фильтру
+  const handleExportExcel = async () => {
+    try {
+      // Получаем все данные через store
+      const allData = await store.exportApplicationsToExcel();
+
+      if (!allData || allData.length === 0) {
+        return; // Сообщение уже показано в store
+      }
+
+      const printableData = allData.map((row) => ({
+        [translate("label:ApplicationListView.number")]: row.number || "",
+        ...(store.isJournal && {
+          [translate("label:JournalApplicationListView.outgoing_number")]: row.journal_outgoing_number || '',
+          [translate("label:JournalApplicationListView.added_at")]: row.journal_added_at ? dayjs(row.journal_added_at).format("DD.MM.YYYY HH:mm") : "",
+        }),
+        [translate("label:ApplicationListView.status_name")]: row.status_name || "",
+        [translate("label:ApplicationListView.service_name")]: `${row.service_name || ""} (${row.day_count || 0} р.дн.)`,
+        [translate("label:ApplicationListView.arch_object_address")]: `${row.arch_object_address || ""}, ${row.arch_object_district || ""}`,
+        [translate("label:ApplicationListView.customer_name")]: `${row.customer_name || ""}, ИНН: ${row.customer_pin || ""}${row.customer_contacts ? "; " + row.customer_contacts : ""}`,
+        [translate("label:ApplicationListView.Registration_time_and_deadline")]: row.registration_date
+          ? `${dayjs(row.registration_date).format("DD.MM.YYYY HH:mm")} / ${row.deadline ? dayjs(row.deadline).format("DD.MM.YYYY") : ""}`
+          : "",
+        [translate("label:ApplicationListView.registrar")]: row.created_by_name || "",
+        ...(!store.isJournal && {
+          [translate("label:ApplicationListView.Performers")]: row.assigned_employees_names || "",
+          [translate("label:ApplicationListView.comments") || "Комментарии"]: row.comments || "",
+        }),
+        [translate("Калькуляция")]: `Сумма: ${row.total_sum || 0}, Опл.: ${row.total_payed || 0}`,
+      }));
+
+      // Создаем Excel файл
+      const ws = XLSX.utils.json_to_sheet(printableData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Заявки");
+
+      // Автоподбор ширины колонок
+      const headers = Object.keys(printableData[0] || {});
+      const colWidths = headers.map((header) => {
+        const maxLength = Math.max(
+          header.length,
+          ...printableData.map(row => String(row[header] || "").length)
+        );
+        return { wch: Math.min(maxLength + 2, 50) };
+      });
+      ws['!cols'] = colWidths;
+
+      // Генерируем имя файла с текущей датой
+      const currentDate = dayjs().format("DD.MM.YYYY");
+      const fileName = `заявки по фильтру за ${currentDate}.xlsx`;
+
+      // Сохраняем файл
+      XLSX.writeFile(wb, fileName);
+
+      // Показываем количество записей только если их больше 500
+      const message = store.totalCount > 500
+        ? `Файл "${fileName}" успешно сохранен (${printableData.length} записей)`
+        : `Файл "${fileName}" успешно сохранен`;
+
+      MainStore.setSnackbar(message, "success");
+    } catch (err) {
+      console.error("Ошибка при экспорте:", err);
+      // Ошибка уже обработана в store
+    }
   };
 
   // useEffect(() => {
@@ -150,20 +210,26 @@ const ApplicationListView: FC<ApplicationListViewProps> = observer((props) => {
   // }, [MainStore.isHeadStructure, MainStore.isEmployee]);
 
   let columns: GridColDef[] = [
+    ...(MainStore.isRegistrar ? [{
+      field: 'select_application',
+      headerName: translate("label:ApplicationListView.select_application"),
+      flex: 1,
+      renderCell: (param) => {
+        return <Checkbox checked={!!param.row.select_application} onChange={(e) => {
+          store.changeSelect(param.row.id, e.target.checked);
+        }} />
+      },
+    }] : []),
     {
       field: "number",
-      headerName: isTaskView
-        ? translate("label:ApplicationListView.go_to_task") || "Перейти к задаче"
-        : translate("label:ApplicationListView.number"),
+      headerName: translate("label:ApplicationListView.number"),
       flex: store.isFinPlan ? 0.7 : 0.7,
       renderCell: (params) => {
         return <>
           <Link
             style={{ textDecoration: "underline", marginLeft: 5 }}
-            to={isTaskView && params.row.current_task_id
-              ? `/user/application_task/addedit?id=${params.row.current_task_id}`
-              : `/user/Application/addedit?id=${params.row.id}`}>
-            {isTaskView ? params.row.current_task_id : params.value}
+            to={`/user/Application/addedit?id=${params.row.id}`}>
+            {params.value}
           </Link>
           <Tooltip title={"Быстрый просмотр"}>
             <IconButton onClick={() => store.changeOpenPanel(true, params.row.id)}>
@@ -173,6 +239,21 @@ const ApplicationListView: FC<ApplicationListViewProps> = observer((props) => {
         </>
       }
     },
+    ...(store.isJournal ? [{
+      field: "journal_outgoing_number",
+      headerName: translate("label:JournalApplicationListView.outgoing_number"),
+      flex: 1
+    },
+    store.isJournal && {
+      field: "journal_added_at",
+      headerName: translate("label:JournalApplicationListView.added_at"),
+      flex: 1,
+      renderCell: (params) => (
+        <span>
+          {params.value ? dayjs(params.value).format('DD.MM.YYYY HH:mm') : ""}
+        </span>
+      )
+    }] : []),
     {
       field: "status_name",
       headerName: translate("label:ApplicationListView.status_name"),
@@ -328,7 +409,7 @@ const ApplicationListView: FC<ApplicationListViewProps> = observer((props) => {
       headerName: translate("label:ApplicationListView.registrar"),
       flex: 0.7
     },
-    {
+    !store.isJournal && {
       field: "assigned_employees_names",
       sortable: false,
       headerName: translate("label:ApplicationListView.Performers"),
@@ -362,7 +443,7 @@ const ApplicationListView: FC<ApplicationListViewProps> = observer((props) => {
     {
       field: "total_sum",
       headerName: translate("Калькуляция"),
-      flex: 0.7,
+      flex: store.isFinPlan ? 1 : 0.7,
       display: "flex",
       renderCell: (params) => {
         return <div>
@@ -380,7 +461,7 @@ const ApplicationListView: FC<ApplicationListViewProps> = observer((props) => {
         </div>;
       }
     },
-    {
+    (!store.isJournal && !store.isFinPlan) && {
       field: "comments",
       headerName: translate("label:ApplicationListView.comments") || "Комментарии",
       flex: 1,
@@ -458,12 +539,12 @@ const ApplicationListView: FC<ApplicationListViewProps> = observer((props) => {
     case "form":
       component = <Box sx={{ width: '100%', overflow: 'auto' }}>
         <Box sx={{ minWidth: 1200 }}>
-          <PageGridPagination
+          <PageGridScrollLoading
             customHeader={props.finPlan ?
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Typography variant="h1">
-                    {getTitle()}
+                    {translate("label:ApplicationListView.entityTitle")}
                   </Typography>
                   <Typography variant="h4">
                     {translate('foundTotal') + ":" + store.totalCount}
@@ -484,31 +565,34 @@ const ApplicationListView: FC<ApplicationListViewProps> = observer((props) => {
                       </CustomButton>
 
                       <Box ml={1}>Текущий реестр: <strong>
+
                         <a
                           style={{ textDecoration: "underline", color: "#5555b5", marginLeft: 10, fontWeight: 500 }}
                           target="_blank"
                           href={`/user/reestr/addedit?id=${store.selectedReestrId}`}>
                           {store.selectedReestrName}
                         </a>
-                      </strong></Box>
+
+                        <a onClick={() => {
+
+                        }}></a></strong></Box>
                     </Box>
                   </>
                 )}
               </Box> : null
             }
-            title={getTitle()}
+            title={store.isJournal ? translate("label:JournalApplicationListView.entityTitle") : translate("label:ApplicationListView.entityTitle")}
             showCount={true}
             page={store.filter.pageNumber}
             pageSize={store.filter.pageSize}
             totalCount={store.totalCount}
             hideActions
-            hideAddButton={!(MainStore.isRegistrar || MainStore.isAdmin) || isTaskView}
+            hideAddButton={!((MainStore.isRegistrar || MainStore.isAdmin) && (Boolean(store.isJournal) === false))}
             changePagination={(page, pageSize) => store.changePagination(page, pageSize)}
             changeSort={(sortModel) => store.changeSort(sortModel)}
             searchText={""}
             columns={columns}
             data={store.data}
-            customAddUrl={"/user/ApplicationStepper?id=0&tab=0"}
             tableName="Application" />;
         </Box>
       </Box>
@@ -581,6 +665,18 @@ const ApplicationListView: FC<ApplicationListViewProps> = observer((props) => {
       <Paper elevation={5} style={{ width: "100%", padding: 20, marginBottom: 20 }}>
         <Box sx={{ display: { sm: "flex" } }} justifyContent={"space-between"}>
           <Grid container spacing={2}>
+            {store.isJournal && <Grid item md={12} xs={12}>
+              <LookUp
+                id="id_f_DocumentJournals_journals_id"
+                label={translate("label:JournalApplicationListView.journal_id")}
+                value={store.filter.journals_id}
+                data={store.Journals}
+                onChange={(e) => store.changeJournalId(e.target.value)}
+                name="journals_id"
+                fieldNameDisplay={(i) => i.name}
+              />
+            </Grid>
+            }
 
             {!store.is_allFilter &&
               <Grid item md={12} xs={12}>
@@ -676,7 +772,7 @@ const ApplicationListView: FC<ApplicationListViewProps> = observer((props) => {
                   }}
                 />
               </Grid>
-              <Grid item md={4} xs={12}>
+              <Grid item md={6} xs={12}>
                 <DateField
                   value={store.filter.date_start != null ? dayjs(new Date(store.filter.date_start)) : null}
                   onChange={(event) => store.changeDateStart(event.target.value)}
@@ -687,7 +783,7 @@ const ApplicationListView: FC<ApplicationListViewProps> = observer((props) => {
                   error={!!store.errors.dateStart}
                 />
               </Grid>
-              <Grid item md={4} xs={12}>
+              <Grid item md={6} xs={12}>
                 <DateField
                   value={store.filter.date_end != null ? dayjs(new Date(store.filter.date_end)) : null}
                   onChange={(event) => store.changeDateEnd(event.target.value)}
@@ -698,16 +794,121 @@ const ApplicationListView: FC<ApplicationListViewProps> = observer((props) => {
                   error={!!store.errors.dateEnd}
                 />
               </Grid>
+
+
               <Grid item md={4} xs={12}>
-                <LookUp
-                  value={store.filter.district_id}
-                  onChange={(event) => store.changeDistrict(event.target.value)}
-                  name="district_id"
-                  data={store.Districts}
-                  id="district_id"
-                  label={translate("label:ApplicationListView.filterByDistrict")}
-                  helperText={""}
-                  error={false}
+                <Autocomplete
+                  value={store.TundukDistricts.find(x => x.id === store.filter.tunduk_district_id) || null}
+                  onChange={(event, newValue) => store.changeTundukDistrict(newValue?.id || null)}
+                  getOptionLabel={(x) => x.name || ""}
+                  options={store.TundukDistricts}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label={translate("label:ApplicationListView.filterByTundukDistrict")}
+                      size="small"
+                      fullWidth
+                    />
+                  )}
+                />
+              </Grid>
+              <input
+                type="hidden"
+                name="district_id"
+                value={store.filter.district_id || 6}
+              />
+
+              <Grid item md={4} xs={12}>
+                <Autocomplete
+                  value={store.TundukResidentialAreas.find(x => x.id === store.filter.tunduk_address_unit_id) || null}
+                  onChange={(event, newValue) => store.changeTundukAddressUnit(newValue?.id || null)}
+                  getOptionLabel={(x) => x.name || ""}
+                  options={store.TundukResidentialAreas}
+                  disabled={!store.filter.tunduk_district_id}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label={translate("label:ApplicationListView.filterByTundukResidentialArea")}
+                      size="small"
+                      fullWidth
+                      helperText={!store.filter.tunduk_district_id ? "Сначала выберите район" : ""}
+                    />
+                  )}
+                />
+              </Grid>
+
+              <Grid item md={4} xs={12}>
+                <Autocomplete
+                  value={store.streetSearchState.selectedStreet}
+                  inputValue={store.streetSearchState.inputValue}
+                  open={store.streetSearchState.isOpen}
+                  onOpen={() => runInAction(() => { store.streetSearchState.isOpen = true })}
+                  onClose={() => runInAction(() => { store.streetSearchState.isOpen = false })}
+                  onChange={(event, newValue) => {
+                    runInAction(() => {
+                      store.streetSearchState.selectedStreet = newValue;
+                      store.changeTundukStreet(newValue?.id || null, newValue);
+                    });
+                  }}
+                  onInputChange={(event, newInputValue, reason) => {
+                    if (reason === 'input') {
+                      store.handleStreetInputChange(newInputValue);
+                    } else {
+                      runInAction(() => {
+                        store.streetSearchState.inputValue = newInputValue;
+                      });
+                    }
+                  }}
+                  isOptionEqualToValue={(option, value) => option.id === value?.id}
+                  getOptionLabel={(x) => {
+                    if (!x) return '';
+                    if (typeof x === 'string') return x;
+                    return `${x.name || ""} (${x.address_unit_name || ""})`;
+                  }}
+                  renderOption={(props, option) => (
+                    <Box component="li" {...props}>
+                      <div>
+                        <div>{option.name}</div>
+                        <div style={{ fontSize: '0.85em', color: '#666' }}>
+                          {option.address_unit_name}
+                        </div>
+                      </div>
+                    </Box>
+                  )}
+                  options={store.streetSearchState.searchResults}
+                  loading={store.streetSearchState.isLoading}
+                  loadingText="Загрузка..."
+                  noOptionsText={
+                    store.streetSearchState.inputValue.length < 2
+                      ? "Введите минимум 2 символа для поиска"
+                      : "Ничего не найдено"
+                  }
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label={translate("label:ApplicationListView.filterByTundukStreet")}
+                      size="small"
+                      fullWidth
+                      helperText={
+                        store.streetSearchState.inputValue &&
+                          store.streetSearchState.inputValue.length > 0 &&
+                          store.streetSearchState.inputValue.length < 2
+                          ? "Минимум 2 символа"
+                          : ""
+                      }
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {store.streetSearchState.isLoading ? (
+                              <CircularProgress color="inherit" size={20} />
+                            ) : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
+                    />
+                  )}
                 />
               </Grid>
               {/* Новые поля для фильтрации по суммам */}
@@ -1009,10 +1210,12 @@ const ApplicationListView: FC<ApplicationListViewProps> = observer((props) => {
               />}
             </Grid>
           </Grid>
-          <Box display={"flex"} flexDirection={"column-reverse"} sx={{ ml: 2 }} alignItems={"end"}>
-            {props.forFilter && <Box display={"flex"} sx={{ minWidth: 80, mt: 1 }}>
+
+          <Box display={"flex"} flexDirection={"column"} sx={{ ml: 2 }} alignItems={"stretch"} minWidth={200}>
+            {props.forFilter && <Box display={"flex"} sx={{ gap: 1, mb: 2 }}>
               <CustomButton
                 variant="contained"
+                fullWidth
                 id="searchFilterButton"
                 onClick={() => {
                   store.saveFilter();
@@ -1021,8 +1224,8 @@ const ApplicationListView: FC<ApplicationListViewProps> = observer((props) => {
                 {translate("save")}
               </CustomButton>
               <CustomButton
-                sx={{ ml: 1 }}
                 variant="contained"
+                fullWidth
                 id="searchFilterButton"
                 onClick={() => {
                   store.closeFilter();
@@ -1031,17 +1234,20 @@ const ApplicationListView: FC<ApplicationListViewProps> = observer((props) => {
                 {translate("close")}
               </CustomButton>
             </Box>}
-            <Box sx={{ minWidth: 80 }}>
-              <CustomButton
-                variant="contained"
-                id="searchFilterButton"
-                onClick={() => {
-                  store.loadApplications();
-                }}
-              >
-                {translate("search")}
-              </CustomButton>
-            </Box>
+
+            <CustomButton
+              variant="contained"
+              fullWidth
+              sx={{ mb: 2 }}
+              id="searchFilterButton"
+              onClick={() => {
+                store.filter.pageNumber = 0;
+                store.loadApplications();
+              }}
+            >
+              {translate("search")}
+            </CustomButton>
+
             {(store.filter.pin !== ""
               || store.filter.customerName !== ""
               || store.filter.number !== ""
@@ -1052,6 +1258,7 @@ const ApplicationListView: FC<ApplicationListViewProps> = observer((props) => {
               || store.filter.service_ids.length > 0
               || store.filter.status_ids.length > 0
               || store.filter.district_id != 0
+              || store.filter.journals_id != 0
               || store.filter.tag_id != 0
               || store.filter.isExpired != false
               || store.filter.isMyOrgApplication != false
@@ -1063,8 +1270,15 @@ const ApplicationListView: FC<ApplicationListViewProps> = observer((props) => {
               || store.filter.total_sum_to !== null
               || store.filter.total_payed_from !== null
               || store.filter.total_payed_to !== null
-            ) && <Box sx={{ mt: 2 }}>
+              // Новые условия для Tunduk адресов
+              || store.filter.tunduk_district_id !== null
+              || store.filter.tunduk_address_unit_id !== null
+              || store.filter.tunduk_street_id !== null
+            ) && (
                 <CustomButton
+                  variant="outlined"
+                  fullWidth
+                  sx={{ mb: 2 }}
                   id="clearSearchFilterButton"
                   onClick={() => {
                     store.clearFilter();
@@ -1073,15 +1287,48 @@ const ApplicationListView: FC<ApplicationListViewProps> = observer((props) => {
                 >
                   {translate("clear")}
                 </CustomButton>
-              </Box>}
+              )}
+
             <CustomButton
-              sx={{ mb: 2 }}
               variant="contained"
+              fullWidth
+              sx={{ mb: 2 }}
               id="printButton"
               onClick={handlePrint}
             >
-              {translate("print")}
+              {translate("print") || "Печать"}
             </CustomButton>
+
+            <CustomButton
+              variant="contained"
+              fullWidth
+              sx={{ mb: 2 }}
+              id="exportExcelButton"
+              onClick={handleExportExcel}
+            >
+              {translate("export_to_excel") || "Экспорт в Excel"}
+            </CustomButton>
+            {store.selectedIds.length > 0 && <CustomButton
+              variant="contained"
+              fullWidth
+              sx={{ mb: 2 }}
+              id="exportExcelButton"
+              onClick={handleClick}
+            >
+              {translate("label:ApplicationListView.print_template")}
+            </CustomButton>}
+            <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
+              {store.ApplicationTemplates.map(x => {
+                return <MenuItem
+                  onClick={() => {
+                    handleClose();
+                    store.selectTemplate_id = x.id;
+                    store.isOpenSelectLang = true;
+                  }}>
+                  {x.name}
+                </MenuItem>}
+              )}
+            </Menu>
           </Box>
         </Box>
       </Paper>
@@ -1094,7 +1341,7 @@ const ApplicationListView: FC<ApplicationListViewProps> = observer((props) => {
         onClose={() => store.changeOpenPanel(false, 0)}
       />
 
-      <Dialog maxWidth={"md"} fullWidth open={store.openReestrSelectPanel}
+      <Dialog maxWidth={"lg"} fullWidth open={store.openReestrSelectPanel}
         onClose={() => store.onChangeReestrSelectPanel(false)}>
         <DialogContent>
           <ReestrListView
@@ -1143,6 +1390,80 @@ const ApplicationListView: FC<ApplicationListViewProps> = observer((props) => {
         </DialogActions>
       </Dialog>
 
+      <Dialog
+        open={store.openError}
+        onClose={() => (store.openError = false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          Ошибка
+          <IconButton
+            aria-label="close"
+            onClick={() => (store.openError = false)}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent>
+          <Typography>
+            {store.messageError}
+          </Typography>
+        </DialogContent>
+
+        <DialogActions>
+          <Button
+            onClick={() => (store.openError = false)}
+          >
+            ОК
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        sx={{ '& .MuiDialog-paper': { width: '80%', maxHeight: 435 } }}
+        maxWidth="xs"
+        open={store.isOpenSelectLang}
+      >
+        <DialogTitle>Выберите язык</DialogTitle>
+        <DialogContent dividers>
+          <RadioGroup
+            aria-label="ringtone"
+            name="ringtone"
+            onChange={(e) => {
+              store.selectedLang = e.target.value;
+            }}
+          >
+            <FormControlLabel
+              value={"ru"}
+              key={"ru"}
+              control={<Radio />}
+              label={"Русский"}
+            />
+            <FormControlLabel
+              value={"ky"}
+              key={"ky"}
+              control={<Radio />}
+              label={"Кыргызча"}
+            />
+          </RadioGroup>
+        </DialogContent>
+        <DialogActions>
+          <Button autoFocus onClick={() => {
+            store.isOpenSelectLang = false;
+            store.selectedLang = "";
+            store.selectTemplate_id = 0;
+          }}>
+            Отмена
+          </Button>
+          <Button
+            disabled={store.selectedLang === ""}
+            onClick={() => {
+              store.isOpenSelectLang = false;
+              store.selectTemplate();
+            }}>Ok</Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 });

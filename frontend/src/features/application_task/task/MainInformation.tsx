@@ -15,14 +15,16 @@ import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react";
 import store from "./store";
 import styled from "styled-components";
-import KeyboardBackspaceIcon from "@mui/icons-material/KeyboardBackspace";
 import CustomButton from "components/Button";
 import MainStore from "MainStore";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import LayoutStore from "layouts/MainLayout/store";
 import HistoryIcon from "@mui/icons-material/History";
-
+import DoneIcon from '@mui/icons-material/Done';
+import dayjs from "dayjs";
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import NavigationBreadcrumbs from "./NavigationBreadcrumbs"; // Импортируем новый компонент
 
 type MainInformationProps = {
 };
@@ -37,6 +39,30 @@ const MainInformation: FC<MainInformationProps> = observer((props) => {
   const handleClose = () => {
     setAnchorEl(null);
   };
+
+  const declineDays = (number) => {
+    if (!number) return null;
+    // Получаем последнюю цифру и последние две цифры числа
+    const lastDigit = number % 10;
+    const lastTwoDigits = number % 100;
+
+    // Особые случаи для чисел от 11 до 19
+    if (lastTwoDigits >= 11 && lastTwoDigits <= 19) {
+      return "дней";
+    }
+
+    // Для остальных чисел проверяем последнюю цифру
+    switch (lastDigit) {
+      case 1:
+        return "день";
+      case 2:
+      case 3:
+      case 4:
+        return "дня";
+      default:
+        return "дней";
+    }
+  }
 
   let filteredStatuses = store.Statuses.reduce((acc, s) => {
     let matchingRoad = store.ApplicationRoads.find(ar =>
@@ -53,7 +79,6 @@ const MainInformation: FC<MainInformationProps> = observer((props) => {
     return acc;
   }, []);
 
-
   const calculateBackUrl = () => {
     if (store.backUrl === "all") {
       return `/user/all_tasks`
@@ -66,25 +91,104 @@ const MainInformation: FC<MainInformationProps> = observer((props) => {
     }
   }
 
+  const hasTechDecision = ((store.tech_decision_id > 0 && store.tech_decision_id != null) && (store.tech_decision_id != store.tech_decisions.find(x => x.code == "reject").id && (store.tech_decision_id != store.tech_decisions.find(x => x.code == "reject_nocouncil").id)))
+  const hasTypeObject = store.object_tag_id != null && store.object_tag_id != 0
+  const hasCalculation = store.hasCalculation
+  const showTypeService = store.StructureTags.filter(x => x.structure_id === store.structure_id).length !== 0
+  const hasTypeService = store.structure_tag_id !== null && store.structure_tag_id !== 0
+  const hasCoords = store.object_xcoord != 0 && store.object_ycoord != 0
+  const isDone = store.is_done;
+
+  const checks = [
+    hasTechDecision,
+    hasTypeObject,
+    hasCalculation,
+    showTypeService ? hasTypeService : null,
+    hasCoords,
+    isDone,
+  ].filter(c => c !== null);
+
+  const doneCount = checks.filter(Boolean).length;
+  const totalCount = checks.length;
+
+  const progressString = `${doneCount}/${totalCount}`;
+
+  const deadline = dayjs(store.Application.deadline);
+  const today = dayjs();
+  const diff = deadline.diff(today, 'day');
+  const isOverdue = diff < 0;
+
+  // Формируем breadcrumbs на основе backUrl
+  const generateBreadcrumbs = () => {
+    const breadcrumbs = [
+      { label: translate("common:home", "Главная"), path: "/user" }
+    ];
+
+    if (store.backUrl === "all") {
+      breadcrumbs.push({ 
+        label: translate("label:ApplicationTaskListView.AllTasks", "Все задачи"), 
+        path: "/user/all_tasks" 
+      });
+    } else if (store.backUrl === "my") {
+      breadcrumbs.push({ 
+        label: translate("label:ApplicationTaskListView.MyTasks", "Мои задачи"), 
+        path: "/user/my_tasks" 
+      });
+    } else {
+      breadcrumbs.push({ 
+        label: translate("label:ApplicationTaskListView.StructureTasks", "Задачи отдела"), 
+        path: "/user/structure_tasks" 
+      });
+    }
+
+    // Добавляем текущую заявку
+    if (store.application_number) {
+      breadcrumbs.push({ 
+        label: `${translate("label:ApplicationAddEditView.entityTitle", "Заявка")} #${store.application_number}`,
+        path: `/user/application/addedit?id=${store.application_id}`
+      });
+    }
+
+    // Добавляем текущую задачу (последний элемент без path)
+    // if (store.id) {
+    //   breadcrumbs.push({ 
+    //     label: `${translate("label:application_taskListView.entityTitleOne", "Задача")} #${store.id}`,
+    //     path: `/user/task/${store.id}`
+    //   });
+    // }
+
+    return breadcrumbs;
+  };
+
   return (
     <MainContent>
-
       <Paper elevation={7} variant="outlined">
         <Card>
           <CardContent>
-
-            <Box sx={{ marginBottom: "5px", width: 10 }}>
-              <CustomButton startIcon={<KeyboardBackspaceIcon />} onClick={() => navigate(calculateBackUrl())} variant="outlined">
-                Назад
-              </CustomButton>
-            </Box>
+            {/* Заменяем кнопку "Назад" на NavigationBreadcrumbs */}
+            <NavigationBreadcrumbs 
+              items={generateBreadcrumbs()}
+              onBack={() => navigate(calculateBackUrl())}
+              showBackButton={true}
+            />
 
             <Box display={"flex"} justifyContent={"space-between"}>
-
               <Box>
                 <Box sx={{ display: "flex", alignItems: "center" }}>
                   <Typography sx={{ fontSize: '24px', fontWeight: 'bold', mt: 1, mb: 1 }}>
                     {store.Customer?.full_name}, {store.Customer?.pin}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <Typography>
+                    {translate("label:ApplicationAddEditView.registration_date")} {dayjs(store.Application.registration_date).format("DD.MM.YYYY HH:mm")}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <Typography>
+                    Услуга {store.Application.service_name}
                   </Typography>
                 </Box>
 
@@ -94,16 +198,48 @@ const MainInformation: FC<MainInformationProps> = observer((props) => {
                   </StyledRouterLink>
                 </Typography>
               </Box>
+              
+              <Box sx={{ mt: 1, mb: 1 }}>
+                <Typography
+                  sx={{ display: 'flex', alignItems: 'center', color: isOverdue ? "red" : "blue" }}
+                >
+                  {isOverdue ? (
+                    <>
+                      <InfoOutlinedIcon sx={{ fontSize: 16, mr: 0.5 }} />
+                      Просрочено на {Math.abs(diff)} {declineDays(diff)}
+                    </>
+                  ) : (
+                    <>
+                      <InfoOutlinedIcon sx={{ fontSize: 16, mr: 0.5 }} />
+                      Осталось {diff} {declineDays(diff)}
+                    </>
+                  )}
+                </Typography>
+
+                <Typography variant="body2" color="text.secondary">
+                  {translate("label:ApplicationAddEditView.deadline")} {dayjs(store.Application.deadline).format("DD.MM.YYYY")}
+                </Typography>
+              </Box>
 
               <Box>
+                <CustomButton
+                  size="small"
+                  customColor={"#acb962"}
+                  variant="contained"
+                  sx={{ mb: "5px", mr: 1, color: "#000000" }}
+                  onClick={(event) => {store.isCheckList = true}}
+                  endIcon={<DoneIcon />}
+                >
+                  {progressString}
+                </CustomButton>
+
                 <CustomButton
                   customColor={"#718fb8"}
                   size="small"
                   variant="contained"
                   sx={{ mb: "5px", mr: 1 }}
-                  // disabled={!(store.is_done || (MainStore.isAdmin || store.task_assigneeIds.includes(LayoutStore.employee_id)))}
                   onClick={(event) => {
-                    if (!store.isAssigned && !MainStore.isAdmin) { // если не назначены
+                    if (!store.isAssigned && !MainStore.isAdmin) {
                       MainStore.openErrorDialog("Вы не назначены на задачу")
                       return;
                     }
@@ -113,6 +249,7 @@ const MainInformation: FC<MainInformationProps> = observer((props) => {
                 >
                   {`${translate("label:ApplicationAddEditView.status")}${store.Statuses.find(s => s.id === store.Application.status_id)?.name}`}
                 </CustomButton>
+                
                 {filteredStatuses?.length > 0 &&
                   <Menu
                     id="basic-menu"
@@ -142,11 +279,11 @@ const MainInformation: FC<MainInformationProps> = observer((props) => {
                         disabled={!x.is_allowed}
                       >
                         {x.name}
-                      </MenuItem>
-                        ;
+                      </MenuItem>;
                     })}
                   </Menu>
                 }
+                
                 <Tooltip title={`${translate("label:HistoryTableListView.entityTitle")} `} arrow>
                   <IconButton
                     id="EmployeeList_Search_Btn"
@@ -157,12 +294,10 @@ const MainInformation: FC<MainInformationProps> = observer((props) => {
                 </Tooltip>
               </Box>
             </Box>
-
           </CardContent>
         </Card>
       </Paper>
-
-    </MainContent >
+    </MainContent>
   );
 })
 

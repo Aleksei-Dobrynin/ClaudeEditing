@@ -88,7 +88,7 @@ GROUP BY obj.id, dis.name
         {
             try
             {
-                var sql = @"SELECT arch_object.id, address, arch_object.name, identifier, district_id, arch_object.description, xcoordinate, ycoordinate, 
+                var sql = @"SELECT arch_object.*, 
                                     dis.name as district_name FROM arch_object 
                             LEFT JOIN district dis on arch_object.district_id = dis.id
                             WHERE arch_object.id=@Id";
@@ -122,12 +122,19 @@ GROUP BY obj.id, dis.name
                     description = domain.description,
                     xcoordinate = domain.xcoordinate,
                     ycoordinate = domain.ycoordinate,
+                    tunduk_address_unit_id = domain.tunduk_address_unit_id,
+                    tunduk_district_id = domain.tunduk_district_id,
+                    tunduk_building_num = domain.tunduk_building_num,
+                    tunduk_street_id = domain.tunduk_street_id,
+                    tunduk_flat_num = domain.tunduk_flat_num,
+                    tunduk_uch_num = domain.tunduk_uch_num,
+                    is_manual = domain.is_manual
                 };
 
                 await FillLogDataHelper.FillLogDataCreate(model, userId);
 
-                var sql = @"INSERT INTO arch_object(address, name, identifier, district_id, created_at, description, xcoordinate, ycoordinate, updated_at, created_by, updated_by) 
-                                VALUES (@address, @name, @identifier, @district_id, @created_at, @description, @xcoordinate, @ycoordinate, @updated_at, @created_by, @updated_by) RETURNING id";
+                var sql = @"INSERT INTO arch_object(address, name, identifier, district_id, created_at, description, xcoordinate, ycoordinate, updated_at, created_by, updated_by, tunduk_address_unit_id, tunduk_district_id, tunduk_street_id, tunduk_building_num, tunduk_flat_num, tunduk_uch_num, is_manual) 
+                                VALUES (@address, @name, @identifier, @district_id, @created_at, @description, @xcoordinate, @ycoordinate, @updated_at, @created_by, @updated_by, @tunduk_address_unit_id, @tunduk_district_id, @tunduk_street_id, @tunduk_building_num, @tunduk_flat_num, @tunduk_uch_num, @is_manual) RETURNING id";
                 var result = await _dbConnection.ExecuteScalarAsync<int>(sql, model, transaction: _dbTransaction);
                 return result;
             }
@@ -154,12 +161,36 @@ GROUP BY obj.id, dis.name
                     description = domain.description,
                     xcoordinate = domain.xcoordinate,
                     ycoordinate = domain.ycoordinate,
+                    tunduk_address_unit_id = domain.tunduk_address_unit_id,
+                    tunduk_district_id = domain.tunduk_district_id,
+                    tunduk_building_num = domain.tunduk_building_num,
+                    tunduk_street_id = domain.tunduk_street_id,
+                    tunduk_flat_num = domain.tunduk_flat_num,
+                    tunduk_uch_num = domain.tunduk_uch_num,
+                    is_manual = domain.is_manual
                 };
 
                 await FillLogDataHelper.FillLogDataUpdate(model, userId);
 
-                var sql = @"UPDATE arch_object SET address = @address, name = @name, identifier = @identifier, 
-                                district_id = @district_id, updated_at = @updated_at, description = @description, xcoordinate = @xcoordinate, ycoordinate = @ycoordinate, updated_by = @updated_by WHERE id = @id";
+                var sql = @"UPDATE arch_object 
+            SET address = @address, 
+                name = @name, 
+                identifier = @identifier, 
+                district_id = @district_id, 
+                updated_at = @updated_at, 
+                description = @description, 
+                xcoordinate = @xcoordinate, 
+                ycoordinate = @ycoordinate, 
+                tunduk_address_unit_id = @tunduk_address_unit_id,
+                tunduk_district_id = @tunduk_district_id,
+                tunduk_building_num = @tunduk_building_num,
+                tunduk_street_id = @tunduk_street_id,
+                tunduk_flat_num = @tunduk_flat_num,
+                tunduk_uch_num = @tunduk_uch_num,
+                is_manual = @is_manual,
+                updated_by = @updated_by
+            WHERE id = @id";
+
                 var affected = await _dbConnection.ExecuteAsync(sql, model, transaction: _dbTransaction);
                 if (affected == 0)
                 {

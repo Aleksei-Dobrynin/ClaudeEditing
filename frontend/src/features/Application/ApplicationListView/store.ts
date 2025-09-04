@@ -7,13 +7,22 @@ import { GridSortModel } from "@mui/x-data-grid";
 import dayjs, { Dayjs } from "dayjs";
 import { getServices } from "api/Service/useGetServices";
 import { FilterApplication } from "constants/Application";
-import { getDistricts } from "api/District/useGetDistricts";
+import {
+  getDistricts,
+  getTundukDistricts,
+  getAteChildren,
+  searchStreet
+} from "api/District/useGetDistricts";
 import { getApplicationStatuss } from "api/ApplicationStatus/useGetApplicationStatuses";
 import { getTags } from "api/Tag/useGetTags";
 import { getEmployees, getRegisterEmployees } from "../../../api/Employee/useGetEmployees";
 import appFilterStore from "../../ApplicationFilter/ApplicationFilterAddEditView/store";
 import { getCheckApplicationBeforeRegistering, setApplicationToReestr } from "../../../api/reestr";
+import { getDocumentJournalss } from "../../../api/DocumentJournals";
+import { getApplicationDocument, getApplicationTemplates } from "../../../api/S_DocumentTemplate";
+import printJS from "print-js";
 
+import { TUNDUK_TO_REGULAR_DISTRICT_MAP, getRegularDistrictId } from "constants/constant";
 type N8nValidationResult = {
   valid: boolean;
   errors: Record<string, string>;
@@ -21,10 +30,30 @@ type N8nValidationResult = {
 
 class NewStore {
   data = [];
+  Journals = [];
   openPanel = false;
+  isOpenSelectLang = false;
+  selectedLang = '';
+  selectTemplate_id = 0;
   currentId = 0;
   totalCount = 0;
   is_allFilter = false;
+  titleError = "";
+  messageError = "";
+  openError = false;
+  selectedIds = [];
+
+  // Добавляем новые поля для Tunduk адресов
+  TundukDistricts = [];
+  TundukResidentialAreas = [];
+  streetSearchState = {
+    inputValue: '',
+    selectedStreet: null,
+    isOpen: false,
+    searchResults: [],
+    isLoading: false
+  };
+  streetSearchTimer = null;
 
   filter: FilterApplication = {
     pageSize: 100,
@@ -53,22 +82,29 @@ class NewStore {
     outgoing_numbers: "",
     only_count: false,
     is_paid: null,
-    // Новые поля для фильтрации по суммам
     total_sum_from: null,
     total_sum_to: null,
     total_payed_from: null,
     total_payed_to: null,
+    app_ids: [],
+    // Новые поля для фильтрации
+    tunduk_district_id: null,
+    tunduk_address_unit_id: null,
+    tunduk_street_id: null,
   };
+
   checkResult: null | { valid: boolean; errors: Record<string, string> } = null;
   selectedApplicationId: number | null = null;
   errors: { [key: string]: string } = {};
   isFinPlan: boolean = false;
+  isJournal: boolean = false;
   openPanelFinPlan = false;
   applicationIdFinPlan = 0;
 
   Services = [];
   Statuses = [];
   Districts = [];
+  ApplicationTemplates = [];
   DeadlineDays = [
     { id: 7, name: "7 дней" },
     { id: 3, name: "3 дней" },
@@ -81,38 +117,209 @@ class NewStore {
   selectedReestrId = 0;
   selectedReestrName = "";
   openReestrSelectPanel = false;
-  filterByEmployee: boolean = false;
-  filterByOrgStructure: boolean = false;
 
   constructor() {
     makeAutoObservable(this);
   }
 
+  // ===== НОВЫЕ МЕТОДЫ ДЛЯ TUNDUK АДРЕСОВ =====
+
+  changeTundukDistrict = async (districtId: number) => {
+    runInAction(() => {
+      this.filter.tunduk_district_id = districtId;
+      this.filter.tunduk_address_unit_id = null;
+      this.filter.tunduk_street_id = null;
+
+      // АВТОМАТИЧЕСКИ УСТАНАВЛИВАЕМ ОБЫЧНЫЙ РАЙОН
+      this.filter.district_id = getRegularDistrictId(districtId);
+
+      // Сбрасываем состояние поиска улиц
+      this.streetSearchState = {
+        inputValue: '',
+        selectedStreet: null,
+        isOpen: false,
+        searchResults: [],
+        isLoading: false
+      };
+    });
+
+    // Загружаем микрорайоны для выбранного района
+    if (districtId) {
+      await this.loadTundukResidentialAreas(districtId);
+    } else {
+      this.TundukResidentialAreas = [];
+      // Если район не выбран, ставим "Не определено"
+      runInAction(() => {
+        this.filter.district_id = 6;
+      });
+    }
+
+    this.setFilterToLocalStorage();
+  };
+
+  changeTundukAddressUnit = (addressUnitId: number) => {
+    runInAction(() => {
+      this.filter.tunduk_address_unit_id = addressUnitId;
+      this.filter.tunduk_street_id = null;
+
+      // Сбрасываем состояние поиска улиц
+      this.streetSearchState = {
+        inputValue: '',
+        selectedStreet: null,
+        isOpen: false,
+        searchResults: [],
+        isLoading: false
+      };
+    });
+
+    this.setFilterToLocalStorage();
+  };
+
+  changeTundukStreet = (streetId: number, streetData?: any) => {
+    runInAction(() => {
+      this.filter.tunduk_street_id = streetId;
+
+      // Если передана информация об улице, автоматически устанавливаем район
+      if (streetData && streetData.address_unit_id) {
+        this.autoSetDistrictFromStreet(streetData);
+      }
+    });
+
+    this.setFilterToLocalStorage();
+  };
+
+  autoSetDistrictFromStreet = async (streetData: any) => {
+    if (!streetData.address_unit_id) return;
+
+    // Проверяем, является ли address_unit_id микрорайоном
+    const residentialArea = this.TundukResidentialAreas.find(
+      area => area.id === streetData.address_unit_id
+    );
+
+    if (residentialArea) {
+      // Это микрорайон
+      runInAction(() => {
+        this.filter.tunduk_address_unit_id = residentialArea.id;
+
+        // Устанавливаем родительский район
+        if (residentialArea.parent_id) {
+          this.filter.tunduk_district_id = residentialArea.parent_id;
+          // АВТОМАТИЧЕСКИ УСТАНАВЛИВАЕМ ОБЫЧНЫЙ РАЙОН
+          this.filter.district_id = getRegularDistrictId(residentialArea.parent_id);
+        }
+      });
+    } else {
+      // Проверяем, является ли это районом
+      const district = this.TundukDistricts.find(
+        d => d.id === streetData.address_unit_id
+      );
+
+      if (district) {
+        runInAction(() => {
+          this.filter.tunduk_district_id = district.id;
+          this.filter.tunduk_address_unit_id = null;
+          // АВТОМАТИЧЕСКИ УСТАНАВЛИВАЕМ ОБЫЧНЫЙ РАЙОН
+          this.filter.district_id = getRegularDistrictId(district.id);
+        });
+      }
+    }
+  };
+
+  searchTundukStreets = async (searchQuery: string) => {
+    if (!searchQuery || searchQuery.trim().length < 2) {
+      runInAction(() => {
+        this.streetSearchState.searchResults = [];
+        this.streetSearchState.isLoading = false;
+      });
+      return;
+    }
+
+    runInAction(() => {
+      this.streetSearchState.isLoading = true;
+    });
+
+    try {
+      // Определяем ID для фильтрации
+      let filterAteId = 0;
+      if (this.filter.tunduk_address_unit_id) {
+        filterAteId = this.filter.tunduk_address_unit_id;
+      } else if (this.filter.tunduk_district_id) {
+        filterAteId = this.filter.tunduk_district_id;
+      }
+
+      const response = await searchStreet(searchQuery, filterAteId);
+
+      if (response && response.status === 200 && response.data) {
+        runInAction(() => {
+          this.streetSearchState.searchResults = response.data;
+          this.streetSearchState.isLoading = false;
+        });
+      }
+    } catch (error) {
+      console.error('Ошибка поиска улиц:', error);
+      runInAction(() => {
+        this.streetSearchState.searchResults = [];
+        this.streetSearchState.isLoading = false;
+      });
+    }
+  };
+
+  handleStreetInputChange = (inputValue: string) => {
+    runInAction(() => {
+      this.streetSearchState.inputValue = inputValue;
+    });
+
+    // Отменяем предыдущий таймер
+    if (this.streetSearchTimer) {
+      clearTimeout(this.streetSearchTimer);
+    }
+
+    // Устанавливаем новый таймер для debounce
+    this.streetSearchTimer = setTimeout(() => {
+      this.searchTundukStreets(inputValue);
+    }, 300);
+  };
+
+  loadTundukDistricts = async () => {
+    try {
+      MainStore.changeLoader(true);
+      const response = await getTundukDistricts();
+      if ((response.status === 201 || response.status === 200) && response?.data !== null) {
+        runInAction(() => {
+          this.TundukDistricts = response.data;
+        });
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      MainStore.changeLoader(false);
+    }
+  };
+
+  loadTundukResidentialAreas = async (districtId: number) => {
+    try {
+      MainStore.changeLoader(true);
+      const response = await getAteChildren(districtId);
+      if ((response.status === 201 || response.status === 200) && response?.data !== null) {
+        runInAction(() => {
+          this.TundukResidentialAreas = response.data;
+        });
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      MainStore.changeLoader(false);
+    }
+  };
+
+  // ===== КОНЕЦ НОВЫХ МЕТОДОВ =====
+
   onEditClicked(id: number) {
-    // runInAction(() => {
-    //   this.openPanel = true;
-    //   this.currentId = id;
-    //   this.page = 0;
-    //   this.pageSize = 10;
-    //   this.totalCount = 0;
-    //   this.orderBy = null;
-    //   this.orderType = null;
-    //   this.searchText = "";
-    // });
-  }
-
-  setFilterByEmployee(enabled: boolean) {
-    this.filterByEmployee = enabled;
-    if (enabled) {
-      this.filterByOrgStructure = false;
-    }
-  }
-
-  setFilterByOrgStructure(enabled: boolean) {
-    this.filterByOrgStructure = enabled;
-    if (enabled) {
-      this.filterByEmployee = false;
-    }
+    // существующий код
   }
 
   changeOpenPanel(flag: boolean, id: number) {
@@ -121,16 +328,15 @@ class NewStore {
       this.currentId = id;
     });
   }
+
   onChangePanelFinPlan(flag: boolean, application_id: number) {
     this.openPanelFinPlan = flag;
     this.applicationIdFinPlan = application_id
   }
 
   changePagination = (page: number, pageSize: number) => {
-    runInAction(() => {
-      this.filter.pageNumber = page;
-      this.filter.pageSize = pageSize;
-    });
+    this.filter.pageNumber = page;
+    this.filter.pageSize = pageSize;
     this.loadApplications();
   };
 
@@ -145,8 +351,14 @@ class NewStore {
       }
     });
     this.loadApplications();
-
   };
+
+  changeSelect(id: number, isCheck: boolean) {
+    const item = this.data.find(x => x.id === id);
+    item.select_application = isCheck;
+    this.data = [...this.data];
+    this.selectedIds = this.data.filter(x => x.select_application).map(x => x.id);
+  }
 
   clearFilter() {
     this.filter = {
@@ -162,6 +374,7 @@ class NewStore {
       status_ids: [],
       address: "",
       district_id: 0,
+      journals_id: 0,
       deadline_day: 0,
       number: "",
       tag_id: 0,
@@ -180,33 +393,50 @@ class NewStore {
       issued_employee_id: null,
       only_count: false,
       is_paid: null,
-      // Очищаем новые поля
       total_sum_from: null,
       total_sum_to: null,
       total_payed_from: null,
       total_payed_to: null,
+      // Очищаем новые поля
+      tunduk_district_id: null,
+      tunduk_address_unit_id: null,
+      tunduk_street_id: null,
     };
+
+    // Сбрасываем состояние поиска улиц
+    this.streetSearchState = {
+      inputValue: '',
+      selectedStreet: null,
+      isOpen: false,
+      searchResults: [],
+      isLoading: false
+    };
+
+    this.TundukResidentialAreas = [];
     this.is_allFilter = false;
     this.setFilterToLocalStorage();
   }
 
-  doLoad(isFinPlan: boolean, filterByEmployee: boolean = false, filterByOrgStructure: boolean = false) {
-    let selectedReestrId = localStorage.getItem("selectedReestrId") ?? "0";
-    let selectedReestrName = localStorage.getItem("selectedReestrName") ?? "";
+  doLoad(isFinPlan: boolean, isJournal?: boolean) {
+    if (isJournal == null) {
+      let selectedReestrId = localStorage.getItem("selectedReestrId") ?? "0";
+      let selectedReestrName = localStorage.getItem("selectedReestrName") ?? "";
 
-    this.selectedReestrId = parseInt(selectedReestrId);
-    this.selectedReestrName = selectedReestrName;
+      this.selectedReestrId = parseInt(selectedReestrId);
+      this.selectedReestrName = selectedReestrName;
+    }
 
-    this.isFinPlan = isFinPlan;
-    this.setFilterByEmployee(filterByEmployee);
-    this.setFilterByOrgStructure(filterByOrgStructure);
-
+    this.isFinPlan = isFinPlan
+    this.isJournal = isJournal
     this.loadApplications();
     this.loadServices();
     this.loadStatuses();
     this.loadDistricts();
     this.loadTags();
     this.loadEmployees();
+    this.loadDocumentJournalss();
+    this.loadApplicationTemplate();
+    this.loadTundukDistricts(); // Загружаем районы Tunduk
   }
 
   changeAllFilter(event) {
@@ -221,10 +451,12 @@ class NewStore {
     this.filter.service_ids = ids;
     this.setFilterToLocalStorage();
   }
+
   changeStatus(ids: number[]) {
     this.filter.status_ids = ids;
     this.setFilterToLocalStorage();
   }
+
   changeDateStart(date: Dayjs) {
     if (date != null) {
       this.filter.date_start = date.startOf('day').format('YYYY-MM-DDTHH:mm:ss');
@@ -233,6 +465,7 @@ class NewStore {
     }
     this.setFilterToLocalStorage();
   }
+
   changeDateEnd(date: Dayjs) {
     if (date != null) {
       this.filter.date_end = date.endOf('day').format('YYYY-MM-DDTHH:mm:ss');
@@ -241,18 +474,26 @@ class NewStore {
     }
     this.setFilterToLocalStorage();
   }
+
   changePin = (pin: string) => {
     this.filter.pin = pin;
     this.setFilterToLocalStorage();
   };
+
+  changeJournalId = (journals_id: number) => {
+    this.filter.journals_id = journals_id;
+  };
+
   changeCustomerName = (customerName: string) => {
     this.filter.customerName = customerName;
     this.setFilterToLocalStorage();
   };
+
   changeAddress = (address: string) => {
     this.filter.address = address;
     this.setFilterToLocalStorage();
   };
+
   changeCommonFilter = (common_filter: string) => {
     this.filter.common_filter = common_filter;
     this.setFilterToLocalStorage();
@@ -262,16 +503,17 @@ class NewStore {
     this.filter.number = number;
     this.setFilterToLocalStorage();
   };
+
   changeDistrict = (id: number) => {
     this.filter.district_id = id;
     this.setFilterToLocalStorage();
   };
+
   changeDeadlineDay = (id: number) => {
     this.filter.deadline_day = id;
     this.setFilterToLocalStorage();
   };
 
-  // Новые методы для фильтрации по суммам
   changeTotalSumFrom = (value: string) => {
     this.filter.total_sum_from = value ? parseFloat(value) : null;
     this.setFilterToLocalStorage();
@@ -301,7 +543,6 @@ class NewStore {
       this.filter[fieldName] = value;
     }
 
-    // Автоматически загружаем при снятии галочки (true -> false)
     if (prevValue === true && value === false) {
       this.loadApplications();
     }
@@ -316,7 +557,6 @@ class NewStore {
 
     if (this.filter.is_paid == isPaid) {
       this.filter.is_paid = null;
-      // Автоматически загружаем при снятии галочки
       this.loadApplications();
     } else {
       this.filter.is_paid = isPaid;
@@ -332,6 +572,7 @@ class NewStore {
     this.filter.employee_id = id;
     this.setFilterToLocalStorage();
   };
+
   changeIncomingNumbers = (incoming_numbers: string) => {
     this.filter.incoming_numbers = incoming_numbers;
     this.setFilterToLocalStorage();
@@ -354,7 +595,6 @@ class NewStore {
     if (filterData) {
       const data = JSON.parse(filterData);
 
-      // Проверяем новый формат данных
       if (data.filter) {
         let filt = data.filter;
         if (filt.date_start !== null) {
@@ -369,7 +609,6 @@ class NewStore {
         this.filter = filt;
         this.is_allFilter = data.is_allFilter || false;
       } else {
-        // Обратная совместимость со старым форматом
         let filt = data;
         if (filt.date_start !== null) {
           filt.date_start = dayjs(filt.date_start);
@@ -382,6 +621,14 @@ class NewStore {
         }
         this.is_allFilter = !(filt.useCommon ?? true);
         this.filter = filt;
+      }
+
+      // СИНХРОНИЗИРУЕМ ОБЫЧНЫЙ РАЙОН С TUNDUK РАЙОНОМ
+      if (this.filter.tunduk_district_id) {
+        this.filter.district_id = getRegularDistrictId(this.filter.tunduk_district_id);
+        this.loadTundukResidentialAreas(this.filter.tunduk_district_id);
+      } else {
+        this.filter.district_id = 6; // "Не определено"
       }
     }
   }
@@ -437,32 +684,39 @@ class NewStore {
   loadApplications = async () => {
     try {
       MainStore.changeLoader(true);
-
-      // Создаем копию фильтра
-      let requestFilter = { ...this.filter };
-
-      // Добавляем ID в зависимости от типа фильтрации
-      if (this.filterByEmployee) {
-        requestFilter.employee_id = MainStore.currentEmployeeId;
+      if (this.isJournal) {
+        this.filter.is_journal = true;
       }
-
-      if (this.filterByOrgStructure) {
-        requestFilter.org_structure_id = MainStore.currentOrgStructureId;
-      }
-
-      const response = this.isFinPlan
-        ? await getApplicationPaginationFinPlan(requestFilter)
-        : await getApplicationPagination(requestFilter);
-
+      const response = this.isFinPlan ? await getApplicationPaginationFinPlan(this.filter) : await getApplicationPagination(this.filter);
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
-        this.data = response.data.items;
         this.totalCount = response.data.totalCount;
+        if (this.filter.pageNumber > 0) {
+          this.data = [...this.data, ...response.data.items];
+        } else {
+          this.data = response.data.items;
+        }
       } else {
         if (response?.response?.status === 400) {
           this.clearFilter();
           await this.loadApplications();
           return;
         }
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      MainStore.changeLoader(false);
+    }
+  };
+
+  loadDocumentJournalss = async () => {
+    try {
+      MainStore.changeLoader(true);
+      const response = await getDocumentJournalss();
+      if ((response.status === 201 || response.status === 200) && response?.data !== null) {
+        this.Journals = response.data;
+      } else {
         throw new Error();
       }
     } catch (err) {
@@ -496,6 +750,53 @@ class NewStore {
       MainStore.changeLoader(false);
     }
   };
+
+  loadApplicationTemplate = async () => {
+    try {
+      MainStore.changeLoader(true);
+      const response = await getApplicationTemplates();
+      if ((response.status === 201 || response.status === 200) && response?.data !== null) {
+        this.ApplicationTemplates = response.data;
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      MainStore.changeLoader(false);
+    }
+  };
+
+  selectTemplate = async () => {
+    try {
+      MainStore.changeLoader(true);
+      var data = {
+        template_id: this.selectTemplate_id,
+        language_code: this.selectedLang,
+        selected_apps: this.selectedIds,
+      };
+      const response = await getApplicationDocument(data);
+      if ((response.status === 201 || response.status === 200) && response?.data !== null) {
+        const allDocs = response.data.join("<div style='page-break-after: always;'></div>");
+        printJS({
+          printable: allDocs,
+          type: "raw-html",
+          targetStyles: ["*"],
+        });
+        this.selectTemplate_id = 0;
+        this.selectedLang = '';
+        this.data.forEach(x => x.select_application = false);
+        this.selectedIds = [];
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      MainStore.changeLoader(false);
+    }
+  }
+
   loadTags = async () => {
     try {
       MainStore.changeLoader(true);
@@ -548,8 +849,6 @@ class NewStore {
       this.selectedReestrId = 0;
       this.selectedReestrName = "";
       this.openReestrSelectPanel = false;
-      this.filterByEmployee = false;
-      this.filterByOrgStructure = false;
     });
   };
 
@@ -575,20 +874,81 @@ class NewStore {
             let newArray = this.data.map(item =>
               item.id === applicationId ? { ...item, reestr_id: reestrId, reestr_name: reestrName } : item
             );
-            this.data = JSON.parse(JSON.stringify(newArray)); //Array.from(newArray); //[...newArray];
+            this.data = JSON.parse(JSON.stringify(newArray));
           });
         }
-        // this.loadApplications();
         MainStore.setSnackbar(i18n.t("message:snackbar.successSave"));
       } else {
-        throw new Error();
+        throw response;
       }
     } catch (err) {
+      if (err?.response?.data) {
+        let raw = err.response.data;
+        if (typeof raw === "string") {
+          raw = raw
+            .replace(/^{\s*StatusCode\s*=\s*/i, '{"StatusCode":')
+            .replace(/,\s*Message\s*=\s*/, ',"Message":');
+        }
+        try {
+          const parsedObject = JSON.parse(raw);
+          const serverMessage = parsedObject?.Message?.Message;
+
+          if (serverMessage && serverMessage.includes("Заявка уже находится в другом реестре")) {
+            this.messageError = serverMessage;
+            this.openError = true;
+            return;
+          }
+        } catch (e) {
+          console.error("Ошибка парсинга server error", e);
+        }
+      }
       MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
     } finally {
       MainStore.changeLoader(false);
     }
   }
+
+  exportApplicationsToExcel = async () => {
+    try {
+      MainStore.changeLoader(true);
+
+      const excelFilter = { ...this.filter };
+      excelFilter.pageNumber = 0;
+      excelFilter.pageSize = 500;
+      excelFilter.only_count = false;
+
+      if (this.isJournal) {
+        excelFilter.is_journal = true;
+      }
+
+      const response = this.isFinPlan
+        ? await getApplicationPaginationFinPlan(excelFilter)
+        : await getApplicationPagination(excelFilter);
+
+      if ((response.status === 201 || response.status === 200) && response?.data !== null) {
+        const allData = response.data.items || [];
+        this.totalCount = response.data.totalCount || allData.length;
+
+        if (!allData || allData.length === 0) {
+          MainStore.setSnackbar("Нет данных для экспорта по заданным фильтрам", "warning");
+          return [];
+        }
+
+        return allData;
+      } else {
+        if (response?.response?.status === 400) {
+          this.clearFilter();
+          throw new Error("Некорректные параметры фильтра. Фильтр сброшен.");
+        }
+        throw new Error("Не удалось получить данные для экспорта");
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+      throw err;
+    } finally {
+      MainStore.changeLoader(false);
+    }
+  };
 
   async getCheckApplicationBeforeRegistering(applicationId: number, reestrId: number) {
     try {

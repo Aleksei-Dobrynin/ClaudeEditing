@@ -52,6 +52,16 @@ namespace WebApi.Controllers
             return Ok(File(doc.body, "application/octet-stream", doc.name));
         }
 
+        [AllowAnonymous]
+        [HttpGet]
+        [Route("DownloadDocumentFromCabinet2")]
+        public async Task<IActionResult> DownloadDocumentFromCabinet2(int id)
+        {
+            var doc = await _fileUseCases.DownloadDocumentFromCabinet(id);
+            if (doc?.body == null) return NotFound();
+            return File(doc.body, "application/octet-stream", doc.name);
+        }
+
         [HttpGet]
         [Route("SignDocument")]
         public async Task<IActionResult> SignDocument(int id, int? uplId, string pin, string code)

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import store from "./storeObject";
 import applicationStore from "./store";
 import { observer } from "mobx-react";
+import { runInAction } from "mobx";
 import LookUp from "components/LookUp";
 import CustomTextField from "components/TextField";
 import { MapContainer, Marker, Polygon, Popup, TileLayer, LayersControl } from "react-leaflet";
@@ -17,7 +18,10 @@ import PopupApplicationStore from "../PopupAplicationListView/store";
 import ContentPasteSearchIcon from "@mui/icons-material/ContentPasteSearch";
 import BadgeButton from "../../../components/BadgeButton";
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import SelectField from "components/SelectField";
+import CustomButton from "components/Button";
+import Autocomplete from "@mui/material/Autocomplete"
+import TextField from "@mui/material/TextField";
+import CustomCheckbox from "components/Checkbox";
 
 type ProjectsTableProps = {
   children?: React.ReactNode;
@@ -140,149 +144,404 @@ const ObjectFormView: FC<ProjectsTableProps> = observer((props) => {
       <Grid item md={6}>
         <Box display={"flex"}>
           <Grid container spacing={2}>
-            {store.arch_objects.map((obj, i) => <Grid item md={6} xs={12} sx={{ mb: 1 }}>
-              <Paper elevation={1} sx={{ p: 2 }}>
+            {store.arch_objects.map((obj, i) => {
+              const streetState = store.getTundukStreetState(i);
 
-                <Grid container spacing={1}>
-                  <Grid item md={12} xs={12} display={"flex"} justifyContent={"space-between"} alignItems={"center"}>
-                    <div style={{ maxHeight: 30, minHeight: 30 }}>Адрес {i + 1}
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center" }}> {store.arch_objects[i] && store.arch_objects[i].address ? (
-                      <BadgeButton
-                        circular={<CircularProgress sx={{ display: "block" }} size="20px" />}
-                        stateCircular={store.loading[i]}
-                        count={store.counts[i]}
-                        icon={<ContentPasteSearchIcon sx={{ color: "#FF652F" }} />}
-                        onClick={() => {
-                          PopupApplicationStore.handleChange({ target: { name: "openCustomerApplicationDialog", value: !PopupApplicationStore.openCustomerApplicationDialog } })
-                          PopupApplicationStore.handleChange({ target: { name: "common_filter", value: store.arch_objects[i].address } }, "filter")
-                          PopupApplicationStore.handleChange({ target: { name: "only_count", value: false } }, "filter")
-                        }} />
-                    ) : null}
-                      {i === 0 ? <></> : <Tooltip title={"Удалить"}>
-                        <IconButton sx={{ maxHeight: 30 }} size="small" onClick={() => store.deleteAddress(i)}>
-                          <ClearIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>}
-                    </div>
+              return (<Grid item md={6} xs={12} sx={{ mb: 1 }}>
+                <Paper elevation={1} sx={{ p: 2 }}>
 
-                  </Grid>
-                  <Grid item md={12} xs={12}>
-                    <MaskedAutocomplete
-                      data={obj.DarekSearchList ?? []}
-                      disabled={applicationStore.is_application_read_only}
-                      value={obj.identifier}
-                      label={translate("label:ArchObjectAddEditView.identifier")}
-                      name="darek_eni"
-                      onChange={(newValue: any) => {
-                        obj.identifier = newValue?.propcode;
-                        if (newValue?.address) {
-                          store.handleChange({ target: { value: newValue?.address, name: "address" } }, i)
-                        }
-                        store.handleChange({ target: { value: [], name: "DarekSearchList" } }, i)
-                        store.searchFromDarek(newValue?.propcode ?? "", i);
-                      }}
-                      freeSolo={true}
-                      fieldNameDisplay={(option) => option?.propcode}
-                      onInputChange={(event, value) => {
-                        // store.identifier = '';
-                        const propCode = value?.replaceAll('-', '')
-                        if (value.length > 12 && obj.identifier !== value && propCode !== obj.identifier) {
-                          obj.identifier = value;
-                          store.getSearchListFromDarek(value, i);
-                        }
-                      }}
-                      mask="0-00-00-0000-0000-00-000"
-                    />
-                  </Grid>
-                  <Grid item md={12} xs={12}>
+                  <Grid container spacing={1}>
+                    <Grid item md={12} xs={12} display={"flex"} justifyContent={"space-between"} alignItems={"center"}>
+                      <div style={{ maxHeight: 30, minHeight: 30 }}>Адрес {i + 1}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center" }}> {store.arch_objects[i] && store.arch_objects[i].address ? (
+                        <BadgeButton
+                          circular={<CircularProgress sx={{ display: "block" }} size="20px" />}
+                          stateCircular={store.loading[i]}
+                          count={store.counts[i]}
+                          icon={<ContentPasteSearchIcon sx={{ color: "#FF652F" }} />}
+                          onClick={() => {
+                            PopupApplicationStore.handleChange({ target: { name: "openCustomerApplicationDialog", value: !PopupApplicationStore.openCustomerApplicationDialog } })
+                            PopupApplicationStore.handleChange({ target: { name: "common_filter", value: store.arch_objects[i].address } }, "filter")
+                            PopupApplicationStore.handleChange({ target: { name: "only_count", value: false } }, "filter")
+                          }} />
+                      ) : null}
+                        {i === 0 ? <></> : <Tooltip title={"Удалить"}>
+                          <IconButton sx={{ maxHeight: 30 }} size="small" onClick={() => store.deleteAddress(i)}>
+                            <ClearIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>}
+                      </div>
 
-                    <Grid container spacing={1} alignItems="center">
-                      <Grid item xs={12} sm={store.legalRecords ? 11 : 12}>
-                        <GisSearch
-                          id="id_f_ArchObject_address"
-                          index={i}
-                          disabled={applicationStore.is_application_read_only}
-                          label={translate("label:ArchObjectAddEditView.address")}
-                          autocomplete={true}
-                          onBlur={() => store.setBadgeConst(i)}
-                        />
-                      </Grid>
-                      {
-                        <Grid item xs={12} sm={store.legalRecords ? 11 : 12}>
-                          <CustomTextField
-                            value={store.arch_objects[i]?.street || ""}
-                            onChange={(event) => store.handleChange(event, i)} // ✅ ИСПРАВЛЕНО
-                            name="street"
-                            id="id_f_arch_object_street"
-                            data-testid="id_f_arch_object_street"
-                            label={translate("label:ArchObjectAddEditView.street")}
-                            disabled={applicationStore.is_application_read_only}
+                    </Grid>
+                    <Grid item md={12} xs={12}>
+                      <MaskedAutocomplete
+                        data={obj.DarekSearchList ?? []}
+                        disabled={applicationStore.is_application_read_only}
+                        value={obj.identifier}
+                        label={translate("label:ArchObjectAddEditView.identifier")}
+                        name="darek_eni"
+                        onChange={(newValue: any) => {
+                          obj.identifier = newValue?.propcode;
+                          if (newValue?.address) {
+                            store.handleChange({ target: { value: newValue?.address, name: "address" } }, i)
+                          }
+                          store.handleChange({ target: { value: [], name: "DarekSearchList" } }, i)
+                          store.searchFromDarek(newValue?.propcode ?? "", i);
+                        }}
+                        freeSolo={true}
+                        fieldNameDisplay={(option) => option?.propcode}
+                        onInputChange={(event, value) => {
+                          const propCode = value?.replaceAll('-', '')
+                          if (value.length > 12 && obj.identifier !== value && propCode !== obj.identifier) {
+                            obj.identifier = value;
+                            store.getSearchListFromDarek(value, i);
+                          }
+                        }}
+                        mask="0-00-00-0000-0000-00-000"
+                      />
+                    </Grid>
+
+                    <Grid item md={12} xs={12}>
+                      <Autocomplete
+                        key={obj.tunduk_district_id}
+                        value={store.TundukDistricts.find(x => x.id == obj.tunduk_district_id) || null}
+                        disabled={applicationStore.is_application_read_only}
+                        onChange={(event, newValue) => {
+                          runInAction(() => {
+                            // Используем новый метод для обработки изменения района
+                            store.handleTundukDistrictChange(i, newValue?.id ?? 0);
+
+                            // Сбрасываем микрорайон и улицу при изменении района
+                            store.handleChange({ target: { name: "tunduk_address_unit_id", value: 0 } }, i);
+                            store.handleChange({ target: { name: "tunduk_street_id", value: 0 } }, i);
+                          const district = store.Districts.find(
+                            x => x.address_unit_id === obj.tunduk_district_id);
+                          store.handleChange({ target: { name: "district_id", value: district?.id ?? 0 } }, i);
+
+                            // Сбрасываем состояние поиска улиц
+                            store.handleTundukStreetChange(i, null, i);
+                            store.clearTundukStreetState(i);
+                            store.initTundukStreetState(i);
+
+                            if (newValue?.id) {
+                              // Загружаем микрорайоны для выбранного района
+                              store.loadAteChildrens(newValue.id);
+                            } else {
+                              store.TundukResidentialAreas = [];
+                            }
+                          });
+                        }}
+                        getOptionLabel={(x) => x.name || ""}
+                        options={store.TundukDistricts}
+                        id="id_f_tunduk_district_id"
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label={translate("label:ArchObjectAddEditView.tunduk_district_id")}
+                            helperText={obj.errortunduk_district_id}
+                            error={!!obj.errortunduk_district_id}
+                            size={"small"}
                           />
-                        </Grid>
-                      }
-                      {
-                        <Grid item xs={12} sm={store.legalRecords ? 11 : 12}>
-                          <CustomTextField
-                            value={store.arch_objects[i]?.house || ""}
-                            onChange={(event) => store.handleChange(event, i)} // ✅ ИСПРАВЛЕНО
-                            name="house"
-                            id="id_f_arch_object_house"
-                            data-testid="id_f_arch_object_house"
-                            label={translate("label:ArchObjectAddEditView.house")}
-                            disabled={applicationStore.is_application_read_only}
-                          />
-                        </Grid>
-                      }
-                      {
-                        <Grid item xs={12} sm={store.legalRecords ? 11 : 12}>
-                          <CustomTextField
-                            value={store.arch_objects[i]?.apartment || ""}
-                            onChange={(event) => store.handleChange(event, i)} // ✅ ИСПРАВЛЕНО
-                            name="apartment"
-                            id="id_f_arch_object_apartment"
-                            data-testid="id_f_arch_object_apartment"
-                            label={translate("label:ArchObjectAddEditView.apartment")}
-                            disabled={applicationStore.is_application_read_only}
-                          />
-                        </Grid>
-                      }
-                      <Grid item xs={12} sm={1}>
-                        {((obj.legalActs && obj.legalActs.length > 0) || (obj.legalRecords && obj.legalRecords.length > 0)) && (
-                          <Tooltip title={"Адрес фигурирует в правовой записи"}>
-                            <IconButton
-                              sx={{ maxHeight: 30 }}
-                              size="small"
-                              onClick={() => { }}
-                            >
-                              <ErrorOutlineIcon fontSize="small" sx={{ color: "#FF652F" }} />
-                            </IconButton>
-                          </Tooltip>
                         )}
+                      />
+                    </Grid>
+                    <Grid item md={12} xs={12}>
+                      <Autocomplete
+                        key={obj.tunduk_address_unit_id}
+                        value={store.TundukResidentialAreas.find(x => x.id == obj.tunduk_address_unit_id) || null}
+                        disabled={applicationStore.is_application_read_only}
+                        onChange={(event, newValue) => {
+                          store.handleChange({ target: { name: "tunduk_address_unit_id", value: newValue?.id ?? 0 } }, i);
+                          store.handleChange({ target: { name: "tunduk_street_id", value: 0 } }, i);
+
+                          // Сбрасываем состояние поиска улиц при изменении микрорайона
+                          store.handleTundukStreetChange(i, null, i);
+                          store.clearTundukStreetState(i);
+                          store.initTundukStreetState(i);
+                        }}
+                        getOptionLabel={(x) => x.name || ""}
+                        options={store.TundukResidentialAreas}
+                        id="id_f_tunduk_address_unit_id"
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label={translate("label:ArchObjectAddEditView.tunduk_address_unit_id")}
+                            helperText={obj.errortunduk_address_unit_id}
+                            error={!!obj.errortunduk_address_unit_id}
+                            size={"small"}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    <Grid item md={12} xs={12}>
+                      <Autocomplete
+                        key={`${obj.tunduk_street_id}_${obj.tunduk_district_id}_${obj.tunduk_address_unit_id}`}
+                        value={store.getTundukStreetState(i).selectedStreet}
+                        inputValue={store.getTundukStreetState(i).inputValue}
+                        disabled={applicationStore.is_application_read_only}
+                        open={store.getTundukStreetState(i).isOpen}
+                        onOpen={() => store.handleTundukStreetOpen(i)}
+                        onClose={() => store.handleTundukStreetClose(i)}
+                        onChange={(event, newValue) => {
+                          store.handleTundukStreetChangeWithDistrictUpdate(i, newValue);
+                        }}
+                        onInputChange={(event, newInputValue, reason) => {
+                          store.handleTundukStreetInputChange(i, newInputValue, reason, i);
+                        }}
+                        isOptionEqualToValue={(option, value) => option.id === value?.id}
+                        getOptionLabel={(x) => {
+                          if (!x) return '';
+                          if (typeof x === 'string') return x;
+                          return (x.name || "") + ' (' + x.address_unit_name + ')';
+                        }}
+                        renderOption={(props, option) =>
+                          <Box component="li" {...props}>
+                            {(option.name || "") + ' (' + option.address_unit_name + ')'}
+                          </Box>
+                        }
+                        options={store.getTundukStreetState(i).searchResults}
+                        loading={store.getTundukStreetState(i).isLoading}
+                        loadingText="Загрузка..."
+                        noOptionsText={
+                          (store.getTundukStreetState(i)?.inputValue?.length ?? 0) < 2
+                            ? "Введите минимум 2 символа для поиска"
+                            : "Ничего не найдено"
+                        }
+                        id="id_f_tunduk_str_id"
+                        renderInput={(params) => {
+                          const streetState = store.getTundukStreetState(i);
+                          const selectedValue = streetState.selectedStreet;
+
+                          if (selectedValue && params.inputProps.value) {
+                            params.inputProps.value = (selectedValue.name || "") + ' (' + selectedValue.address_unit_name + ')';
+                          }
+
+                          return (
+                            <TextField
+                              {...params}
+                              autoComplete="new-password"
+                              label={translate("label:ArchObjectAddEditView.tunduk_street_id")}
+                              helperText={
+                                obj.errortunduk_street_id ||
+                                (streetState.inputValue && streetState.inputValue.length > 0 && streetState.inputValue.length < 2
+                                  ? "Минимум 2 символа"
+                                  : "")
+                              }
+                              error={!!obj.errortunduk_street_id}
+                              size={"small"}
+                              InputProps={{
+                                ...params.InputProps,
+                                endAdornment: (
+                                  <>
+                                    {streetState.isLoading ? (
+                                      <CircularProgress color="inherit" size={20} />
+                                    ) : null}
+                                    {params.InputProps.endAdornment}
+                                  </>
+                                ),
+                              }}
+                            />
+                          );
+                        }}
+                      />
+                    </Grid>
+                    <input
+                      type="hidden"
+                      name={`district_id_${i}`}
+                      value={obj.district_id || 6}
+                    />
+                    <Grid item xs={4}>
+                      <CustomTextField
+                        label="№ здания"
+                        disabled={applicationStore.is_application_read_only}
+                        value={obj.tunduk_building_num}
+                        onChange={(e) => (obj.tunduk_building_num = e.target.value)}
+                        id="id_f_building_number"
+                        name="building_number"
+                      />
+                    </Grid>
+                    <Grid item xs={4}>
+                      <CustomTextField
+                        label="№ квартиры"
+                        disabled={applicationStore.is_application_read_only}
+                        value={obj.tunduk_flat_num}
+                        onChange={(e) => (obj.tunduk_flat_num = e.target.value)}
+                        id="id_f_apartment_number"
+                        name="apartment_number"
+                      />
+                    </Grid>
+                    <Grid item xs={4}>
+                      <CustomTextField
+                        label="№ участка"
+                        disabled={applicationStore.is_application_read_only}
+                        value={obj.tunduk_uch_num}
+                        onChange={(e) => (obj.tunduk_uch_num = e.target.value)}
+                        id="id_f_uch_number"
+                        name="uch_number"
+                      />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <CustomButton
+                        variant="contained"
+                        onClick={() => {
+                          store.SearchResults = [];
+                          store.findAddresses(i);
+                          obj.tunduk_building_id = null;
+                          store.handleChange({ target: { value: true, name: "open" } }, i)
+                        }}>
+                        Найти адрес
+                      </CustomButton>
+                    </Grid>
+
+                    <Grid item xs={6}>
+                      <CustomButton
+                        variant="contained"
+                        onClick={() => {
+                          store.handleChange({ target: { name: "tunduk_district_id", value: 0 } }, i);
+                          store.handleChange({ target: { name: "tunduk_address_unit_id", value: 0 } }, i);
+                          store.handleChange({ target: { name: "tunduk_street_id", value: 0 } }, i);
+                          store.handleChange({ target: { name: "district_id", value: 0 } }, i);
+                          store.handleTundukStreetChange(i, null, i);
+                          store.clearTundukStreetState(i);
+                          store.initTundukStreetState(i);
+                          store.handleChange({ target: { name: "tunduk_building_id", value: 0 } }, i);
+                          obj.tunduk_building_num = '';
+                          obj.tunduk_flat_num = '';
+                          obj.tunduk_uch_num = '';
+                          store.SearchResults = [];
+                          store.TundukResidentialAreas = [];
+                          store.handleChange({ target: { value: false, name: "open" } }, i)
+                        }}>
+                        Очистить
+                      </CustomButton>
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Autocomplete
+                        key={obj.tunduk_building_id}
+                        value={store.SearchResults.find(x => x.id == obj.tunduk_building_id)}
+                        open={obj.open}
+                        onOpen={() => {
+                          store.handleChange({ target: { value: true, name: "open" } }, i)
+                        }}
+                        onClose={() => {
+                          store.handleChange({ target: { value: false, name: "open" } }, i)
+                        }}
+                        disabled={applicationStore.is_application_read_only}
+                        onChange={(event, newValue) => {
+                          if (!newValue) {
+                            store.handleChange({ target: { value: '', name: "address" } }, i)
+                            return;
+                          }
+                          store.handleChange(event, i);
+                          let address = store.SearchResults.find(x => x.id == newValue.id);
+                          obj.identifier = address?.code;
+                          if (address?.address) {
+                            store.handleChange({ target: { value: address?.address, name: "address" } }, i)
+                          }
+                          store.handleChange({ target: { value: [], name: "DarekSearchList" } }, i)
+                          store.searchFromDarek(address?.code ?? "", i);
+                        }}
+                        getOptionLabel={(x) => x.address || ""}
+                        options={store.SearchResults}
+                        id="id_f_tunduk_building_id"
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            autoComplete="new-password"
+                            label={translate("label:ArchObjectAddEditView.tunduk_building_id")}
+                            helperText={obj.errortunduk_building_id}
+                            error={!!obj.errortunduk_building_id}
+                            size={"small"}
+                          />
+                        )}
+                        blurOnSelect={true}
+                        disableCloseOnSelect={false}
+                        clearOnBlur={false}
+                        handleHomeEndKeys={false}
+                        PaperComponent={({ children, ...props }) => (
+                          <Paper
+                            {...props}
+                            elevation={8}
+                            sx={{
+                              border: '2px solid',
+                              borderColor: 'primary.main',
+                              mt: 1,
+                            }}
+                          >
+                            {children}
+                          </Paper>
+                        )}
+                        renderOption={(props, option) => (
+                          <Box
+                            component="li"
+                            {...props}
+                            sx={{
+                              padding: '12px 16px !important',
+                              borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
+                              '&:last-child': {
+                                borderBottom: 'none',
+                              },
+                              '&:hover': {
+                                backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                              },
+                              '&[aria-selected="true"]': {
+                                backgroundColor: 'rgba(25, 118, 210, 0.12)',
+                                fontWeight: 'bold',
+                              },
+                            }}
+                          >
+                            {option.address}
+                          </Box>
+                        )}
+                      />
+                    </Grid>
+
+                    <Grid item md={12} xs={12}>
+
+                      <Grid container spacing={1} alignItems="center">
+                        <Grid item xs={12} sm={store.legalRecords ? 11 : 12}>
+                          <GisSearch
+                            id="id_f_ArchObject_address"
+                            index={i}
+                            disabled={applicationStore.is_application_read_only || !obj.is_manual}
+                            label={translate("label:ArchObjectAddEditView.address")}
+                            autocomplete={true}
+                            onBlur={() => store.setBadgeConst(i)}
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={1}>
+                          {((obj.legalActs && obj.legalActs.length > 0) || (obj.legalRecords && obj.legalRecords.length > 0)) && (
+                            <Tooltip title={"Адрес фигурирует в правовой записи"}>
+                              <IconButton
+                                sx={{ maxHeight: 30 }}
+                                size="small"
+                                onClick={() => { }}
+                              >
+                                <ErrorOutlineIcon fontSize="small" sx={{ color: "#FF652F" }} />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                        </Grid>
                       </Grid>
                     </Grid>
-                  </Grid>
 
-                  <Grid item md={12} xs={12}>
-                    <SelectField
-                      id="id_f_district_id"
-                      name="district_id"
-                      label={translate("label:ArchObjectAddEditView.district_id")}
-                      value={obj.district_id}
-                      onChange={(event) => store.handleChange(event, i)}
-                      options={store.Districts.map(district => ({
-                        value: district.id,
-                        label: district.name
-                      }))}
-                      error={!!obj.errordistrict_id}
-                      helperText={obj.errordistrict_id}
-                      disabled={applicationStore.is_application_read_only}
-                      fullWidth
-                    />
+                    <Grid item md={12} xs={12}>
+                      <CustomCheckbox
+                        value={obj.is_manual}
+                        disabled={applicationStore.is_application_read_only}
+                        onChange={(event) => {
+                          store.handleChange({ target: { name: "is_manual", value: event.target.value } }, i);
+                        }}
+                        name="id_f_is_manual"
+                        label={"Ручной ввод"}
+                        id="id_f_is_manual"
+                      />
+                    </Grid>
                   </Grid>
-                </Grid>
-              </Paper>
-            </Grid>)}
+                </Paper>
+              </Grid>);
+            })}
 
             <Grid item md={12} xs={12}>
               <CustomTextField
@@ -308,20 +567,16 @@ const ObjectFormView: FC<ProjectsTableProps> = observer((props) => {
               />
             </Grid>
             <Grid item md={12} xs={12}>
-              <SelectField
-                id="object_tag_id"
-                name="object_tag_id"
-                label={translate("Тип объекта")}
+              <LookUp
                 value={applicationStore.object_tag_id}
-                onChange={(event) => applicationStore.handleChange(event)}
-                options={applicationStore.ObjectTags.map(tag => ({
-                  value: tag.id,
-                  label: tag.name
-                }))}
-                error={!!applicationStore.errorobject_tag_id}
-                helperText={applicationStore.errorobject_tag_id}
                 disabled={applicationStore.is_application_read_only}
-                fullWidth
+                onChange={(event) => applicationStore.handleChange(event)}
+                name="object_tag_id"
+                data={applicationStore.ObjectTags}
+                id="object_tag_id"
+                label={translate("Тип объекта")}
+                helperText={applicationStore.errorobject_tag_id}
+                error={!!applicationStore.errorobject_tag_id}
               />
             </Grid>
           </Grid>
@@ -339,6 +594,5 @@ const ObjectFormView: FC<ProjectsTableProps> = observer((props) => {
     </Grid>
   );
 });
-
 
 export default ObjectFormView;

@@ -64,8 +64,6 @@ class NewStore {
   CountAppsFromCabinet = 0;
   BackUrl = ''
   curentUserPin: string = "";
-  currentEmployeeId: number = 0;
-  currentOrgStructureId: number = 0;
 
   menu = [];
   menuHeader = [];
@@ -112,12 +110,6 @@ class NewStore {
     this.curentUserPin = pin;
   }
 
-  setCurrentEmployeeId = (id: number) => {
-    this.currentEmployeeId = id;
-  }
-  setCurrentOrgStructureId = (id: number) => {
-    this.currentOrgStructureId = id;
-  }
 
   async printDocument(idDocument: number, parameters: {}) {
     try {

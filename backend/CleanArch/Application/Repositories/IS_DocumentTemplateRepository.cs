@@ -21,5 +21,6 @@ namespace Application.Repositories
         Task<List<S_DocumentTemplate>> GetByidDocumentType(int idDocumentType);
         Task<List<S_DocumentTemplate>> GetByApplicationTypeAndID(int idDocumentType, int idApplication);
         Task<ApplicationCustomerIsOrganization> GetByApplicationIsOrganization(int idApplication);
+        Task<List<S_DocumentTemplate>> GetApplicationTemplate();
     }
 }

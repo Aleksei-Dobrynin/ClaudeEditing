@@ -197,5 +197,10 @@ namespace Application.Repositories
         IJournalPlaceholderRepository JournalPlaceholderRepository { get; }
         IJournalTemplateTypeRepository JournalTemplateTypeRepository { get; }
         IJournalApplicationRepository JournalApplicationRepository { get; }
+
+        IAddressUnitRepository AddressUnitRepository { get; }
+        IAddressUnitTypeRepository AddressUnitTypeRepository { get; }
+        IStreetTypeRepository StreetTypeRepository { get; }
+        IStreetRepository StreetRepository { get; }
     }
 }

@@ -18,7 +18,7 @@ namespace Messaging.Shared.RabbitMQ
     /// </summary>
     public class RabbitMQEventBus : IEventBus, IDisposable
     {
-        private const string EXCHANGE_NAME = "bga_event_bus";
+        private const string EXCHANGE_NAME = "1dev2008_bga_event_bus";
         private const string AUTOFAC_SCOPE_NAME = "bga_event_bus";
 
         private readonly IRabbitMQConnection _persistentConnection;

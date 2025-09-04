@@ -123,11 +123,6 @@ const FastInputapplication_subtaskView: FC<application_subtaskProps> = observer(
         })}
       </Menu>
 
-      {storeList.data.length === 0 && <Box>
-        <Typography sx={{ fontSize: '16px', fontWeight: 'bold', mt: 2 }}>
-          Нет подзадач
-        </Typography>
-      </Box>}
       {storeList.data.map((entity) => {
         const style = { backgroundColor: entity.id === store.id && "#F0F0F0" };
         return (

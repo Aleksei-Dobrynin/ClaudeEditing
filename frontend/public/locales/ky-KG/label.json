@@ -668,9 +668,9 @@
     "totalSumTo": "Сумма калькуляции до",
     "totalPayedFrom": "Оплачено от",
     "totalPayedTo": "Оплачено до",
-    "go_to_task": "Перейти к задаче",
-    "my_tasks_title": "Мои задачи",
-    "structure_tasks_title": "Задачи структуры"
+    "filterByTundukDistrict": "Район",
+    "filterByTundukResidentialArea": "Жилмассив (адм. единица)",
+    "filterByTundukStreet": "Улица"
   },
   "ApplicationAddEditView": {
     "entityTitle": "Заявка",
@@ -2635,5 +2635,48 @@
     "is_required": "Обязательный",
     "estimated_days": "Примерное количество дней",
     "wait_for_previous_steps": "Ждать предыдущие этапы"
+  },
+  "StreetAddEditView": {
+    "entityTitle": "Көчө",
+    "code": "Код",
+    "name": "Аталышы",
+    "name_kg": "Аталышы (кырг.)",
+    "type_id": "Көчөнүн түрү",
+    "expired": "Мөөнөтү өткөн",
+    "street_id": "Көчөнүн ID",
+    "description": "Сүрөттөмөсү",
+    "description_kg": "Сүрөттөмөсү (кырг.)",
+    "address_unit_id": "Территориалдык бирдик"
+  },
+  "StreetListView": {
+    "entityTitle": "Көчөлөр",
+    "Street": "Көчө",
+    "code": "Код",
+    "name": "Аталышы",
+    "name_kg": "Аталышы (кырг.)",
+    "type_id": "Көчөнүн түрү",
+    "expired": "Статус",
+    "expired_yes": "Мөөнөтү өткөн",
+    "expired_no": "Колдонулуп жаткан",
+    "description": "Сүрөттөмөсү",
+    "description_kg": "Сүрөттөмөсү (кырг.)",
+    "address_unit_name": "Административная единица"
+  },
+  "StreetTypeAddEditView": {
+    "entityTitle": "Көчөнүн түрү",
+    "code": "Код",
+    "name": "Аталышы",
+    "name_kg": "Аталышы (кырг.)",
+    "description": "Сүрөттөмөсү",
+    "description_kg": "Сүрөттөмөсү (кырг.)"
+  },
+  "StreetTypeListView": {
+    "entityTitle": "Көчөлөрдүн түрлөрү",
+    "StreetType": "Көчөнүн түрү",
+    "code": "Код",
+    "name": "Аталышы",
+    "name_kg": "Аталышы (кырг.)",
+    "description": "Сүрөттөмөсү",
+    "description_kg": "Сүрөттөмөсү (кырг.)"
   }
 }

@@ -1,12 +1,12 @@
 import React, { FC, useEffect, useRef, useState } from "react";
 import {
   Box,
-  Container, Grid, IconButton, InputAdornment, Paper, Typography, Chip
+  Container, Grid, IconButton, InputAdornment, Paper, Typography, Chip, Tooltip
 } from "@mui/material";
 import { observer } from "mobx-react";
 import store from "./store";
 import { useTranslation } from "react-i18next";
-import { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
+import { GridColDef, GridRenderCellParams, GridActionsCellItem } from "@mui/x-data-grid";
 import PageGridPagination from "components/PageGridPagination";
 import PageGrid from 'components/PageGrid';
 import ArchMap from "./map";
@@ -17,19 +17,22 @@ import styled from "styled-components";
 import MainStore from "../../../MainStore";
 import CustomButton from "components/Button";
 import SelectedObjectsPanel from "./SelectedObjects";
-import { 
+import {
   CheckCircle as CheckCircleIcon,
   RadioButtonUnchecked as RadioButtonUncheckedIcon,
   Merge as MergeIcon
 } from "@mui/icons-material";
 import CombineObjectsPopup from "./CombineProjectsPopup";
+import VisibilityIcon from '@mui/icons-material/Visibility';
 
 type ArchiveObjectListViewProps = {};
 
 const ArchiveObjectListView: FC<ArchiveObjectListViewProps> = observer((props) => {
   const { t } = useTranslation();
+  const navigate = useNavigate()
+
   const translate = t;
-  
+
   useEffect(() => {
     store.doload();
     return () => {
@@ -74,7 +77,7 @@ const ArchiveObjectListView: FC<ArchiveObjectListViewProps> = observer((props) =
     disableColumnMenu: true,
     renderCell: (params: GridRenderCellParams) => {
       const isSelected = store.isObjectSelected(params.row.id);
-      
+
       return (
         <CustomButton
           variant={isSelected ? "contained" : "outlined"}
@@ -92,9 +95,30 @@ const ArchiveObjectListView: FC<ArchiveObjectListViewProps> = observer((props) =
   };
 
   // Формируем колонки в зависимости от режима
-  const columns = store.combineObjectsMode 
+  const columns = store.combineObjectsMode
     ? [selectColumn, ...baseColumns]
     : baseColumns;
+
+  // Функция для создания кнопки просмотра
+  const createViewButton = (id: number): React.ReactNode => {
+    if (MainStore.isDutyPlan !== true) {
+      return (
+        <GridActionsCellItem
+          icon={
+            <Tooltip title={translate('Просмотр')}>
+              <VisibilityIcon />
+            </Tooltip>
+          }
+          label={translate('Просмотр')}
+          onClick={() => {
+            navigate(`/user/ArchiveObject/view?id=${id}`)
+          }}
+          color="inherit"
+        />
+      );
+    }
+    return <></>;
+  };
 
   return (
     <Container maxWidth={false} sx={{ mt: 2 }}>
@@ -107,9 +131,9 @@ const ArchiveObjectListView: FC<ArchiveObjectListViewProps> = observer((props) =
           <Typography sx={{ fontSize: '16px', minWidth: '120px' }}>Назад</Typography>
         </StyledRouterLink>
       )}
-      
+
       <FilterArch />
-      
+
       {/* Панель выбранных объектов */}
       <SelectedObjectsPanel />
 
@@ -119,9 +143,11 @@ const ArchiveObjectListView: FC<ArchiveObjectListViewProps> = observer((props) =
             title={translate("label:ArchiveObjectListView.entityTitle")}
             onDeleteClicked={(id: number) => store.combineObjectsMode ? null : store.deleteArchiveObject(id)}
             columns={columns}
-            hideActions={!MainStore.isDutyPlan || store.combineObjectsMode}
+            // hideActions={!MainStore.isDutyPlan || store.combineObjectsMode}
             hideAddButton={!MainStore.isDutyPlan || store.combineObjectsMode}
-            customHeader={
+            hideEditButton={!MainStore.isDutyPlan || store.combineObjectsMode}
+            hideDeleteButton={!MainStore.isDutyPlan || store.combineObjectsMode}
+            hustomHeader={
               <>
                 {!store.combineObjectsMode ? (
                   <CustomButton
@@ -134,7 +160,7 @@ const ArchiveObjectListView: FC<ArchiveObjectListViewProps> = observer((props) =
                   </CustomButton>
                 ) : (
                   <Box display="flex" alignItems="center" gap={2}>
-                    <Chip 
+                    <Chip
                       label={`Режим объединения: выбрано ${store.selectedObjects.length}`}
                       color="primary"
                       variant="outlined"
@@ -150,8 +176,9 @@ const ArchiveObjectListView: FC<ArchiveObjectListViewProps> = observer((props) =
                 )}
               </>
             }
+            customActionButton={createViewButton}
             data={store.data}
-            tableName="ArchiveObject" 
+            tableName="ArchiveObject"
           />
         </Grid>
         <Grid item md={6} xs={12}>

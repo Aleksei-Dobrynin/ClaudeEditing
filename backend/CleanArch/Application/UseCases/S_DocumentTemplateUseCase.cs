@@ -47,6 +47,12 @@ namespace Application.UseCases
             return res;
         }
 
+        public async Task<List<S_DocumentTemplate>> GetByDefaultCalcType()
+        {
+            var type = await unitOfWork.S_DocumentTemplateTypeRepository.GetOneByCode("default_calc");
+            var res = await unitOfWork.S_DocumentTemplateRepository.GetByidDocumentType(type.id);
+            return res;
+        }
         
         public async Task<List<S_DocumentTemplate>> GetByApplicationTypeAndID(int idApplication)
         {
@@ -441,5 +447,22 @@ namespace Application.UseCases
             return "";
         }
 
+        public Task<List<S_DocumentTemplate>> GetApplicationTemplate()
+        {
+            return unitOfWork.S_DocumentTemplateRepository.GetApplicationTemplate();
+        }
+        
+        public async Task<List<string>> GetApplicationDocument(int template_id, string language_code, List<int> selected_apps)
+        {
+            var result = new List<string>();
+            foreach (var app in selected_apps)
+            {
+                var queriedPlaceholders = new Dictionary<string, object>();
+                queriedPlaceholders.Add("application_id", app);
+                var res = await GetFilledDocumentHtml(template_id, language_code, queriedPlaceholders);
+                result.Add(res.Value);
+            }
+            return result;
+        }
     }
 }

@@ -10,6 +10,7 @@ namespace WebApi.Dtos
     {
         public int service_id { get; set; }
         public int structure_id { get; set; }
+        public int document_template_id { get; set; }
         public decimal price { get; set; }
     }
 
@@ -18,6 +19,7 @@ namespace WebApi.Dtos
         public int id { get; set; }
         public int service_id { get; set; }
         public int structure_id { get; set; }
+        public int document_template_id { get; set; }
         public decimal price { get; set; }
     }
 }

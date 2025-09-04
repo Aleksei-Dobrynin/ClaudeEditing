@@ -2,11 +2,14 @@ import React, { FC, useEffect } from "react";
 import { default as ServiceAddEditBaseView } from "./base";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router";
-import { Box } from "@mui/material";
+import {
+  Box,
+  Grid
+} from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react";
 import store from "./store";
-import BaseFormLayout from "components/BaseFormLayout";
+import CustomButton from "components/Button";
 import MtmTabs from "./mtmTabs";
 
 type ServiceProps = {};
@@ -19,63 +22,54 @@ const ServiceAddEditView: FC<ServiceProps> = observer((props) => {
   const id = query.get("id");
 
   useEffect(() => {
-    const loadData = async () => {
-      if ((id != null) &&
-        (id !== "") &&
-        !isNaN(Number(id.toString()))) {
-        await store.doLoad(Number(id));
-      } else if (id === "0") {
-        // Новая запись - загружаем только справочники
-        await store.doLoad(0);
-      } else {
-        navigate("/error-404");
-      }
-    };
-    
-    loadData();
-    
+    if ((id != null) &&
+      (id !== "") &&
+      !isNaN(Number(id.toString()))) {
+      store.doLoad(Number(id));
+    } else {
+      navigate("/error-404");
+    }
     return () => {
       store.clearStore();
     };
-  }, [id, navigate]);
-
-  const handleSave = async () => {
-    await store.onSaveClick((savedId: number) => {
-      navigate(`/user/Service/addedit?id=${savedId}`);
-    });
-  };
-
-  const handleCancel = () => {
-    navigate("/user/Service");
-  };
+  }, []);
 
   return (
-    <BaseFormLayout
-      title={translate('label:ServiceAddEditView.entityTitle')}
-      subtitle={store.id > 0 ? `ID: ${store.id}` : translate('common:new')}
-      onSave={handleSave}
-      onCancel={handleCancel}
-      loading={store.loading}
-      error={store.error}
-      success={store.saveSuccess}
-      isDirty={store.isDirty}
-      isValid={store.isValid}
-      breadcrumbs={[
-        { label: translate('common:home'), href: '/user' },
-        { label: translate('label:ServiceListView.entityTitle'), href: '/user/Service' },
-        { label: store.id > 0 ? translate('common:edit') : translate('common:create') }
-      ]}
-      infoMessage={store.id === 0 ? translate('form:createNewServiceInfo') : undefined}
-    >
-      <ServiceAddEditBaseView {...props}>
-        {/* MTM Tabs - показываем только при редактировании */}
-        {store.id > 0 && (
-          <Box mt={3}>
-            <MtmTabs />
+    <ServiceAddEditBaseView {...props}>
+
+      {/* start MTM */}
+      {store.id > 0 && <Grid item xs={12} spacing={0}><MtmTabs /></Grid>}
+      {/* end MTM */}
+
+      <Grid item xs={12} spacing={0}>
+        <Box display="flex" p={2}>
+          <Box m={2}>
+            <CustomButton
+              variant="contained"
+              id="id_ServiceSaveButton"
+              onClick={() => {
+                store.onSaveClick((id: number) => {
+                  navigate(`/user/Service/addedit?id=${store.id}`);
+                });
+              }}
+            >
+              {translate("common:save")}
+            </CustomButton>
           </Box>
-        )}
-      </ServiceAddEditBaseView>
-    </BaseFormLayout>
+          <Box m={2}>
+            <CustomButton
+              color={"secondary"}
+              sx={{color:"white", backgroundColor: "red !important"}}
+              variant="contained"
+              id="id_ServiceCancelButton"
+              onClick={() => navigate("/user/Service")}
+            >
+              {translate("common:goOut")}
+            </CustomButton>
+          </Box>
+        </Box>
+      </Grid>
+    </ServiceAddEditBaseView>
   );
 });
 

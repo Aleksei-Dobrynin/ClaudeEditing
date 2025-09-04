@@ -17,14 +17,10 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Tooltip,
-  alpha,
-  styled,
-  Button,
-  IconButton,
-  Fade,
-  Divider
+  Tooltip
 } from "@mui/material";
+
+import { } from '@mui/material';
 
 import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react";
@@ -48,6 +44,7 @@ import ApplicationWorkDocumentListView from "../../ApplicationWorkDocument/Appli
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import storeComments from "../../ApplicationComments/ApplicationCommentsListView/store";
+import IconButton from "@mui/material/IconButton";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import SmsIcon from "@mui/icons-material/Sms";
@@ -72,173 +69,6 @@ import Link from '@mui/material/Link';
 import MainStore from "MainStore";
 import TechCouncilForm from "../../application_task/task/TechCouncilForm";
 import TechCouncilStore from "../../TechCouncil/TechCouncilAddEditView/store";
-import {
-  History,
-  Send,
-  Notifications,
-  Assignment,
-  Description,
-  SavedSearch,
-  Task,
-  Payment,
-  Business,
-  Timeline,
-  Print,
-  ExitToApp,
-  CheckCircle,
-  SwapHoriz
-} from "@mui/icons-material";
-
-// Styled components
-const StyledPaper = styled(Paper)(({ theme }) => ({
-  borderRadius: theme.spacing(2),
-  boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
-  overflow: "hidden",
-  marginBottom: theme.spacing(2)
-}));
-
-const StyledTabs = styled(Tabs)(({ theme }) => ({
-  backgroundColor: alpha(theme.palette.primary.main, 0.02),
-  borderBottom: `1px solid ${theme.palette.divider}`,
-  "& .MuiTabs-indicator": {
-    height: 3,
-    borderRadius: "3px 3px 0 0",
-    backgroundColor: theme.palette.primary.main
-  }
-}));
-
-const StyledTab = styled(Tab)(({ theme }) => ({
-  textTransform: "none",
-  fontWeight: 500,
-  fontSize: "0.95rem",
-  minHeight: 56,
-  color: theme.palette.text.secondary,
-  transition: "all 0.3s ease",
-  "&:hover": {
-    color: theme.palette.primary.main,
-    backgroundColor: alpha(theme.palette.primary.main, 0.04)
-  },
-  "&.Mui-selected": {
-    color: theme.palette.primary.main,
-    fontWeight: 600
-  },
-  "&.Mui-disabled": {
-    opacity: 0.5
-  }
-}));
-
-const StatusButton = styled(Button)(({ theme }) => ({
-  borderRadius: theme.spacing(1),
-  textTransform: "none",
-  fontWeight: 500,
-  padding: theme.spacing(0.75, 2),
-  transition: "all 0.3s ease",
-  backgroundColor: alpha(theme.palette.primary.main, 0.1),
-  color: theme.palette.primary.main,
-  "&:hover": {
-    backgroundColor: alpha(theme.palette.primary.main, 0.2),
-    transform: "translateY(-1px)",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
-  }
-}));
-
-const ActionButton = styled(Button)(({ theme, color = "primary" }) => ({
-  borderRadius: theme.spacing(1),
-  textTransform: "none",
-  fontWeight: 500,
-  padding: theme.spacing(0.75, 2),
-  marginRight: theme.spacing(1),
-  transition: "all 0.3s ease",
-  ...(color === "success" && {
-    backgroundColor: "#00875a",
-    color: "white",
-    "&:hover": {
-      backgroundColor: "#006644"
-    }
-  }),
-  ...(color === "warning" && {
-    backgroundColor: "#ff652f",
-    color: "white",
-    "&:hover": {
-      backgroundColor: "#e54e1b"
-    }
-  })
-}));
-
-const ActionIconButton = styled(IconButton)(({ theme, color }) => ({
-  transition: "all 0.3s ease",
-  ...(color === "success" && {
-    color: "rgb(19,208,103)",
-    "&:hover": {
-      backgroundColor: alpha("rgb(19,208,103)", 0.1),
-      transform: "scale(1.1)"
-    }
-  })
-}));
-
-const BackLink = styled(Link)(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
-  gap: theme.spacing(1),
-  color: theme.palette.primary.main,
-  fontWeight: 600,
-  textDecoration: "none",
-  transition: "all 0.2s ease",
-  padding: theme.spacing(2),
-  "&:hover": {
-    color: theme.palette.primary.dark,
-    transform: "translateX(-4px)"
-  }
-}));
-
-const ElectronicOnlyBadge = styled(Box)(({ theme }) => ({
-  backgroundColor: "#ffeb3b",
-  color: "#d32f2f",
-  padding: theme.spacing(1, 2),
-  borderRadius: theme.spacing(1),
-  fontWeight: "bold",
-  display: "inline-flex",
-  alignItems: "center",
-  gap: theme.spacing(1),
-  boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
-}));
-
-const TabPanel = styled(Box)(({ theme }) => ({
-  padding: theme.spacing(3)
-}));
-
-const HeaderSection = styled(Box)(({ theme }) => ({
-  padding: theme.spacing(2, 3),
-  backgroundColor: alpha(theme.palette.background.paper, 0.8),
-  borderBottom: `1px solid ${theme.palette.divider}`,
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  flexWrap: "wrap",
-  gap: theme.spacing(2)
-}));
-
-const StyledMenuItem = styled(MenuItem)(({ theme }) => ({
-  padding: theme.spacing(1.5, 2),
-  borderRadius: theme.spacing(1),
-  margin: theme.spacing(0.5, 1),
-  transition: "all 0.2s ease",
-  "&:hover": {
-    backgroundColor: alpha(theme.palette.primary.main, 0.1),
-    color: theme.palette.primary.main,
-    transform: "translateX(4px)"
-  },
-  "&.Mui-disabled": {
-    opacity: 0.5
-  }
-}));
-
-const DialogHeader = styled(DialogTitle)(({ theme }) => ({
-  backgroundColor: alpha(theme.palette.primary.main, 0.05),
-  borderBottom: `1px solid ${theme.palette.divider}`,
-  fontWeight: 600,
-  color: theme.palette.primary.main
-}));
 
 type ApplicationProps = {};
 
@@ -288,26 +118,24 @@ const ApplicationAddEditView: FC<ApplicationProps> = observer((props) => {
     }
   }, [store.arch_object_id]);
 
+
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
     const result = store.checkStructureEOId();
     setIsDisabled(!result);
+
     setValue(newValue);
   };
 
   const BackButton = () => {
-    return (
-      <Box display="flex" justifyContent="flex-end" p={2}>
-        <ActionButton
-          variant="contained"
-          color="secondary"
-          id="id_ApplicationBackButton"
-          onClick={() => navigate(MainStore.isFinancialPlan ? "/user/ApplicationFinPlan" : "/user/Application")}
-          startIcon={<ExitToApp />}
-        >
-          {translate("common:goOut")}
-        </ActionButton>
-      </Box>
-    );
+    return <Box display="flex" justifyContent={"flex-end"} p={2}>
+      <CustomButton
+        variant="contained"
+        id="id_ApplicationBackButton"
+        onClick={() => navigate(MainStore.isFinancialPlan ? "/user/ApplicationFinPlan" : "/user/Application")}
+      >
+        {translate("common:goOut")}
+      </CustomButton>
+    </Box>;
   };
 
   let filteredStatuses = store.Statuses.reduce((acc, s) => {
@@ -325,176 +153,165 @@ const ApplicationAddEditView: FC<ApplicationProps> = observer((props) => {
     return acc;
   }, []);
 
-  const getTabIcon = (index: number) => {
-    switch(index) {
-      case 0: return <Assignment sx={{ fontSize: 20 }} />;
-      case 1: return <Description sx={{ fontSize: 20 }} />;
-      case 2: return <SavedSearch sx={{ fontSize: 20 }} />;
-      case 3: return <Task sx={{ fontSize: 20 }} />;
-      case 4: return <Payment sx={{ fontSize: 20 }} />;
-      case 5: return <Business sx={{ fontSize: 20 }} />;
-      case 6: return <Timeline sx={{ fontSize: 20 }} />;
-      default: return null;
-    }
-  };
-
   return (
     <>
-      {/* Диалоги */}
+
       <Dialog
         open={store.openStatusHistoryPanel}
         maxWidth="lg"
         fullWidth
-        PaperProps={{
-          sx: { borderRadius: 2 }
-        }}
       >
-        <DialogHeader>
-          <Box display="flex" alignItems="center" gap={1}>
-            <History />
-            {translate('label:application_subtask_assigneeAddEditView.entityTitle')}
-          </Box>
-        </DialogHeader>
+        <DialogTitle>{translate('label:application_subtask_assigneeAddEditView.entityTitle')}</DialogTitle>
         <DialogContent>
-          <ApplicationStatusHistoryListView ApplicationID={store.id} />
+          <ApplicationStatusHistoryListView
+            ApplicationID={store.id}
+          />
         </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
+        <DialogActions>
           <CustomButton
             variant="contained"
             id="id_application_subtask_assigneeCancelButton"
-            onClick={() => store.changeApplicationHistoryPanel(false)}
+            name={'application_subtask_assigneeAddEditView.cancel'}
+            onClick={() => store.changeApplicationHistoryPanel(false)} // Исправлено
           >
             {translate("common:close")}
           </CustomButton>
         </DialogActions>
       </Dialog>
-
       <TechCouncilForm
         openPanel={store.isOpenTechCouncil}
         onSaveClick={() => {
           TechCouncilStore.onCloseTechCouncil();
-          store.isOpenTechCouncil = false
-        }}
+          store.isOpenTechCouncil = false}}
         idApplication={store.id}
         idService={store.service_id}
       />
-
-      {/* Заголовок с действиями */}
-      <HeaderSection>
-        <Box display="flex" alignItems="center" gap={2} flexWrap="wrap">
-          <StatusButton
-            size="small"
-            variant="contained"
-            onClick={handleClick}
-            endIcon={open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-            startIcon={<SwapHoriz />}
-          >
-            {`${translate("label:ApplicationAddEditView.status")}${store.Statuses.find(s => s.id === store.status_id)?.name}`}
-          </StatusButton>
-          
-          {filteredStatuses?.length > 0 && (
-            <Menu
-              anchorEl={anchorEl}
-              open={open}
-              onClose={handleClose}
-              PaperProps={{
-                sx: {
-                  borderRadius: 2,
-                  mt: 1,
-                  minWidth: 250
-                }
-              }}
+      <Box display={"flex"} justifyContent={"space-between"} alignItems={"center"}>
+        <Box>
+          {store.id ? <>
+            {/*<Chip color="primary"*/}
+            {/*      label={`${translate("label:ApplicationAddEditView.status")}${store.Statuses.find(s => s.id === store.status_id)?.name}`}*/}
+            {/*/>*/}
+            {/*<IconButton sx={{ ml: 1 }} onClick={handleClick}>*/}
+            {/*  <EditIcon />*/}
+            {/*</IconButton>*/}
+            <CustomButton
+              customColor={"#718fb8"}
+              size="small"
+              variant="contained"
+              sx={{ mb: "5px", mr: 1 }}
+              onClick={handleClick}
+              endIcon={open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
             >
-              <Typography variant="h6" sx={{ px: 2, py: 1, fontWeight: 600 }}>
-                {translate("common:Select_status")}
-              </Typography>
-              <Divider />
-              {store.id > 0 && store.status_id > 0 && filteredStatuses.map(x => (
-                <StyledMenuItem
-                  key={x.id}
-                  onClick={() => store.changeToStatus(x.id)}
-                  disabled={!x.is_allowed}
-                >
-                  <Box display="flex" alignItems="center" gap={1}>
-                    {x.is_allowed && <CheckCircle fontSize="small" color="success" />}
+              {`${translate("label:ApplicationAddEditView.status")}${store.Statuses.find(s => s.id === store.status_id)?.name}`}
+            </CustomButton>
+            {filteredStatuses?.length > 0 &&
+              <Menu
+                id="basic-menu"
+                anchorEl={anchorEl}
+                open={open}
+                onClose={handleClose}
+              >
+                <Typography variant="h5" sx={{ textAlign: "center", width: "100%" }}>
+                  {translate("common:Select_status")}
+                </Typography>
+                {store.id > 0 && store.status_id > 0 && filteredStatuses.map(x => {
+                  return <MenuItem
+                    onClick={() => store.changeToStatus(x.id)}
+                    sx={{
+                      "&:hover": {
+                        backgroundColor: "#718fb8",
+                        color: "#FFFFFF"
+                      },
+                      "&:hover .MuiListItemText-root": {
+                        color: "#FFFFFF"
+                      }
+                    }}
+                    disabled={!x.is_allowed}
+                  >
                     {x.name}
-                  </Box>
-                </StyledMenuItem>
-              ))}
-            </Menu>
-          )}
-
-          <ActionButton
+                  </MenuItem>
+                    ;
+                })}
+              </Menu>
+            }
+          </>
+            :
+            <></>}
+          <CustomButton
+            customColor={"#718fb8"}
             size="small"
             variant="contained"
-            onClick={() => store.changeApplicationHistoryPanel(true)}
-            startIcon={<History />}
+            sx={{ mb: "5px", mr: 1 }}
+            onClick={() => store.changeApplicationHistoryPanel(true)} // Исправлено
           >
-            {translate("label:ApplicationAddEditView.statusHistory")}
-          </ActionButton>
-
+            {`${translate("label:ApplicationAddEditView.statusHistory")}`}
+          </CustomButton>
           {(store.status_code === APPLICATION_STATUSES.document_issued ||
             store.status_code === APPLICATION_STATUSES.refusal_issued) &&
-            (store.arch_process_id === null && (
-              <ActionButton
-                color="warning"
-                size="small"
-                variant="contained"
-                onClick={() => store.toDutyPlanClicked(true)}
-                startIcon={<Send />}
-              >
-                {translate("Передать в ЦиДП")}
-              </ActionButton>
-            ))
+            (store.arch_process_id === null ? <CustomButton
+              customColor={"#ff652f"}
+              size="small"
+              variant="contained"
+              sx={{ mb: "5px", mr: 1 }}
+              onClick={() => store.toDutyPlanClicked(true)}
+            >
+              {`${translate("Передать в ЦиДП")}`}
+            </CustomButton> : <></>
+              // <Typography sx={{ fontSize: '14px', ml: 2 }}>
+              //   Отправлен на ОЦиДП
+              // </Typography>
+            )
           }
+          <Tooltip title={
+            <span style={{ fontSize: '14px' }}>
+              {translate("label:ApplicationAddEditView.customer_sendDocument")}
+            </span>
+          }>
+            <IconButton disabled={!isDisabled} onClick={() => { store.openSendDocumentsPanel() }} style={{ padding: 0 }}>
+              <DriveFileMoveIcon fontSize="large" style={{ cursor: 'pointer', color: 'rgb(19,208,103)' }} />
+            </IconButton>
+          </Tooltip>
 
-          <Box display="flex" gap={1}>
-            <Tooltip title={translate("label:ApplicationAddEditView.customer_sendDocument")}>
-              <ActionIconButton 
-                disabled={!isDisabled} 
-                onClick={() => store.openSendDocumentsPanel()}
-                color="success"
-              >
-                <DriveFileMoveIcon fontSize="large" />
-              </ActionIconButton>
-            </Tooltip>
+          <Tooltip title={
+            <span style={{ fontSize: '14px' }}>
+              {translate("label:ApplicationAddEditView.customer_notify")}
+            </span>
+          }>
+            <IconButton disabled={!isDisabled} onClick={() => { store.openSmsPanel() }} style={{ padding: 0 }}>
+              <ForwardToInboxTwoToneIcon fontSize="large" style={{ cursor: 'pointer', color: 'rgb(19,208,103)' }} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title={
+            <span style={{ fontSize: '14px' }}>
+              {translate("label:ApplicationAddEditView.notify_history")}
+            </span>
+          }>
+            <IconButton disabled={!isDisabled} onClick={() => { store.openHistoryPanel() }} style={{ padding: 0 }}>
+              <ScheduleSendTwoToneIcon fontSize="large" style={{ cursor: 'pointer', color: 'rgb(19,208,103)' }} />
+            </IconButton>
+          </Tooltip>
 
-            <Tooltip title={translate("label:ApplicationAddEditView.customer_notify")}>
-              <ActionIconButton 
-                disabled={!isDisabled} 
-                onClick={() => store.openSmsPanel()}
-                color="success"
-              >
-                <ForwardToInboxTwoToneIcon fontSize="large" />
-              </ActionIconButton>
-            </Tooltip>
-
-            <Tooltip title={translate("label:ApplicationAddEditView.notify_history")}>
-              <ActionIconButton 
-                disabled={!isDisabled} 
-                onClick={() => store.openHistoryPanel()}
-                color="success"
-              >
-                <ScheduleSendTwoToneIcon fontSize="large" />
-              </ActionIconButton>
-            </Tooltip>
+        </Box>
+        {store.is_electronic_only && (
+          <Box
+            sx={{
+              backgroundColor: "#ffeb3b",
+              color: "#d32f2f",
+              padding: "8px 16px",
+              borderRadius: "8px",
+              fontWeight: "bold",
+              display: "inline-block",
+            }}
+          >
+            {translate("label:ApplicationAddEditView.only_electronic")}
           </Box>
-        </Box>
+        )}
+        <span style={{ fontSize: '20px' }} id="Application_TitleName">
+          # {store.number}
+        </span>
+      </Box>
 
-        <Box display="flex" alignItems="center" gap={2}>
-          {store.is_electronic_only && (
-            <ElectronicOnlyBadge>
-              <Notifications />
-              {translate("label:ApplicationAddEditView.only_electronic")}
-            </ElectronicOnlyBadge>
-          )}
-          <Typography variant="h6" fontWeight={600} color="primary">
-            #{store.number}
-          </Typography>
-        </Box>
-      </HeaderSection>
-
-      {/* Попапы */}
       <SmsPopupForm
         openPanel={store.openSmsForm}
         onBtnCancelClick={() => { store.openSmsForm = false; }}
@@ -521,10 +338,9 @@ const ApplicationAddEditView: FC<ApplicationProps> = observer((props) => {
         onBtnCancelClick={() => { store.openHistoryForm = false; }}
         onBtnOkClick={() => { store.openHistoryForm = false; }}
       />
-
       <SendDocumentForm
         openPanel={store.openSendDocumentPanel}
-        applicationId={store.id}
+        applicationId={ store.id}
         onBtnCancelClick={() => { store.openSendDocumentPanel = false; }}
         onBtnOkClick={() => { store.sendSelectedDocumentsToEmail(); }}
       />
@@ -540,165 +356,128 @@ const ApplicationAddEditView: FC<ApplicationProps> = observer((props) => {
         }}
       />
 
-      {/* Табы */}
-      <StyledPaper elevation={0}>
-        <StyledTabs 
-          variant="fullWidth" 
-          value={value} 
-          onChange={handleChange}
-        >
-          <StyledTab 
-            data-testid="application_task_assignee_tab_title" 
-            label={translate("label:ApplicationAddEditView.TabName_app")} 
-            icon={getTabIcon(0)}
-            iconPosition="start"
-            {...a11yProps(0)} 
-          />
-          <StyledTab 
-            disabled={store.id === 0} 
-            data-testid="application_document_tab_title"
-            label={translate("label:ApplicationAddEditView.TabName_documents")} 
-            icon={getTabIcon(1)}
-            iconPosition="start"
-            {...a11yProps(1)} 
-          />
-          {!isCabinet && (
-            <StyledTab 
-              disabled={store.id === 0} 
-              data-testid="application_saved_document_tab_title"
-              label={translate("label:ApplicationAddEditView.TabName_saved_document")} 
-              icon={getTabIcon(2)}
-              iconPosition="start"
-              {...a11yProps(5)} 
-            />
-          )}
-          {!isCabinet && (
-            <StyledTab 
-              disabled={store.id === 0} 
-              data-testid="application_subtask_tab_title"
-              label={translate("label:ApplicationAddEditView.TabName_tasks")} 
-              icon={getTabIcon(3)}
-              iconPosition="start"
-              {...a11yProps(3)} 
-            />
-          )}
-          {!isCabinet && (
-            <StyledTab 
-              disabled={store.id === 0} 
-              data-testid="application_payment_tab_title"
-              label={translate("label:ApplicationAddEditView.TabName_payment")} 
-              icon={getTabIcon(4)}
-              iconPosition="start"
-              {...a11yProps(2)} 
-            />
-          )}
-          {!isCabinet && (
-            <StyledTab 
-              disabled={store.id === 0} 
-              data-testid="application_contragent_title"
-              label={translate("label:ApplicationAddEditView.TabName_contragent")} 
-              icon={getTabIcon(5)}
-              iconPosition="start"
-              {...a11yProps(6)} 
-            />
-          )}
-          {!isCabinet && (
-            <StyledTab 
-              disabled={store.id === 0} 
-              data-testid="application_subtask_tab_title"
-              label={translate("label:ApplicationAddEditView.TabName_history")} 
-              icon={getTabIcon(6)}
-              iconPosition="start"
-              {...a11yProps(4)} 
-            />
-          )}
-        </StyledTabs>
-      </StyledPaper>
+      <Box component={Paper} elevation={5}>
+        <Tabs variant="fullWidth" aria-label="basic tabs example" value={value} onChange={handleChange}>
+          <Tab data-testid={"application_task_assignee_tab_title"} label={translate("label:ApplicationAddEditView.TabName_app")} {...a11yProps(0)} />
+          <Tab disabled={store.id === 0} data-testid={"application_document_tab_title"}
+            label={translate("label:ApplicationAddEditView.TabName_documents")} {...a11yProps(1)} />
+          {!isCabinet &&
+            <Tab disabled={store.id === 0} data-testid={"application_saved_document_tab_title"}
+              label={translate("label:ApplicationAddEditView.TabName_saved_document")} {...a11yProps(5)} />
+          }
+          {!isCabinet &&
+            <Tab disabled={store.id === 0} data-testid={"application_subtask_tab_title"}
+              label={translate("label:ApplicationAddEditView.TabName_tasks")} {...a11yProps(3)} />
+          }
+          {!isCabinet &&
+            <Tab disabled={store.id === 0} data-testid={"application_payment_tab_title"}
+              label={translate("label:ApplicationAddEditView.TabName_payment")} {...a11yProps(2)} />
+          }
+          {!isCabinet &&
+            <Tab disabled={store.id === 0} data-testid={"application_contragent_title"}
+              label={translate("label:ApplicationAddEditView.TabName_contragent")} {...a11yProps(6)} />
+          }
+          {!isCabinet &&
+            <Tab disabled={store.id === 0} data-testid={"application_subtask_tab_title"}
+              label={translate("label:ApplicationAddEditView.TabName_history")} {...a11yProps(4)} />
+          }
+        </Tabs>
 
-      {/* Ссылка назад */}
-      <BackLink 
-        href={MainStore.isFinancialPlan ? "/user/ApplicationFinPlan" : (isCabinet ? "/user/AppsFromCabinet" : "/user/Application")}
-      >
-        <KeyboardBackspaceIcon />
-        {translate("common:backtoApp")}
-      </BackLink>
+      </Box >
+      <Box style={{ paddingTop: "10px", marginLeft: "50px" }} display="flex" alignItems="center">
+        <KeyboardBackspaceIcon style={{ width: "40px" }} color="primary" />
+        <Link fontWeight={700} underline="none" href={MainStore.isFinancialPlan ? "/user/ApplicationFinPlan" : (isCabinet ? "/user/AppsFromCabinet" : "/user/Application")}>{translate("common:backtoApp")}</Link>
+      </Box>
 
-      {/* Контент табов */}
       <CustomTabPanel value={value} index={0}>
         <ApplicationAddEditBaseView {...props}>
-          <Box display="flex" p={2} gap={2}>
-            <CustomButton
-              variant="contained"
-              id="id_ApplicationSaveButton"
-              onClick={() => {
-                store.onSaveClick((id: number) => {
-                  if (store.id === 0) {
-                    navigate(`/user/Application/addedit?id=${id}`);
-                  }
-                  store.doLoad(id);
-                });
-              }}
-            >
-              {translate("common:save")}
-            </CustomButton>
-            
-            <CustomButton
-              color="secondary"
-              sx={{ color: "white", backgroundColor: "#DE350B !important" }}
-              variant="contained"
-              id="id_ApplicationCancelButton"
-              onClick={() => navigate(MainStore.isFinancialPlan ? "/user/ApplicationFinPlan" : "/user/Application")}
-            >
-              {translate("common:goOut")}
-            </CustomButton>
+
+
+          <Box display="flex" p={2}>
+            {<Box m={2}>
+              <CustomButton
+                variant="contained"
+                id="id_ApplicationSaveButton"
+                onClick={() => {
+                  store.onSaveClick((id: number) => {
+                    if (store.id === 0) {
+                      navigate(`/user/Application/addedit?id=${id}`);
+                    }
+                    store.doLoad(id);
+                  });
+                }}
+              >
+                {translate("common:save")}
+              </CustomButton>
+            </Box>}
+            <Box m={2}>
+              <CustomButton
+                color={"secondary"}
+                sx={{ color: "white", backgroundColor: "#DE350B !important" }}
+                variant="contained"
+                id="id_ApplicationCancelButton"
+                onClick={() => navigate(MainStore.isFinancialPlan ? "/user/ApplicationFinPlan" : "/user/Application")}
+              >
+                {translate("common:goOut")}
+              </CustomButton>
+            </Box>
           </Box>
         </ApplicationAddEditBaseView>
       </CustomTabPanel>
 
+
       <CustomTabPanel value={value} index={1}>
-        <Box display="flex" justifyContent="flex-end" mb={2}>
-          {store.id > 0 && (
-            <ActionButton 
-              variant="contained" 
-              onClick={() => MyTemplatesStore.onPrintClick(store.id)}
-              startIcon={<Print />}
-            >
-              {translate("common:print")}
-            </ActionButton>
-          )}
-        </Box>
+        <div style={{ display: "flex", flexDirection: "row", justifyContent: "flex-end" }} >
+          {store.id > 0 && <CustomButton variant="contained" style={{ width: "150px" }} onClick={() => MyTemplatesStore.onPrintClick(store.id)}>
+            {translate("common:print")} <IconPrinter style={{ marginLeft: "20px" }} stroke={2} />
+          </CustomButton>}
+
+        </div>
 
         {store.id !== 0 && <Uploaded_application_documentListView idMain={store.id} />}
         {store.id !== 0 && <Outgoing_Uploaded_application_documentListGridView idMain={store.id} />}
         {store.id > 0 && <ApplicationWorkDocumentListView idApplication={store.id} />}
         <BackButton />
+
       </CustomTabPanel>
-      
       <MyTemplatesPrintView application_id={store.id} />
+
 
       <CustomTabPanel value={value} index={2}>
         {store.id !== 0 && <Saved_application_documentListView idMain={store.id} />}
+        {/* <BackButton /> */}
+
       </CustomTabPanel>
+
 
       <CustomTabPanel value={value} index={3}>
         {store.id !== 0 && <Application_taskListView idMain={store.id} />}
         <BackButton />
+
       </CustomTabPanel>
+
 
       <CustomTabPanel value={value} index={4}>
         {store.id !== 0 && <FastInputapplication_paymentView idMain={store.id} statusCode={store.Statuses.find(s => s.id == store.status_id)?.code ?? ""} isDisabled={isDisabled} />}
+        {/* {store.id !== 0 && <ApplicationPaidInvoice idMain={store.id} />} */}
         {store.id !== 0 && <FastInputapplication_paid_invoiceView idMain={store.id} isDisabled={isDisabled} />}
         <BackButton />
       </CustomTabPanel>
 
       <CustomTabPanel value={value} index={5}>
         {store.id !== 0 && <Contragent_interactionListView idMain={store.id} />}
+        {/* <BackButton /> */}
+
       </CustomTabPanel>
+
 
       <CustomTabPanel value={value} index={6}>
         {store.id !== 0 && <HistoryTableListView ApplicationID={store.id} />}
         <BackButton />
+
       </CustomTabPanel>
+
+
     </>
   );
 });
@@ -717,17 +496,15 @@ function CustomTabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
 
   return (
-    <Fade in={value === index} timeout={300}>
-      <div
-        role="tabpanel"
-        hidden={value !== index}
-        id={`simple-tabpanel-${index}`}
-        aria-labelledby={`simple-tab-${index}`}
-        {...other}
-      >
-        {value === index && <TabPanel>{children}</TabPanel>}
-      </div>
-    </Fade>
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`simple-tabpanel-${index}`}
+      aria-labelledby={`simple-tab-${index}`}
+      {...other}
+    >
+      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+    </div>
   );
 }
 

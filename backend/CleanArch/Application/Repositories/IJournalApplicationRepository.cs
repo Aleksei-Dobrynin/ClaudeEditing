@@ -11,5 +11,6 @@ namespace Application.Repositories
         Task<int> Add(JournalApplication domain);
         Task Update(JournalApplication domain);
         Task Delete(int id);
+        Task<List<JournalApplication>> GetByAppID(List<int> appIds);
     }
 }

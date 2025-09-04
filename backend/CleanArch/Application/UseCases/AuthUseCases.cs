@@ -9,19 +9,10 @@ namespace Application.UseCases
     {
         private readonly IAuthRepository _authRepository;
         private readonly IN8nService n8NService;
-
-
-        private readonly IUnitOfWork unitOfWork;
-
-        public AuthUseCases(
-            IAuthRepository authRepository,
-            IN8nService n8nService,
-            IUnitOfWork unitOfWork)
-
+        public AuthUseCases(IAuthRepository authRepository, IN8nService n8nService)
         {
             _authRepository = authRepository;
             n8NService = n8nService;
-            this.unitOfWork = unitOfWork;
         }
 
         public Task<AuthResult> Authenticate(string username, string password)
@@ -43,34 +34,32 @@ namespace Application.UseCases
         {
             return _authRepository.GetMyRoles();
         }
-        public async Task<UserInfo> GetCurrentUser()
+        public Task<UserInfo> GetCurrentUser()
         {
-            var userInfo = await _authRepository.GetUserInfo();
-
-            var emploee = await unitOfWork.EmployeeRepository.GetByUserId(userInfo.Id);
-            var employeePosts = await unitOfWork.EmployeeInStructureRepository.GetByidEmployee(emploee.id);
-            var structureId = employeePosts.Select(x => x.structure_id).FirstOrDefault();
-
-            if (structureId != 0)
-            {
-                userInfo.idOrgStructure = structureId;
-            }
-            if (emploee != null)
-            {
-                userInfo.idEmployee = emploee.id;
-            }
-            return userInfo;
+            return _authRepository.GetUserInfo();
         }
 
         public Task<UserInfo> GetByUserId(string userId)
         {
             return _authRepository.GetByUserId(userId);
         }
+        
+        private static string GenerateRandomPassword(int length = 8)
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+            var random = new Random();
+            return new string(Enumerable.Repeat(chars, length)
+                .Select(s => s[random.Next(s.Length)]).ToArray());
+        }
 
         public async Task<bool> ForgotPassword(string email)
         {
-            await _authRepository.ForgotPassword(email);
-            await n8NService.UserSendPassword(email, "2ea6427b-6c15-4406-9639-cfb96f1b2d9e");
+            var newPassword = GenerateRandomPassword();
+            var isReset = await _authRepository.ForgotPassword(email, newPassword);
+            if (isReset)
+            {
+                await n8NService.UserSendNewPassword(email, newPassword);
+            }
             return true;
         }
 

@@ -29,7 +29,7 @@ namespace Infrastructure.Repositories
         {
             try
             {
-                var sql = "SELECT id, name, description, code FROM district";
+                var sql = "SELECT id, name, description, code, address_unit_id FROM district";
                 var models = await _dbConnection.QueryAsync<District>(sql, transaction: _dbTransaction);
                 return models.ToList();
             }

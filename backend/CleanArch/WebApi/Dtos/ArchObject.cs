@@ -17,6 +17,13 @@ namespace WebApi.Dtos
         public int[] tags { get; set; }
         public double? xcoordinate { get; set; }
         public double? ycoordinate { get; set; }
+        public int? tunduk_district_id { get; set; }
+        public int? tunduk_addres_unit_id { get; set; }
+        public int? tunduk_street_id { get; set; }
+        public string? tunduk_bulding_num { get; set; }
+        public string? tunduk_flat_num { get; set; }
+        public string? tunduk_uch_num { get; set; }
+        public bool? is_manual { get; set; }
     }
 
     public class UpdateArchObjectRequest
@@ -30,6 +37,13 @@ namespace WebApi.Dtos
         public int[] tags { get; set; }
         public double? xcoordinate { get; set; }
         public double? ycoordinate { get; set; }
+        public int? tunduk_district_id { get; set; }
+        public int? tunduk_address_unit_id { get; set; }
+        public int? tunduk_street_id { get; set; }
+        public string? tunduk_building_num { get; set; }
+        public string? tunduk_flat_num { get; set; }
+        public string? tunduk_uch_num { get; set; }
+        public bool? is_manual { get; set; }
 
     }
 }

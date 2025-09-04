@@ -29,6 +29,10 @@ export const getS_DocumentTemplatesByApplicationType = (): Promise<any> => {
   return http.get("/S_DocumentTemplate/GetByApplicationType");
 };
 
+export const getS_DocumentTemplatesByDefaultCalcType = (): Promise<any> => {
+  return http.get("/S_DocumentTemplate/GetByDefaultCalcType");
+};
+
 export const getS_DocumentTemplatesByApplicationTypeAndID = (idApplication: number): Promise<any> => {
   return http.get(`/S_DocumentTemplate/GetByApplicationTypeAndID?idApplication=${idApplication}`);
 };
@@ -37,4 +41,11 @@ export const updateS_DocumentTemplate = (data: S_DocumentTemplate): Promise<any>
   return http.put(`/S_DocumentTemplate/${data.id}`, data);
 };
 
+export const getApplicationTemplates = (): Promise<any> => {
+  return http.get(`/S_DocumentTemplate/GetApplicationTemplate`);
+};
+
+export const getApplicationDocument = (data: any): Promise<any> => {
+  return http.post(`/S_DocumentTemplate/GetApplicationDocument`, data);
+};
 

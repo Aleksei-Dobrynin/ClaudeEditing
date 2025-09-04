@@ -12,5 +12,6 @@ namespace Domain.Entities
         public string? name { get; set; }
         public string? description { get; set; }
         public string? code { get; set; }
+        public int? address_unit_id { get; set; }
     }
 }

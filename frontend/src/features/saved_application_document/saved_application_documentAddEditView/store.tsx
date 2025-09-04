@@ -150,7 +150,7 @@ class NewStore {
   async onSaveClick(onSaved: (id: number) => void) {
     var data = {
 
-      id: this.id - 0,
+      id: 0,
       application_id: this.application_id - 0,
       template_id: this.template_id - 0,
       language_id: this.language_id - 0,
@@ -172,11 +172,7 @@ class NewStore {
     try {
       MainStore.changeLoader(true);
       let response;
-      if (this.id === 0) {
-        response = await createsaved_application_document(data);
-      } else {
-        response = await updatesaved_application_document(data);
-      }
+      response = await createsaved_application_document(data);
       if (response.status === 201 || response.status === 200) {
         onSaved(response.data.file_id);
         indexStore.onDocumentChanged(false)

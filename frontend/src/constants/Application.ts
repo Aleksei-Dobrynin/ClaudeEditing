@@ -36,6 +36,7 @@ export type FilterApplication = {
   sort_by: string;
   sort_type: string;
   pin: string;
+  journals_id?: number;
   customerName: string;
   date_start: string;
   date_end: string;
@@ -61,14 +62,16 @@ export type FilterApplication = {
   issued_employee_id?: number;
   only_count: boolean;
   is_paid?: boolean;
+  is_journal?: boolean;
   dp_outgoing_number?: string;
   only_cabinet?: boolean;
   total_sum_from: number | null;
   total_sum_to: number | null;
   total_payed_from: number | null;
   total_payed_to: number | null;
-  org_structure_id?: number; 
-  is_journal?: boolean;
-  journals_id?: number; 
+  app_ids?: number[];
+  tunduk_district_id: number | null;
+  tunduk_address_unit_id: number | null;
+  tunduk_street_id: number | null;
 };
 

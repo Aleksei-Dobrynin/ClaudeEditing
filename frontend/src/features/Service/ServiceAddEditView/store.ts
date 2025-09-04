@@ -1,4 +1,4 @@
-import { makeAutoObservable, runInAction, computed } from "mobx";
+import { makeAutoObservable, runInAction } from "mobx";
 import { validate } from "./valid";
 import i18n from "i18next";
 import MainStore from "MainStore";
@@ -11,7 +11,6 @@ import { getLawDocuments } from "../../../api/LawDocument";
 import { getStructures } from "api/Structure/useGetStructures";
 
 class NewStore {
-  // Данные формы
   id = 0;
   name = "";
   short_name = "";
@@ -19,15 +18,13 @@ class NewStore {
   description = "";
   day_count = 0;
   price = 0;
-  workflow_id = null;
-  law_document_id = null;
-  structure_id = null;
+  workflow_id = 0;
+  law_document_id = 0;
+  structure_id = 0;
   workflow_name = "";
   is_active = false;
   date_start = null;
   date_end = null;
-  
-  // Ошибки валидации
   errorname = "";
   errorshort_name = "";
   errorcode = "";
@@ -40,40 +37,16 @@ class NewStore {
   errordate_end = "";
   errorlaw_document_id = "";
   errorstructure_id = "";
-  
-  // Справочники
   Workflows = [];
   LawDocuments = [];
   Structures = [];
-  
-  // UI состояния
-  loading = false;
-  error: string | null = null;
-  saveSuccess = false;
-  isDirty = false;
 
   constructor() {
-    makeAutoObservable(this, {
-      isValid: computed
-    });
-  }
-
-  // Вычисляемое свойство для проверки валидности формы
-  get isValid() {
-    return !this.errorname && 
-           !this.errorcode && 
-           !this.errorday_count && 
-           !this.errorprice &&
-           !this.errorworkflow_id &&
-           !this.errorstructure_id &&
-           !this.errorlaw_document_id &&
-           !this.errordate_start &&
-           !this.errordate_end;
+    makeAutoObservable(this);
   }
 
   clearStore() {
     runInAction(() => {
-      // Очистка данных формы
       this.id = 0;
       this.name = "";
       this.short_name = "";
@@ -81,15 +54,13 @@ class NewStore {
       this.description = "";
       this.day_count = 0;
       this.price = 0;
-      this.workflow_id = null;
-      this.law_document_id = null;
-      this.structure_id = null;
+      this.workflow_id = 0;
+      this.law_document_id = 0;
+      this.structure_id = 0;
       this.workflow_name = "";
       this.is_active = false;
       this.date_start = null;
       this.date_end = null;
-      
-      // Очистка ошибок
       this.errorname = "";
       this.errorshort_name = "";
       this.errorcode = "";
@@ -101,84 +72,37 @@ class NewStore {
       this.errordate_start = "";
       this.errordate_end = "";
       this.errorstructure_id = "";
-      
-      // Очистка справочников
       this.Workflows = [];
       this.LawDocuments = [];
       this.Structures = [];
-      
-      // Очистка UI состояний
-      this.loading = false;
-      this.error = null;
-      this.saveSuccess = false;
-      this.isDirty = false;
     });
   }
 
   handleChange(event) {
-    runInAction(() => {
-      let value = event.target.value;
-      const fieldName = event.target.name;
-      
-      // Преобразование значений для числовых полей
-      if (['workflow_id', 'law_document_id', 'structure_id'].includes(fieldName)) {
-        if (value === '' || value === null || value === undefined) {
-          value = null;
-        } else {
-          value = Number(value);
-        }
-      } else if (['day_count', 'price'].includes(fieldName)) {
-        if (value === '' || value === null || value === undefined) {
-          value = 0;
-        } else {
-          value = Number(value);
-        }
-      }
-      
-      this[fieldName] = value;
-      this.isDirty = true;
-      this.error = null;
-      
-      // Валидация с правильным значением
-      validate({ target: { name: fieldName, value: value } });
-    });
+    this[event.target.name] = event.target.value;
+    validate(event);
   }
 
   onSaveClick = async (onSaved: (id: number) => void) => {
-    console.log('Начало сохранения...');
     let canSave = true;
-    
-    // Валидация всех полей
-    const fieldsToValidate = [
-      { name: "id", value: this.id },
-      { name: "name", value: this.name },
-      { name: "description", value: this.description },
-      { name: "code", value: this.code },
-      { name: "day_count", value: this.day_count },
-      { name: "price", value: this.price }
-    ];
-    
-    for (const field of fieldsToValidate) {
-      const event = { target: field };
-      canSave = validate(event) && canSave;
-    }
-
-    console.log('Результат валидации:', canSave);
-    console.log('Ошибки:', {
-      name: this.errorname,
-      code: this.errorcode,
-      day_count: this.errorday_count,
-      price: this.errorprice
-    });
+    let event: { target: { name: string; value: any } } = {
+      target: { name: "id", value: this.id },
+    };
+    canSave = validate(event) && canSave;
+    event = { target: { name: "name", value: this.name } };
+    canSave = validate(event) && canSave;
+    event = { target: { name: "description", value: this.description } };
+    canSave = validate(event) && canSave;
+    event = { target: { name: "code", value: this.code } };
+    canSave = validate(event) && canSave;
+    event = { target: { name: "day_count", value: this.day_count } };
+    canSave = validate(event) && canSave;
+    event = { target: { name: "price", value: this.price } };
+    canSave = validate(event) && canSave;
 
     if (canSave) {
       try {
-        runInAction(() => {
-          this.loading = true;
-          this.error = null;
-          this.saveSuccess = false;
-        });
-        
+        MainStore.changeLoader(true);
         var data = {
           id: this.id,
           name: this.name,
@@ -187,102 +111,75 @@ class NewStore {
           description: this.description,
           day_count: this.day_count,
           price: this.price,
-          workflow_id: this.workflow_id || undefined,
+          workflow_id: this.workflow_id,
           is_active: this.is_active,
-          date_start: this.date_start ? this.date_start.format('YYYY-MM-DD') : null,
-          date_end: this.date_end ? this.date_end.format('YYYY-MM-DD') : null,
-          law_document_id: this.law_document_id || undefined,
-          structure_id: this.structure_id || undefined
+          date_start: this.date_start,
+          date_end: this.date_end,
+          law_document_id: this.law_document_id,
+          structure_id: this.structure_id
         };
-
-        console.log('Данные для отправки:', data);
 
         const response = data.id === 0
           ? await createService(data)
           : await updateService(data);
 
-        console.log('Ответ сервера:', response);
-
-        if (response.status === 201 || response.status === 200) {
-          runInAction(() => {
-            this.saveSuccess = true;
-            this.isDirty = false;
+          if (response.status === 201 || response.status === 200) {
+            onSaved(response);
+            console.log(i18n.language)
             if (data.id === 0) {
               this.id = response.data.id;
+              MainStore.setSnackbar(i18n.t("message:snackbar.successSave"), "success");
+            } else {
+              MainStore.setSnackbar(i18n.t("message:snackbar.successEdit"), "success");
             }
-          });
-          
-          onSaved(response.data.id || this.id);
-          
-          if (data.id === 0) {
-            MainStore.setSnackbar(i18n.t("message:snackbar.successSave"), "success");
           } else {
-            MainStore.setSnackbar(i18n.t("message:snackbar.successEdit"), "success");
+            throw new Error();
           }
-        } else {
-          throw new Error("Неожиданный ответ сервера");
-        }
       } catch (err) {
-        console.error('Ошибка при сохранении:', err);
-        runInAction(() => {
-          this.error = i18n.t("message:somethingWentWrong");
-        });
         MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
       } finally {
-        runInAction(() => {
-          this.loading = false;
-        });
+        MainStore.changeLoader(false);
       }
     } else {
-      console.log('Валидация не пройдена');
       MainStore.openErrorDialog(i18n.t("message:error.alertMessageAlert"));
     }
   };
 
   loadWorkflows = async () => {
     try {
+      MainStore.changeLoader(true);
       const response = await getWorkflows();
-      console.log('Workflows response:', response);
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
-        runInAction(() => {
-          this.Workflows = response.data;
-        });
+        this.Workflows = response.data;
       } else {
-        throw new Error('Неверный ответ от сервера');
+        throw new Error();
       }
     } catch (err) {
-      console.error("Ошибка загрузки рабочих процессов:", err);
-      runInAction(() => {
-        this.Workflows = [];
-      });
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      MainStore.changeLoader(false);
     }
   };
 
-  loadStructures = async () => {
+    loadStructures = async () => {
     try {
+      MainStore.changeLoader(true);
       const response = await getStructures();
-      console.log('Structures response:', response);
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
-        runInAction(() => {
-          this.Structures = response.data;
-        });
+        this.Structures = response.data;
       } else {
-        throw new Error('Неверный ответ от сервера');
+        throw new Error();
       }
     } catch (err) {
-      console.error("Ошибка загрузки структур:", err);
-      runInAction(() => {
-        this.Structures = [];
-      });
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      MainStore.changeLoader(false);
     }
   };
 
   loadService = async (id: number) => {
     try {
-      runInAction(() => {
-        this.loading = true;
-      });
-      
+      MainStore.changeLoader(true);
       const response = await getService(id);
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
         runInAction(() => {
@@ -293,74 +190,48 @@ class NewStore {
           this.description = response.data.description;
           this.day_count = response.data.day_count;
           this.price = response.data.price;
-          this.workflow_id = response.data.workflow_id || null;
+          this.workflow_id = response.data.workflow_id;
           this.is_active = response.data.is_active;
-          this.date_start = response.data.date_start ? dayjs(response.data.date_start) : null;
-          this.date_end = response.data.date_end ? dayjs(response.data.date_end) : null;
-          this.law_document_id = response.data.law_document_id || null;
-          this.structure_id = response.data.structure_id || null;
-          this.isDirty = false; // Сбрасываем флаг после загрузки
+          this.date_start = dayjs(response.data.date_start);
+          this.date_end = dayjs(response.data.date_end);
+          this.law_document_id = response.law_document_id;
+          this.structure_id = response.data.structure_id;
         });
       } else {
         throw new Error();
       }
     } catch (err) {
-      runInAction(() => {
-        this.error = i18n.t("message:somethingWentWrong");
-      });
       MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
     } finally {
-      runInAction(() => {
-        this.loading = false;
-      });
+      MainStore.changeLoader(false);
     }
   };
 
   loadLawDocuments = async () => {
     try {
+      MainStore.changeLoader(true);
       const response = await getLawDocuments();
-      console.log('LawDocuments response:', response);
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
-        runInAction(() => {
-          this.LawDocuments = response.data;
-        });
+        this.LawDocuments = response.data;
       } else {
-        throw new Error('Неверный ответ от сервера');
+        throw new Error();
       }
     } catch (err) {
-      console.error("Ошибка загрузки правовых документов:", err);
-      runInAction(() => {
-        this.LawDocuments = [];
-      });
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      MainStore.changeLoader(false);
     }
   };
 
   async doLoad(id: number) {
-    try {
-      // Загружаем справочники параллельно
-      const promises = [
-        this.loadWorkflows(),
-        this.loadLawDocuments(),
-        this.loadStructures()
-      ];
-      
-      await Promise.all(promises);
-      
-      console.log('Справочники загружены:', {
-        Workflows: this.Workflows.length,
-        LawDocuments: this.LawDocuments.length,
-        Structures: this.Structures.length
-      });
-      
-      // Загружаем данные услуги если это редактирование
-      if (id != null && id > 0) {
-        this.id = id;
-        await this.loadService(id);
-      }
-    } catch (error) {
-      console.error('Ошибка при загрузке данных:', error);
-      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    this.loadWorkflows()
+    this.loadLawDocuments()
+    this.loadStructures()
+    if (id == null || id == 0) {
+      return;
     }
+    this.id = id;
+    this.loadService(id);
   }
 }
 

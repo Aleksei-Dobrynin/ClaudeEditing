@@ -11,6 +11,10 @@ import { observer } from "mobx-react";
 import store from "./store";
 import CustomButton from "components/Button";
 import MtmTabs from "./mtmTabs";
+import S_DocumentTemplateTranslationTabView
+  from "../../S_DocumentTemplateTranslation/S_DocumentTemplateTranslationListView/TabView";
+import MainStore from "../../../MainStore";
+import LayoutStore from "../../../layouts/MainLayout/store";
 
 type ServicePriceProps = {};
 
@@ -34,8 +38,19 @@ const ServicePriceAddEditView: FC<ServicePriceProps> = observer((props) => {
     };
   }, []);
 
+  useEffect(() => {
+    if(MainStore.isHeadStructure && id != null && id !== "") {
+      store.structure_id = LayoutStore.head_of_structures[0].id
+      store.loadServicesByStructure(LayoutStore.head_of_structures[0].id);
+    }
+  }, [LayoutStore.head_of_structures]);
+
   return (
     <ServicePriceAddEditBaseView {...props}>
+
+      {store.document_template_id > 0 && <Grid item xs={12} spacing={0}>
+        <S_DocumentTemplateTranslationTabView idMain={store.document_template_id} onChange={(translates) => store.languageChanged(translates)} />
+      </Grid>}
 
       <Grid item xs={12} spacing={0}>
         <Box display="flex" p={2}>

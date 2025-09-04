@@ -97,8 +97,9 @@ namespace WebApi.UnitTests.Tests
                 mockRedis.Object
             );
 
-            //// Act
-            //await applicationUseCases.ChangeStatus(123, 2);
+
+            // Act
+            await applicationUseCases.ChangeStatus(123, 2);
 
             // Assert
             var calls = mockN8nService.GetCalls();

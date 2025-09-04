@@ -50,6 +50,7 @@ namespace Domain.Entities
         public int? application_square_unit_type_id { get; set; }
         public int? application_status_id { get; set; }
         public string? application_status_code { get; set; }
+        public string? application_status_group_code { get; set; }
         public string application_status_color { get; set; }
         public bool is_main { get; set; }
         public File? document { get; set; }

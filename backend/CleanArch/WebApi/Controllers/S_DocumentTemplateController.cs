@@ -51,6 +51,14 @@ namespace WebApi.Controllers
         }
         
         [HttpGet]
+        [Route("GetByDefaultCalcType")]
+        public async Task<IActionResult> GetByDefaultCalcType()
+        {
+            var response = await _S_DocumentTemplateUseCases.GetByDefaultCalcType();
+            return Ok(response);
+        }
+        
+        [HttpGet]
         [Route("GetByApplicationTypeAndID")]
         public async Task<IActionResult> GetByApplicationTypeAndID(int idApplication)
         {
@@ -196,6 +204,21 @@ namespace WebApi.Controllers
             return ActionResultHelper.FromResult(response);
         }
 
+        [HttpGet]
+        [Route("GetApplicationTemplate")]
+        public async Task<IActionResult> GetApplicationTemplate()
+        {
+            var response = await _S_DocumentTemplateUseCases.GetApplicationTemplate();
+            return Ok(response);
+        }
+        
+        [HttpPost]
+        [Route("GetApplicationDocument")]
+        public async Task<IActionResult> GetApplicationDocument(ApplicationDocumentRequest requestDto)
+        {
+            var response = await _S_DocumentTemplateUseCases.GetApplicationDocument(requestDto.template_id, requestDto.language_code, requestDto.selected_apps);
+            return Ok(response);
+        }
     }
     public class DocModelWithHtml
     {

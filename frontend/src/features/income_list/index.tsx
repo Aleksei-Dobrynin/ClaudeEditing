@@ -54,6 +54,7 @@ const incomeListView: FC<incomeListViewProps> = observer((props) => {
       
       return {
         "Номер заявки": row.application_number,
+        "Реестр": row.reestr_id !== 0 ? row.reestr_id + " - " + row.reestr_name : "",
         "Дата оплаты": row.invoice_date ? dayjs(row.invoice_date).format("DD.MM.YYYY HH:mm") : "",
         "Сумма оплаты": row.invoice_sum,
         "ID платежа": row.payment_identifier,
@@ -78,6 +79,7 @@ const incomeListView: FC<incomeListViewProps> = observer((props) => {
     // Устанавливаем ширину столбцов
     const columnWidths = [
       { wch: 15 }, // Номер заявки
+      { wch: 30 }, // Реестр
       { wch: 20 }, // Дата оплаты
       { wch: 15 }, // Сумма оплаты
       { wch: 15 }, // ID платежа
@@ -111,6 +113,22 @@ const incomeListView: FC<incomeListViewProps> = observer((props) => {
             rel="noopener noreferrer">
             {params.value}
           </Link>
+        </>
+      }
+    },
+    {
+      field: 'reestr_name',
+      headerName: translate("label:incomeListView.reestr_name"),
+      flex: 1,
+      renderCell: (params) => {
+        return <>
+          {params.row.reestr_id !== 0 && <Link
+            style={{ textDecoration: "underline", marginLeft: 5 }}
+            to={`/user/reestr/addedit?id=${params.row.reestr_id}`}
+            target="_blank"
+            rel="noopener noreferrer">
+            {params.row.reestr_id} - {params.value}
+          </Link>}
         </>
       }
     },
@@ -193,7 +211,7 @@ const incomeListView: FC<incomeListViewProps> = observer((props) => {
         columns={columns}
         data={store.data}
         getRowHeight={() => 'auto'}
-        customHeader={<>
+        hustomHeader={<>
           <Grid container spacing={2}>
             <Grid item xs={12} md={3} sx={{ mb: 1 }}>
               <DateField
@@ -227,7 +245,7 @@ const incomeListView: FC<incomeListViewProps> = observer((props) => {
             </Grid>
             <Grid item md={3} xs={12}>
               <MtmLookup
-                label={translate("label:ApplicationListView.filterByService")}
+                label={translate("label:ApplicationListView.filterByStructure")}
                 name="service_ids"
                 value={store.structures_ids}
                 data={store.structures}

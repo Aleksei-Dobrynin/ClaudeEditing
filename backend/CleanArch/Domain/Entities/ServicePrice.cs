@@ -14,5 +14,7 @@ namespace Domain.Entities
         public int structure_id { get; set; }
         public string structure_name { get; set; }
         public decimal price { get; set; }
+        public int document_template_id { get; set; }
+        public string document_template_name { get; set; }
     }
 }

@@ -31,6 +31,8 @@ namespace WebApi.Dtos
 		public int? implementer_id { get; set; }
 		public FileModel? document { get; set; }
 		public int? idTask { get; set; }
+		public string? selectedLang { get; set; }
+		public int? selectedServicePrice { get; set; }
 	}
 	public class Updateapplication_paymentRequest
 	{

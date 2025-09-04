@@ -12,7 +12,8 @@ import {
   Card,
   CardHeader,
   CardContent,
-  Button
+  Button,
+  Dialog
 } from '@mui/material';
 import PageGrid from 'components/PageGrid';
 import { observer } from "mobx-react"
@@ -29,14 +30,16 @@ import BaseStore from './../saved_application_documentAddEditView/store'
 import AutocompleteCustomer from "../../Application/ApplicationAddEditView/AutocompleteCustomer";
 import IconButton from "@mui/material/IconButton";
 import DeleteIcon from '@mui/icons-material/Delete';
+import HistoryIcon from '@mui/icons-material/History';
 import DownloadIcon from '@mui/icons-material/Download';
 import RemoveRedEyeIcon from '@mui/icons-material/RemoveRedEye';
 import FileViewer from 'components/FileViewer';
 import appStore from 'features/Application/ApplicationAddEditView/store';
+import dayjs from "dayjs";
+import printJS from "print-js";
 
 type saved_application_documentListViewProps = {
   idMain: number;
-  templateCodeFilter?: string[];
 };
 
 
@@ -54,9 +57,6 @@ const Saved_application_documentListView: FC<saved_application_documentListViewP
     }
   }, [props.idMain])
 
-  const filteredTemplates = store.S_DocumentTemplates.filter(template =>
-    !props.templateCodeFilter || props.templateCodeFilter.includes(template.code)
-  );
 
   return (
     <Container maxWidth='xl' sx={{ mt: 4 }}>
@@ -69,7 +69,7 @@ const Saved_application_documentListView: FC<saved_application_documentListViewP
                 title={lg.name}
               />
               <CardContent sx={{ padding: 1 }}>
-                {filteredTemplates.map(item => {
+                {store.S_DocumentTemplates.map(item => {
                   const foundDocument = item.saved_application_documents?.find(x => x?.language_id === lg.id);
                   const hasDocument = item.saved_application_documents?.find(x => x?.language_id === lg.id && x?.file_id != null);
                   return (<Grid container item key={`template-${item.id}`} alignItems="center">
@@ -93,9 +93,10 @@ const Saved_application_documentListView: FC<saved_application_documentListViewP
 
                     {foundDocument && <Grid item xs={1} md={1}>
                       <IconButton size="small" onClick={() => {
-                        store.deletesaved_application_document(foundDocument.id);
+                        // store.deletesaved_application_document(foundDocument.id);
+                        store.loadPrintedDocuments(foundDocument.id, foundDocument.language_id);
                       }} >
-                        <DeleteIcon />
+                        <HistoryIcon />
                       </IconButton>
                     </Grid>}
                     {hasDocument && <Grid item xs={1} md={1}>
@@ -192,6 +193,48 @@ const Saved_application_documentListView: FC<saved_application_documentListViewP
           }
         </Box>
       </Basesaved_application_documentView>}
+
+      {store.isHistoryDialogOpen && (
+        <Dialog open={store.isHistoryDialogOpen} onClose={store.closeHistoryDialog} maxWidth="sm" fullWidth>
+        <PopupGrid
+          title={t("История документов")}
+          onDeleteClicked={(id: number) => {}}
+          onEditClicked={(id: number) => {}}
+          hideAddButton={true}
+          hideActions={true}
+          columns={[
+            { field: 'template_name', headerName: t('label:saved_application_documentListView.template_name'), flex: 1 },
+            { field: 'created_at', headerName: t('label:saved_application_documentListView.created_at'), flex: 1, renderCell: (param) => (
+                <span>
+          {param.row.created_at ? dayjs(param.row.created_at).format("DD.MM.YYYY HH:mm") : ""}
+        </span>
+              ) },
+            {
+              field: 'actions',
+              headerName: t('common:actions'),
+              renderCell: (params) => (
+                <Button
+                  size="small"
+                  onClick={() => {
+                    printJS({
+                      printable: params.row.body,
+                      type: 'raw-html',
+                      targetStyles: ['*']
+                    });
+                  }
+                }
+                >
+                  {t("Просмотреть")}
+                </Button>
+              ),
+              flex: 1
+            }
+          ]}
+          data={store.printedDocuments}
+          tableName="Application"
+        />
+        </Dialog >
+      )}
 
     </Container>
   );

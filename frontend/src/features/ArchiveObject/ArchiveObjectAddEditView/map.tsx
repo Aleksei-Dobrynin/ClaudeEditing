@@ -26,7 +26,9 @@ import GisSearch from "components/2gisSearch";
 
 const { BaseLayer, Overlay } = LayersControl;
 
-type MapContainerViewProps = {};
+type MapContainerViewProps = {
+  isReadOnly?: boolean
+};
 
 // Константы для отображения маркеров из map_example.tsx
 const MIN_ZOOM_FOR_MARKERS = 14; // Минимальный уровень масштаба для отображения маркеров
@@ -46,7 +48,7 @@ const MapContainerView: FC<MapContainerViewProps> = observer((props) => {
   const featureGroupRef = useRef<L.FeatureGroup | null>(null);
   const [isMapReady, setMapReady] = useState(false);
   const mapRef = useRef(null);
-  const wmsUrl = 'http://map.darek.kg/qgis/qgis_mapserv.fcgi.exe?map=C:/OSGeo4W64/projects/ГИСАР/ГИСАР.qgz';
+  const wmsUrl = 'http://map.darek.kg/qgis/qgis_mapserv.fcgi.exe?map=C:/OSGeo4W64/projects/ГИСНА/ГИСНА.qgz';
 
   // Состояния для маркеров из map_example.tsx
   const [visibleBounds, setVisibleBounds] = useState<LatLngBounds | null>(null);
@@ -190,6 +192,9 @@ const MapContainerView: FC<MapContainerViewProps> = observer((props) => {
 
   // Обработчик клика по объекту
   const handleObjectClick = useCallback((item, position) => {
+    // Отключаем клики в режиме только для чтения
+    if (props.isReadOnly) return;
+    
     setSelectedObjectId(item.id);
     setPopupPosition(position);
 
@@ -210,14 +215,17 @@ const MapContainerView: FC<MapContainerViewProps> = observer((props) => {
     );
 
     setPopupContent(content);
-  }, [translate]);
+  }, [translate, props.isReadOnly]);
 
   // Закрытие попапа
   const closePopup = useCallback(() => {
+    // Отключаем закрытие попапов в режиме только для чтения
+    if (props.isReadOnly) return;
+    
     setSelectedObjectId(null);
     setPopupPosition(null);
     setPopupContent(null);
-  }, []);
+  }, [props.isReadOnly]);
 
   // Получение текста для кастомной иконки
   const getIconText = useCallback((item) => {
@@ -234,7 +242,7 @@ const MapContainerView: FC<MapContainerViewProps> = observer((props) => {
       const objectCenter = getObjectCenter(geometries);
       
       // Общий обработчик событий для всех типов объектов
-      const eventHandlers = {
+      const eventHandlers = props.isReadOnly ? {} : {
         click: (e) => {
           L.DomEvent.stopPropagation(e);
           handleObjectClick(item, e.latlng || objectCenter);
@@ -358,7 +366,7 @@ const MapContainerView: FC<MapContainerViewProps> = observer((props) => {
       console.error(`Ошибка при рендеринге объекта ${item.id}:`, e);
       return null;
     }
-  }, [currentZoom, selectedObjectId, getGeometry, getObjectCenter, getIconText, handleObjectClick]);
+  }, [currentZoom, selectedObjectId, getGeometry, getObjectCenter, getIconText, handleObjectClick, props.isReadOnly]);
 
   const updateWmsParams = () => {
     const map = mapRef.current;
@@ -464,7 +472,10 @@ const MapContainerView: FC<MapContainerViewProps> = observer((props) => {
           },
           properties: {}
         };
-        store.addLayerOne(geoJson);
+        
+        if (!props.isReadOnly) {
+          store.addLayerOne(geoJson);
+        }
 
         const leafletLayer = L.geoJSON(geoJson);
         featureGroupRef.current?.addLayer(leafletLayer);
@@ -484,7 +495,10 @@ const MapContainerView: FC<MapContainerViewProps> = observer((props) => {
         },
         properties: {},
       };
-      store.addLayerOne(geoJsonPoint);
+      
+      if (!props.isReadOnly) {
+        store.addLayerOne(geoJsonPoint);
+      }
 
       const marker = L.geoJSON(geoJsonPoint, {
         pointToLayer: (feature, latlng) => L.marker(latlng),
@@ -494,7 +508,7 @@ const MapContainerView: FC<MapContainerViewProps> = observer((props) => {
 
       map.setView([point[0], point[1]], map.getZoom());
     }
-  }, [store.geometry, store.point]);
+  }, [store.geometry, store.point, props.isReadOnly]);
 
   useEffect(() => {
     if (isMapReady && featureGroupRef.current && store.mapLayers) {
@@ -542,20 +556,29 @@ const MapContainerView: FC<MapContainerViewProps> = observer((props) => {
       // Добавляем обработчики событий
       map.on('moveend', updateVisibleArea);
       map.on('zoomend', updateVisibleArea);
-      map.on('click', closePopup);
+      
+      // Отключаем клики по карте в режиме только для чтения
+      if (!props.isReadOnly) {
+        map.on('click', closePopup);
+      }
 
       // Удаляем обработчики при размонтировании компонента
       return () => {
         map.off('moveend', updateVisibleArea);
         map.off('zoomend', updateVisibleArea);
-        map.off('click', closePopup);
+        if (!props.isReadOnly) {
+          map.off('click', closePopup);
+        }
       };
-    }, [map, isMapReady, currentZoom, visibleBounds, closePopup]);
+    }, [map, isMapReady, currentZoom, visibleBounds, closePopup, props.isReadOnly]);
 
     return null;
   };
 
   const onCreated = (e: any) => {
+    // Отключаем создание в режиме только для чтения
+    if (props.isReadOnly) return;
+    
     const { layerType, layer } = e;
     // Разрешаем все типы объектов, не только polygon и marker
     const geoJSON = layer.toGeoJSON();
@@ -567,11 +590,17 @@ const MapContainerView: FC<MapContainerViewProps> = observer((props) => {
   };
 
   const onDeleted = (e: any) => {
+    // Отключаем удаление в режиме только для чтения
+    if (props.isReadOnly) return;
+    
     const deletedLayers = e.layers.toGeoJSON().features;
     store.removeLayers(deletedLayers);
   };
 
   const onEdited = (e: any) => {
+    // Отключаем редактирование в режиме только для чтения
+    if (props.isReadOnly) return;
+    
     // Обрабатываем изменение слоев
     const editedLayers = e.layers;
     editedLayers.eachLayer((layer: any) => {
@@ -583,52 +612,55 @@ const MapContainerView: FC<MapContainerViewProps> = observer((props) => {
 
   return (
     <>
-      <Grid container spacing={1} sx={{ mb: 1 }}>
-        <Grid item md={3}>
-          <MaskedAutocomplete
-            data={store.DarekSearchList ?? []}
-            value={0}
-            label={translate("label:ArchObjectAddEditView.identifier")}
-            name="darek_eni"
-            onChange={(newValue: any) => {
-              store.darek_eni = newValue?.propcode ?? '';
-              store.identifier = newValue?.propcode ?? '';
-              store.searchFromDarek(newValue.propcode);
-            }}
-            freeSolo={true}
-            fieldNameDisplay={(option) => option?.propcode}
-            onInputChange={(event, value) => {
-              store.darek_eni = "";
-              if (value?.length > 12) {
-                store.identifier = value;
-                store.getSearchListFromDarek(value);
-              }
-            }}
-            mask="0-00-00-0000-0000-00-000"
-          />
+      {/* Скрываем элементы управления в режиме только для чтения */}
+      {!props.isReadOnly && (
+        <Grid container spacing={1} sx={{ mb: 1 }}>
+          <Grid item md={3}>
+            <MaskedAutocomplete
+              data={store.DarekSearchList ?? []}
+              value={0}
+              label={translate("label:ArchObjectAddEditView.identifier")}
+              name="darek_eni"
+              onChange={(newValue: any) => {
+                store.darek_eni = newValue?.propcode ?? '';
+                store.identifier = newValue?.propcode ?? '';
+                store.searchFromDarek(newValue.propcode);
+              }}
+              freeSolo={true}
+              fieldNameDisplay={(option) => option?.propcode}
+              onInputChange={(event, value) => {
+                store.darek_eni = "";
+                if (value?.length > 12) {
+                  store.identifier = value;
+                  store.getSearchListFromDarek(value);
+                }
+              }}
+              mask="0-00-00-0000-0000-00-000"
+            />
+          </Grid>
+          <Grid item md={3}>
+            <GisSearch
+              id="id_f_ArchObject_address"
+              label={translate("label:ArchObjectAddEditView.address")}
+              onChange={store.handleAddressChange}
+              value={store.gis_address}
+            />
+          </Grid>
+          <Grid item md={3}>
+            <CustomTextField
+              helperText={store.errordutyPlanObjectNumber}
+              error={store.errordutyPlanObjectNumber != ""}
+              id="id_f_dutyPlanObjectNumber"
+              label={translate("Поиск по объектам дежурного плана")}
+              value={store.dutyPlanObjectNumber}
+              onChange={(event) => {
+                store.handleChange(event)
+              }}
+              name="dutyPlanObjectNumber"
+            />
+          </Grid>
         </Grid>
-        <Grid item md={3}>
-          <GisSearch
-            id="id_f_ArchObject_address"
-            label={translate("label:ArchObjectAddEditView.address")}
-            onChange={store.handleAddressChange}
-            value={store.gis_address}
-          />
-        </Grid>
-        <Grid item md={3}>
-          <CustomTextField
-            helperText={store.errordutyPlanObjectNumber}
-            error={store.errordutyPlanObjectNumber != ""}
-            id="id_f_dutyPlanObjectNumber"
-            label={translate("Поиск по объектам дежурного плана")}
-            value={store.dutyPlanObjectNumber}
-            onChange={(event) => {
-              store.handleChange(event)
-            }}
-            name="dutyPlanObjectNumber"
-          />
-        </Grid>
-      </Grid>
+      )}
 
       {/* Информация о количестве объектов */}
       <div style={{ marginBottom: '10px' }}>
@@ -708,32 +740,35 @@ const MapContainerView: FC<MapContainerViewProps> = observer((props) => {
             }
           }}
         >
-          <EditControl
-            position="topright"
-            onCreated={onCreated}
-            onDeleted={onDeleted}
-            onEdited={onEdited}
-            draw={{
-              rectangle: false,
-              polygon: true,
-              polyline: true,
-              circle: false,
-              circlemarker: false,
-              marker: true
-            }}
-            edit={{
-              featureGroup: featureGroupRef.current || new L.FeatureGroup(),
-              edit: true,
-              remove: true
-            }}
-          />
+          {/* Скрываем EditControl в режиме только для чтения */}
+          {!props.isReadOnly && (
+            <EditControl
+              position="topright"
+              onCreated={onCreated}
+              onDeleted={onDeleted}
+              onEdited={onEdited}
+              draw={{
+                rectangle: false,
+                polygon: true,
+                polyline: true,
+                circle: false,
+                circlemarker: false,
+                marker: true
+              }}
+              edit={{
+                featureGroup: featureGroupRef.current || new L.FeatureGroup(),
+                edit: true,
+                remove: true
+              }}
+            />
+          )}
         </FeatureGroup>
 
         {/* Динамическое отображение геообъектов вместо маркеров */}
         {visibleObjects.map((item) => renderGeoObject(item))}
 
         {/* Отдельный попап, который управляется состоянием */}
-        {popupPosition && popupContent && (
+        {popupPosition && popupContent && !props.isReadOnly && (
           <Popup
             position={popupPosition}
             eventHandlers={{
@@ -751,50 +786,61 @@ const MapContainerView: FC<MapContainerViewProps> = observer((props) => {
             return null;
           }
           const files = layer.archive_folders ? JSON.parse(layer.archive_folders) : [];
+          
+          // Обработчики событий для маркеров дежурного плана
+          const dutyPlanEventHandlers = props.isReadOnly ? {} : {};
+          
           return (
-            <Marker key={`duty-${index}`} position={[layer.point[0], layer.point[1]]} icon={customIcon}>
-              <Popup>
-                <div>
-                  <strong>Номер документа:</strong> {`${layer.number}`}<br />
-                  <strong>Адрес:</strong> {`${layer.address}`}<br />
-                  <a
-                    href={`https://2gis.kg/bishkek/geo/${layer.point[1]}%2C${layer.point[0]}?m=${layer.point[1]}%2C${layer.point[0]}%2F14.6`}
-                    target="_blank"
-                    rel="noopener noreferrer">Открыть в 2gis</a>
-                  <br />
-                  <br />
-                  {store.id !== layer.id && <a
-                    rel="noopener noreferrer"
-                    onClick={() => store.onClickDutyInMap(layer)}
-                    style={{ cursor: 'pointer', color: 'blue', textDecoration: 'underline' }}
-                  >
-                    Перекинуть сюда
-                  </a>}
-                  <br />
+            <Marker 
+              key={`duty-${index}`} 
+              position={[layer.point[0], layer.point[1]]} 
+              icon={customIcon}
+              eventHandlers={dutyPlanEventHandlers}
+            >
+              {!props.isReadOnly && (
+                <Popup>
+                  <div>
+                    <strong>Номер документа:</strong> {`${layer.number}`}<br />
+                    <strong>Адрес:</strong> {`${layer.address}`}<br />
+                    <a
+                      href={`https://2gis.kg/bishkek/geo/${layer.point[1]}%2C${layer.point[0]}?m=${layer.point[1]}%2C${layer.point[0]}%2F14.6`}
+                      target="_blank"
+                      rel="noopener noreferrer">Открыть в 2gis</a>
+                    <br />
+                    <br />
+                    {store.id !== layer.id && <a
+                      rel="noopener noreferrer"
+                      onClick={() => store.onClickDutyInMap(layer)}
+                      style={{ cursor: 'pointer', color: 'blue', textDecoration: 'underline' }}
+                    >
+                      Перекинуть сюда
+                    </a>}
+                    <br />
 
-                  <br />
-                  {files && files.length > 0 && (
-                    <div style={{ maxHeight: "200px", overflow: "auto", border: "1px solid black" }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                        <thead>
-                          <tr>
-                            <th style={{ border: "1px solid black", padding: "5px" }}>Имя папки</th>
-                            <th style={{ border: "1px solid black", padding: "5px" }}>Имя файла</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {files.filter(item => item.folder_name && item.file_name).map((item, idx) => (
-                            <tr key={idx}>
-                              <td style={{ border: "1px solid black", padding: "5px" }}>{item.folder_name}</td>
-                              <td style={{ border: "1px solid black", padding: "5px" }}>{item.file_name}</td>
+                    <br />
+                    {files && files.length > 0 && (
+                      <div style={{ maxHeight: "200px", overflow: "auto", border: "1px solid black" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                          <thead>
+                            <tr>
+                              <th style={{ border: "1px solid black", padding: "5px" }}>Имя папки</th>
+                              <th style={{ border: "1px solid black", padding: "5px" }}>Имя файла</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </Popup>
+                          </thead>
+                          <tbody>
+                            {files.filter(item => item.folder_name && item.file_name).map((item, idx) => (
+                              <tr key={idx}>
+                                <td style={{ border: "1px solid black", padding: "5px" }}>{item.folder_name}</td>
+                                <td style={{ border: "1px solid black", padding: "5px" }}>{item.file_name}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </Popup>
+              )}
             </Marker>
           );
         })}

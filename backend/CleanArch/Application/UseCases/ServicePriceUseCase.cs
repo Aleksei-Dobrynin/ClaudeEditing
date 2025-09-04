@@ -15,11 +15,31 @@ namespace Application.UseCases
         public async Task<List<ServicePrice>> GetAll()
         {
             return await unitOfWork.ServicePriceRepository.GetAll();
+        }
+        
+        public async Task<List<ServicePrice>> GetByStructure(int structure_id)
+        {
+            return await unitOfWork.ServicePriceRepository.GetByStructure(structure_id);
+        }
+        
+        public async Task<List<ServicePrice>> GetByStructureAndService(int structure_id, int service_id)
+        {
+            return await unitOfWork.ServicePriceRepository.GetByStructureAndService(structure_id, service_id);
         } 
         
         public async Task<List<Service>> GetServiceAll()
         {
             return await unitOfWork.ServicePriceRepository.GetServiceAll();
+        }
+        
+        public async Task<List<Service>> GetServiceAll(int service_id)
+        {
+            return await unitOfWork.ServicePriceRepository.GetServiceAll(service_id);
+        }
+        
+        public async Task<List<Service>> GetServiceByStructure(int structure_id, int? service_id)
+        {
+            return await unitOfWork.ServicePriceRepository.GetServiceByStructure(structure_id, service_id);
         }
 
         public async Task<ServicePrice> GetOneByID(int id)

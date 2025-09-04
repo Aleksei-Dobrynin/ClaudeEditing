@@ -4,7 +4,7 @@ import ApplicationListView from "../../Application/ApplicationListView";
 
 const JournalApplicationListView: FC = observer((props) => {
   return (
-    <ApplicationListView finPlan={false}  />
+    <ApplicationListView finPlan={false} forJournal />
   );
 });
 

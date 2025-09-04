@@ -102,10 +102,48 @@ namespace Application.UseCases
                 var orgs = await unitOfWork.EmployeeInStructureRepository.GetByidEmployee(emp.id);
                 filter.structure_ids = orgs.Select(org => org.structure_id).ToArray();
             }
-
+            filter.only_cabinet = true;
             // Call the repository method
             return await unitOfWork.ApplicationRepository.GetByFilterFromCabinet(filter, false);
         }
+
+        public async Task<Domain.Entities.PaidAmmount> GetPaidInfoByApplicationGuid(string guid)
+        {
+            var application = await unitOfWork.ApplicationRepository.GetOneByGuid(guid);
+
+            var result = new PaidAmmount
+            {
+                total_payed = application.total_payed,
+                total_sum = application.total_sum
+            };
+            return result;
+        }
+
+        public async Task<PaginatedList<Domain.Entities.Application>> GetByFilterForEO(PaginationFields filter)
+        {
+            // Trim filter fields like in GetPaginated
+            filter.pin = filter.pin?.Trim();
+            filter.customerName = filter.customerName?.Trim();
+            filter.address = filter.address?.Trim();
+            filter.number = filter.number?.Trim();
+            filter.common_filter = filter.common_filter?.Trim();
+            filter.incoming_numbers = filter.incoming_numbers?.Trim();
+            filter.outgoing_numbers = filter.outgoing_numbers?.Trim();
+            filter.application_code = filter.application_code?.Trim();
+
+            // Handle isMyOrgApplication filter
+            if (filter.isMyOrgApplication != null && filter.isMyOrgApplication.Value)
+            {
+                var emp = await unitOfWork.EmployeeRepository.GetUser();
+                var orgs = await unitOfWork.EmployeeInStructureRepository.GetByidEmployee(emp.id);
+                filter.structure_ids = orgs.Select(org => org.structure_id).ToArray();
+            }
+
+            // Call the repository method
+            return await unitOfWork.ApplicationRepository.GetByFilterFromEO(filter, false);
+        }
+
+        
         public Task<int> GetCountAppsFromCabinet()
         {
             return unitOfWork.ApplicationRepository.GetCountAppsFromCabinet();
@@ -599,7 +637,7 @@ namespace Application.UseCases
                 return Result.Fail(new AlreadyUpdatedError("Эта заявка уже обновлена кем-то, обновите страницу и попробуйте еще раз!"));
             }
             var districts = await unitOfWork.DistrictRepository.GetAll();
-
+       
             var old_cash = JsonConvert.DeserializeObject<ApplicationCashedInfo>(entity.cashed_info);
 
 
@@ -929,68 +967,61 @@ namespace Application.UseCases
             filter.outgoing_numbers = filter.outgoing_numbers?.Trim();
             filter.application_code = filter.application_code?.Trim();
 
-            // Check if task-based filtering is being used
-            bool isTaskFiltering = (filter.org_structure_id.HasValue && filter.org_structure_id.Value > 0) ||
-                                  (filter.employee_id.HasValue && filter.employee_id.Value > 0);
-
-            PaginatedList<Domain.Entities.Application> result;
-            string cacheKey = null;
+            string cacheKey = GenerateCacheKey(filter);
             int ttlSeconds = 300;
-
-            // Skip caching for task-based filtering to avoid Redis timeout issues
-            if (!isTaskFiltering)
+            
+            string cachedResult = await _redis.StringGetAsync(cacheKey);
+            if (!string.IsNullOrEmpty(cachedResult))
             {
-                cacheKey = GenerateCacheKey(filter);
-
-                try
-                {
-                    string cachedResult = await _redis.StringGetAsync(cacheKey);
-                    if (!string.IsNullOrEmpty(cachedResult))
-                    {
-                        var res = JsonConvert.DeserializeObject<PaginatedList<Domain.Entities.Application>>(cachedResult);
-                        return res;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    // Log Redis error but continue with database query
-                    // Consider using your logging framework here
-                    Console.WriteLine($"Redis error: {ex.Message}");
-                }
+                var res = JsonConvert.DeserializeObject<PaginatedList<Domain.Entities.Application>>(cachedResult);
+                return res;
             }
-
-            // Handle special cases
+            
+            PaginatedList<Domain.Entities.Application> result;
             if (filter.issued_employee_id != null)
             {
                 result = await unitOfWork.ApplicationRepository.GetPaginatedDashboardIssuedFromRegister(filter, false);
             }
-            else if (filter.isMyOrgApplication != null && filter.isMyOrgApplication.Value)
+
+            if (filter.isMyOrgApplication != null && filter.isMyOrgApplication.Value)
             {
                 var emp = await unitOfWork.EmployeeRepository.GetUser();
                 var orgs = await unitOfWork.EmployeeInStructureRepository.GetByidEmployee(emp.id);
                 filter.structure_ids = orgs.Select(org => org.structure_id).ToArray();
-                result = await unitOfWork.ApplicationRepository.GetPaginated(filter, filter.only_count, filter.pageSize == 70);
             }
-            else
+            result = await unitOfWork.ApplicationRepository.GetPaginated(filter, filter.only_count, false);
+            
+            if (result.TotalCount == 0)
             {
-                result = await unitOfWork.ApplicationRepository.GetPaginated(filter, filter.only_count, filter.pageSize == 70);
+                result.TotalCount = result.Items?.Count ?? 0;
+                result.TotalPages = 1;
             }
 
-            // Cache only non-task-based queries
-            if (!isTaskFiltering && cacheKey != null)
+            var appIds = result.Items.Select(x => x.id).ToList();
+            if (((filter.journals_id != null && filter.journals_id != 0) || (filter.is_journal != null && filter.is_journal.Value)) && appIds.Count > 0)
             {
-                try
+                var journals = await unitOfWork.JournalApplicationRepository.GetByAppID(appIds);
+                var journalMap = journals
+                    .GroupBy(x => x.application_id)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.First()
+                    );
+
+                foreach (var app in result.Items)
                 {
-                    var serializeOptions = new JsonSerializerOptions { IgnoreNullValues = true };
-                    string serializedOutcome = System.Text.Json.JsonSerializer.Serialize(result, serializeOptions);
-                    await _redis.StringSetAsync(cacheKey, serializedOutcome, TimeSpan.FromSeconds(ttlSeconds));
-                }
-                catch (Exception ex)
-                {
-                    // Log Redis error but don't fail the request
-                    Console.WriteLine($"Redis caching error: {ex.Message}");
+                    if (journalMap.TryGetValue(app.id, out var journalInfo))
+                    {
+                        app.journal_name = journalInfo.journal_name;
+                        app.journal_outgoing_number = journalInfo.outgoing_number;
+                        app.journal_added_at = journalInfo.created_at;
+                    }
                 }
             }
+
+            var serializeOptions = new JsonSerializerOptions { IgnoreNullValues = true };
+            string serializedOutcome = System.Text.Json.JsonSerializer.Serialize(result, serializeOptions);
+            await _redis.StringSetAsync(cacheKey, serializedOutcome, TimeSpan.FromSeconds(ttlSeconds));
 
             return result;
         }
@@ -1008,12 +1039,12 @@ namespace Application.UseCases
 
             return $"applications:pagination:{hashString}";
         }
-
+        
         public async Task InvalidatePaginationCache()
         {
             var multiplexer = _redis.Multiplexer;
             var server = multiplexer.GetServer(multiplexer.GetEndPoints().First());
-
+    
             var keys = server.Keys(pattern: "applications:pagination:*").ToArray();
             if (keys.Any())
             {
@@ -1043,6 +1074,7 @@ namespace Application.UseCases
 
 
             var res = await unitOfWork.ApplicationRepository.GetPaginated(filter, false, true);
+            res.TotalCount = res.Items?.Count ?? 0;
 
             var reestrs = await unitOfWork.application_in_reestrRepository.GetByApplicationIds(res.Items.Select(x => x.id).ToArray());
 
@@ -1325,7 +1357,7 @@ namespace Application.UseCases
         public List<string> check = new List<string>
         {
             //Application status codes
-            "review","executor_assignment","preparation","return_to_eo","ready_for_eo"
+            "in_progress"
         };
 
         public async Task<List<Domain.Entities.ApplicationTask>> GetMyApplications(string searchField, string orderBy, string orderType, int skipItem, int getCountItems, string? codeFilter)
@@ -1341,7 +1373,7 @@ namespace Application.UseCases
             var result = new List<Domain.Entities.ApplicationTask>();
             foreach (var item in res)
             {
-                if (item.application_status_code != null && check.Any(x => x == item.application_status_code))
+                if (item.application_status_code != null && check.Any(x => x == item.application_status_group_code))
                 {
                     item.application_status_color = ChechApplicationStatusColor(item);
                     result.Add(item);
@@ -1357,7 +1389,7 @@ namespace Application.UseCases
             var status = item.application_status_color;
 
 
-            if (item.application_status_code != null && check.Any(x => x != item.application_status_code))
+            if (item.application_status_code != null && check.Any(x => x != item.application_status_group_code))
             {
                 status = "#000000";
             }

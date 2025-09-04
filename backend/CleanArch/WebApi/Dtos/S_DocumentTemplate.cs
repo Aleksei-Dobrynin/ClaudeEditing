@@ -33,4 +33,11 @@ namespace WebApi.Dtos
         public List<S_DocumentTemplateTranslation> translations { get; set; }
 
     }
+    
+    public class ApplicationDocumentRequest
+    {
+	    public int template_id { get; set; }
+	    public string language_code { get; set; }
+	    public List<int> selected_apps { get; set; }
+    }
 }

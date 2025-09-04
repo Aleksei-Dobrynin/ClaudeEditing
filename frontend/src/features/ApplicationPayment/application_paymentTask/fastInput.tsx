@@ -1,7 +1,23 @@
 import React, { FC, useEffect } from "react";
 import {
-  Card, CardContent, Divider, Paper, Grid, Container, Button,
-  IconButton, Box, Typography, DialogTitle, DialogContent, DialogActions, Dialog, RadioGroup, Radio, FormControlLabel
+  Card,
+  CardContent,
+  Divider,
+  Paper,
+  Grid,
+  Container,
+  Button,
+  IconButton,
+  Box,
+  Typography,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Dialog,
+  RadioGroup,
+  Radio,
+  FormControlLabel,
+  Menu, MenuItem
 } from "@mui/material";
 
 import { useTranslation } from "react-i18next";
@@ -30,6 +46,9 @@ import DownloadIcon from "@mui/icons-material/Download";
 import workDocumentStore from 'features/ApplicationWorkDocument/ApplicationWorkDocumentListView/store'
 import MainStore from "MainStore";
 import { APPLICATION_STATUSES } from "constants/constant";
+import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import RichTextEditor from "../../../components/richtexteditor/RichTextWithTabs";
 
 type application_paymentProps = {
   children?: React.ReactNode;
@@ -37,6 +56,7 @@ type application_paymentProps = {
   idMain: number;
   onCalculationAdded?: () => void;
   idStructure?: number;
+  idService?: number;
   disabled: boolean;
   isAssigned?: boolean;
   idTask?: number;
@@ -46,6 +66,11 @@ type application_paymentProps = {
 const FastInputapplication_paymentView: FC<application_paymentProps> = observer((props) => {
   const { t } = useTranslation();
   const translate = t;
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
 
   useEffect(() => {
     storeList.forApplication = true;
@@ -68,7 +93,8 @@ const FastInputapplication_paymentView: FC<application_paymentProps> = observer(
 
   useEffect(() => {
     store.filterStructureId = props.idStructure;
-  }, [props.idStructure])
+    store.idService = props.idService;
+  }, [props.idStructure, props.idService])
 
   const columns = [
     {
@@ -251,7 +277,7 @@ const FastInputapplication_paymentView: FC<application_paymentProps> = observer(
             <Paper elevation={7} variant="outlined" sx={{ mt: 2 }}>
               <Card sx={{ m: 2 }}>
                 <Grid container spacing={3} sx={{ mt: 2, mb: 2 }}>
-                  <Grid item md={12} xs={12}>
+                  <Grid item md={10} xs={10}>
                     <CustomCheckbox
                       value={store.is_free_calc}
                       onChange={(event) => {
@@ -273,6 +299,63 @@ const FastInputapplication_paymentView: FC<application_paymentProps> = observer(
                       label={translate("label:application_paymentAddEditView.is_free_calculation")}
                       id="id_f_is_free_calc"
                     />
+                  </Grid>
+                  <Grid item md={2} xs={2}>
+                    {store.servicePrices?.length > 0 && <CustomButton
+                      customColor={"#718fb8"}
+                      size="small"
+                      variant="contained"
+                      sx={{ mb: "5px", mr: 1 }}
+                      onClick={(event) => {
+                        setAnchorEl(event.currentTarget);
+                      }}
+                      endIcon={open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                    >
+                      {`${translate("label:application_paymentAddEditView.addStandard")}`}
+                    </CustomButton>}
+                    {store.servicePrices?.length > 0 &&
+                      <Menu
+                        id="basic-menu"
+                        anchorEl={anchorEl}
+                        open={open}
+                        onClose={handleClose}
+                      >
+                        {store.servicePrices.map(x => {
+                          return <MenuItem
+                            key={x.id}
+                            onClick={() => {
+                              if (!store.head_structure_id || store.head_structure_id === 0) {
+                                MainStore.openErrorDialog(
+                                  `${translate("label:application_paymentAddEditView.head_structure_id")} - ${translate("common:required")}`
+                                );
+                                return;
+                              }
+                              if (!store.implementer_id || store.implementer_id === 0) {
+                                MainStore.openErrorDialog(
+                                  `${translate("label:application_paymentAddEditView.implementer_id")} - ${translate("common:required")}`
+                                );
+                                return;
+                              }
+                              store.sum_wo_discount = x.price;
+                              store.selectedServicePrice = x.id;
+                              store.isOpenSelectLang = true;
+                              handleClose()
+                            }}
+                            sx={{
+                              "&:hover": {
+                                backgroundColor: "#718fb8",
+                                color: "#FFFFFF"
+                              },
+                              "&:hover .MuiListItemText-root": {
+                                color: "#FFFFFF"
+                              }
+                            }}
+                          >
+                            {x.price} - {x.document_template_name}
+                          </MenuItem>;
+                        })}
+                      </Menu>
+                    }
                   </Grid>
                   <Grid item md={6} xs={12}>
                     <LookUp
@@ -677,6 +760,91 @@ const FastInputapplication_paymentView: FC<application_paymentProps> = observer(
             }, v)
           }}
         />
+        <Dialog
+          sx={{ '& .MuiDialog-paper': { width: '80%', maxHeight: 435 } }}
+          maxWidth="xs"
+          open={store.isOpenSelectLang}
+        >
+          <DialogTitle>Выберите язык</DialogTitle>
+          <DialogContent dividers>
+            <RadioGroup
+              aria-label="ringtone"
+              name="ringtone"
+              onChange={(e) => {
+                store.selectedLang = e.target.value;
+              }}
+            >
+              <FormControlLabel
+                value={"ru"}
+                key={"ru"}
+                control={<Radio />}
+                label={"Русский"}
+              />
+              <FormControlLabel
+                value={"ky"}
+                key={"ky"}
+                control={<Radio />}
+                label={"Кыргызча"}
+              />
+            </RadioGroup>
+          </DialogContent>
+          <DialogActions>
+            <Button autoFocus onClick={() => {
+              store.isOpenSelectLang = false;
+              store.selectedLang = "";
+              store.selectedServicePrice = 0;
+            }}>
+              Отмена
+            </Button>
+            <Button
+              disabled={store.selectedLang === ""}
+              onClick={() => {
+                store.getTemplate();
+                store.isOpenSelectLang = false;
+            }}>Ok</Button>
+          </DialogActions>
+        </Dialog>
+        <Dialog
+          sx={{ '& .MuiDialog-paper': { width: '100%', maxHeight: 600 } }}
+          maxWidth="md"
+          open={store.openPreviewTemplate}
+        >
+          <DialogTitle>Просмотр документа</DialogTitle>
+          <DialogContent dividers>
+            <RichTextEditor
+              disabled={true}
+              id={"RichTextEditorDocument"}
+              name={"body"}
+              value={store.previewTemplate}
+              changeValue={(value, name) => store.handleChange({ target: { value: value, name: "body" } })}
+              minHeight={500}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button autoFocus onClick={() => {
+              store.openPreviewTemplate = false;
+              store.selectedLang = "";
+              store.selectedServicePrice = 0;
+            }}>
+              Отмена
+            </Button>
+            <Button
+              onClick={() => {
+                store.onSaveClick((id: number) => {
+                  storeList.setFastInputIsEdit(false);
+                  storeList.loadapplication_payments();
+                  storeList.loadApplicationSum();
+                  storeList.loadorg_structures(props.idStructure);
+                  workDocumentStore.loadApplicationWorkDocumentsByTask(store.idTask)
+                  store.clearStore();
+                  if (props.onCalculationAdded) {
+                    props.onCalculationAdded()
+                  }
+                });
+                store.openPreviewTemplate = false;
+              }}>{translate("save")}</Button>
+          </DialogActions>
+        </Dialog>
       </Paper>
     </>
   );

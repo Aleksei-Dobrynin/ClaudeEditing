@@ -375,19 +375,13 @@ const Outgoing_Uploaded_application_documentListView: FC<Outgoing_uploaded_appli
           <Grid container spacing={2}>
             {store.outgoingData.map((document: any) => {
               // Calculate grid sizes based on columns prop
-              const gridSizes = props.columns ? {
-                xs: 12,
-                sm: 12 / Math.min(props.columns, 2),
-                md: 12 / Math.min(props.columns, 3),
-                lg: 12 / Math.min(props.columns, 4),
-                xl: 12 / props.columns
-              } : {
+              const gridSizes = {
                 xs: 12,
                 sm: 6,
-                md: 4,
-                lg: 3,
-                xl: 3
-              };
+                md: 6,
+                lg: 6,
+                xl: 6
+              }
 
               return (
                 <Grid

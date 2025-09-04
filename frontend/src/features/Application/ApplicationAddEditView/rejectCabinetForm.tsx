@@ -77,7 +77,6 @@ const RejectCabinetForm: FC<RejectCabinetFormProps> = observer((props) => {
   const [description, setDescription] = useState(fullText);
 
   useEffect(() => {
-    console.log(description)
     const selectedDocs = store.incomingDocuments.filter(doc =>
       store.selectedDocumentIds.includes(doc.id)
     );

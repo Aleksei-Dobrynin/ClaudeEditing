@@ -36,7 +36,6 @@ type GridProps = {
   hideActions?: boolean;
   hideAddButton?: boolean;
   getRowHeight?: any;
-  customAddPath?: string;
 }
 
 const PageGridScrollLoading = observer((props: GridProps) => {
@@ -131,7 +130,7 @@ const PageGridScrollLoading = observer((props: GridProps) => {
             variant='contained'
             sx={{ m: 1 }}
             id={`${props.tableName}AddButton`}
-            onClick={() => navigate(props.customAddPath ? props.customAddPath : `/user/${props.tableName}/addedit?id=0`)}
+            onClick={() => navigate(`/user/${props.tableName}/addedit?id=0`)}
             endIcon={<AddIcon />}
           >
             {translate('add')}
@@ -165,7 +164,6 @@ const PageGridScrollLoading = observer((props: GridProps) => {
           rows={props.data}
           columns={res}
           pageSizeOptions={[10, 25, 100]}
-          editMode="row"
           paginationMode="server"
           data-testid={`${props.tableName}Table`}
           sortingMode="server"

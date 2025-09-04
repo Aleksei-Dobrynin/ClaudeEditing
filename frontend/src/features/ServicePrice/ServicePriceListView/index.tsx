@@ -9,6 +9,8 @@ import { useTranslation } from 'react-i18next';
 import { GridColDef } from '@mui/x-data-grid';
 import PopupGrid from 'components/PopupGrid';
 import ServicePricePopupForm from './../ServicePriceAddEditView/popupForm';
+import MainStore from "../../../MainStore";
+import LayoutStore from "../../../layouts/MainLayout/store";
 
 type ServicePriceListViewProps = {};
 
@@ -22,7 +24,7 @@ const ServicePriceListView: FC<ServicePriceListViewProps> = observer((props) => 
     return () => {
       store.clearStore()
     }
-  }, [])
+  }, [LayoutStore.head_of_structures])
 
   const columns: GridColDef[] = [
     {

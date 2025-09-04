@@ -48,7 +48,7 @@ const CommentItem: FC<Props> = observer((props) => {
                       sx={{ color: "text.primary", display: "inline", marginRight: "20px" }}
                     >
                       {item.created_by && item.full_name}{' '}
-                      {store.userLocalStorage} 
+                      {/* {store.userLocalStorage}  */}
                     </Typography>
                     <Box sx={{ml : "auto"}}>
                       <Typography

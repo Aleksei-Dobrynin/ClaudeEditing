@@ -380,7 +380,8 @@ select task.*, st.name status_idNavName, cus.full_name, cus.pin,  string_agg(DIS
 	org.name structure_idNavName, typ.name type_name,
 	case when app.is_electronic_only then app.number || ' (Электронная Выдача)' else app.number end as application_number, count(sub.id) subtasks, sum(case when sst.code = 'done' then 1 else 0 end) done_subtasks,
     app.status_id as application_status_id,
-    st1.code as application_status_code
+    st1.code as application_status_code,
+    st1.group_code as application_status_group_code
 from application_task task 
 	left join application_task_assignee sign on sign.application_task_id = task.id
 	left join employee_in_structure estr on estr.id = sign.structure_employee_id
@@ -429,7 +430,7 @@ from application_task task
         or LOWER(cc.value) like @search
         or LOWER(task.name) like @search
         or LOWER(app.work_description) like @search)
-	group by task.id, st.name, st1.code, org.name, app.id, typ.name, st.textcolor, st.backcolor, cus.full_name, cus.pin, s.name, obj.address
+	group by task.id, st.name, st1.id, org.name, app.id, typ.name, st.textcolor, st.backcolor, cus.full_name, cus.pin, s.name, obj.address
     order by task.created_at desc
 ";
 
@@ -485,7 +486,8 @@ select task.*, string_agg(distinct concat(e.last_name, ' ', e.first_name), ', ')
     obj.address, s.name service_name, st.textcolor status_text_color, st.backcolor status_back_color, str.name structure_idNavName, typ.name type_name,
 	case when app.is_electronic_only then app.number || ' (Электронная Выдача)' else app.number end as application_number, app.work_description, string_agg(distinct cc.value, ', ') contact,
     app.status_id as application_status_id,
-    apst.code as application_status_code
+    apst.code as application_status_code,
+    apst.group_code as application_status_group_code
 from application_task task 
 	left join org_structure str on str.id = task.structure_id
 	left join employee_in_structure estr on estr.structure_id = str.id
@@ -536,7 +538,7 @@ from application_task task
         or LOWER(cc.value) like @search
         or LOWER(task.name) like @search
         or LOWER(app.work_description) like @search)
-	group by task.id, st.name, str.name, typ.name, st.textcolor, st.backcolor, cus.id, obj.address, s.name, app.id, apst.code
+	group by task.id, st.id, str.name, typ.name, st.textcolor, st.backcolor, cus.id, obj.address, s.name, app.id, apst.id
     order by app.registration_date desc
 ";
                 var models = await _dbConnection.QueryAsync<application_task>(sql, new { userId, search, date_start, date_end, isExpiredTasks }, transaction: _dbTransaction);
@@ -558,7 +560,8 @@ select task.*, string_agg(distinct concat(e.last_name, ' ', e.first_name), ', ')
     obj.address, s.name service_name, st.textcolor status_text_color, st.backcolor status_back_color, str.name structure_idNavName, typ.name type_name,
 	case when app.is_electronic_only then app.number || ' (Электронная Выдача)' else app.number end as application_number, app.work_description, string_agg(distinct cc.value, ', ') contact,
     app.status_id as application_status_id,
-    apst.code as application_status_code
+    apst.code as application_status_code,
+    apst.group_code as application_status_group_code
 from application_task task 
 	left join org_structure str on str.id = task.structure_id
     
@@ -598,7 +601,7 @@ from application_task task
         or LOWER(cc.value) like @search
         or LOWER(task.name) like @search
         or LOWER(app.work_description) like @search)
-	group by task.id, st.name, str.name, typ.name, st.textcolor, st.backcolor, cus.id, obj.address, s.name, app.id, apst.code
+	group by task.id, st.id, str.name, typ.name, st.textcolor, st.backcolor, cus.id, obj.address, s.name, app.id, apst.id
     order by app.registration_date desc
     
 ";

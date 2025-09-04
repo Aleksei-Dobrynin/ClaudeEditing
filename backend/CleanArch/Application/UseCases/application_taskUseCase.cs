@@ -29,7 +29,7 @@ namespace Application.UseCases
             var status = item.application_status_color;
 
 
-            if (item.application_status_code != null && check.Any(x => x != item.application_status_code))
+            if (item.application_status_code != null && check.Any(x => x != item.application_status_group_code))
             {
                 status = "#000000";
             }
@@ -41,7 +41,7 @@ namespace Application.UseCases
         public List<string> check = new List<string>
         {
             //Application status codes
-            "review","executor_assignment","preparation","return_to_eo","ready_for_eo"
+            "in_progress"
         };
 
         public Task<List<application_task>> GetAll()
@@ -290,7 +290,7 @@ namespace Application.UseCases
                 }
                 else
                 {
-                    if (item.application_status_code != null && check.Any(x => x == item.application_status_code))
+                    if (item.application_status_code != null && check.Any(x => x == item.application_status_group_code))
                     {
                         item.application_status_color = ChechApplicationStatusColor(item);
                         res.Add(item);
@@ -417,7 +417,7 @@ namespace Application.UseCases
                 }
                 else
                 {
-                    if (item.application_status_code != null && check.Any(x => x == item.application_status_code))
+                    if (item.application_status_code != null && check.Any(x => x == item.application_status_group_code))
                     {
                         item.application_status_color = ChechApplicationStatusColor(item);
                         res.Add(item);

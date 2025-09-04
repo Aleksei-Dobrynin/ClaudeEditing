@@ -15,6 +15,14 @@ namespace Domain.Entities
         public double? ycoordinate { get; set; }
         public int[] tag_ids { get; set; }
         public string tag_names { get; set; }
+        public int? tunduk_district_id { get; set; }
+        public int? tunduk_address_unit_id { get; set; }
+        public int? tunduk_street_id { get; set; }
+        public string? tunduk_building_num { get; set; }
+        public string? tunduk_flat_num { get; set; }
+        public string? tunduk_uch_num { get; set; }
+        public bool? is_manual { get; set; }
+
 
     }
     public class ArchObjectLeaflet

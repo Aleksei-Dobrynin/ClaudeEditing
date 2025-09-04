@@ -234,6 +234,15 @@ namespace Application.UseCases
 
             return await unitOfWork.ServiceRepository.GetApplicationsCategoryCountForMyStructure(date_start, date_end, district_id, is_paid, user_id, services.Select(x => x.id).ToList());
         }
+        
+        public async Task<object> GetApplicationsCountForMyStructure(DateTime? startDate, DateTime? endDate)
+        {
+            var user_id = await unitOfWork.UserRepository.GetUserUID();
+
+            var structures = await unitOfWork.OrgStructureRepository.GetByUserId(user_id);
+            
+            return await unitOfWork.ServiceRepository.GetApplicationsCountForMyStructure(startDate, endDate, user_id, structures.Select(x => x.id).ToList());
+        }
 
         public async Task<ResultDashboard> DashboardGetCountObjectsMyStructure(int district_id)
         {

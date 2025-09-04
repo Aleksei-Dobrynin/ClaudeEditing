@@ -37,6 +37,10 @@ class NewStore {
     total_sum_to: null,
     total_payed_from: null,
     total_payed_to: null,
+
+    tunduk_district_id: null,
+    tunduk_address_unit_id: null,
+    tunduk_street_id: null,
   };
 
   totalCount: number;

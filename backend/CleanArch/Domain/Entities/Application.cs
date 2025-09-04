@@ -72,7 +72,7 @@ namespace Domain.Entities
         public DateTime? tech_decision_date { get; set; }
         public string incoming_numbers { get; set; }
         public string outgoing_numbers { get; set; }
-        public decimal sum_wo_discount  { get; set; }
+        public decimal sum_wo_discount { get; set; }
         public decimal total_sum { get; set; }
         public decimal old_sum { get; set; }
         public decimal pure_sum { get; set; }
@@ -84,7 +84,7 @@ namespace Domain.Entities
         public decimal nsp_percentage { get; set; }
         public bool has_discount { get; set; }
         public int calc_updated_by { get; set; }
-        public int calc_created_by { get; set; }        
+        public int calc_created_by { get; set; }
         public DateTime? calc_created_at { get; set; }
         public DateTime? calc_updated_at { get; set; }
         public decimal total_payed { get; set; }
@@ -98,7 +98,10 @@ namespace Domain.Entities
         public string? dogovorTemplate { get; set; } //TODO delete
         public string? cabinet_html { get; set; } //TODO delete
         public bool? is_electronic_only { get; set; }
-        public int? current_task_id { get; set; }
+        public string? journal_name { get; set; }
+        public string? journal_outgoing_number { get; set; }
+        public DateTime? journal_added_at { get; set; }
+
         public application_step current_step { get; set; }
         public Validation Validate()
         {
@@ -130,6 +133,8 @@ namespace Domain.Entities
         public string? address { get; set; }
         public string? number { get; set; }
         public int? district_id { get; set; }
+        public int? journals_id { get; set; }
+        public bool? is_journal { get; set; }
         public int? deadline_day { get; set; }
         public int? tag_id { get; set; }
         public bool? isExpired { get; set; }
@@ -154,7 +159,18 @@ namespace Domain.Entities
         public int? total_payed_to { get; set; }
         public int? total_sum_from { get; set; }
         public int? total_sum_to { get; set; }
-        public int? org_structure_id { get; set; }
+        public int[]? app_ids { get; set; }
+
+        public int? tunduk_district_id { get; set; }
+        public int? tunduk_address_unit_id { get; set; }
+        public int? tunduk_street_id { get; set; }
+
+    }
+
+    public class PaidAmmount
+    {
+        public decimal total_payed { get; set; }
+        public decimal total_sum { get; set; }
     }
 
 
@@ -188,11 +204,12 @@ namespace Domain.Entities
         public DateTime deadline { get; set; }
         public DateTime app_deadline { get; set; }
         public int? assignee_count { get; set; }
-        public int? application_status_id {  get; set; }
+        public int? application_status_id { get; set; }
         public string? application_status_code { get; set; }
-        public string application_status_color { get; set;}
+        public string? application_status_group_code { get; set; }
+        public string application_status_color { get; set; }
     }
-    
+
     public class ApplicationPaginationParameters
     {
         public int pageSize { get; set; } = 100;
@@ -224,7 +241,7 @@ namespace Domain.Entities
     public class ApplicationTotalSumData
     {
         public int id { get; set; }
-        public decimal sum_wo_discount  { get; set; }
+        public decimal sum_wo_discount { get; set; }
         public decimal total_sum { get; set; }
         public decimal discount_percentage { get; set; }
         public decimal discount_value { get; set; }
@@ -234,7 +251,7 @@ namespace Domain.Entities
         public decimal nsp_percentage { get; set; }
         public bool has_discount { get; set; }
         public int calc_updated_by { get; set; }
-        public int calc_created_by { get; set; }        
+        public int calc_created_by { get; set; }
         public DateTime? calc_created_at { get; set; }
         public DateTime? calc_updated_at { get; set; }
     }
@@ -244,7 +261,7 @@ namespace Domain.Entities
         public List<Application> fiz_lico { get; set; }
         public List<Application> your_lico { get; set; }
     }
-    
+
     public class SendCustomerNotification
     {
         public string[] smsNumbers { get; set; }
@@ -254,7 +271,7 @@ namespace Domain.Entities
         public int? application_id { get; set; }
         public int? customer_id { get; set; }
     }
-    
+
     public class MyApplication
     {
         public int id { get; set; }

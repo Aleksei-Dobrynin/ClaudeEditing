@@ -346,7 +346,10 @@ namespace WebApi
             builder.Services.AddScoped<IJournalPlaceholderRepository, JournalPlaceholderRepository>();
             builder.Services.AddScoped<IJournalTemplateTypeRepository, JournalTemplateTypeRepository>();
             builder.Services.AddScoped<IJournalApplicationRepository, JournalApplicationRepository>();
-
+            builder.Services.AddScoped<IAddressUnitTypeRepository, AddressUnitTypeRepository>();
+            builder.Services.AddScoped<IAddressUnitRepository, AddressUnitRepository>();
+            builder.Services.AddScoped<IStreetTypeRepository, StreetTypeRepository>();
+            builder.Services.AddScoped<IStreetRepository, StreetRepository>();
 
 
             builder.Services.AddScoped<employee_contactUseCases>();
@@ -534,8 +537,10 @@ namespace WebApi
             builder.Services.AddScoped<JournalPlaceholderUseCases>();
             builder.Services.AddScoped<JournalTemplateTypeUseCases>();
             builder.Services.AddScoped<JournalApplicationUseCases>();
-
-
+            builder.Services.AddScoped<AddressUnitTypeUseCases>();
+            builder.Services.AddScoped<AddressUnitUseCases>();
+            builder.Services.AddScoped<StreetTypeUseCases>();
+            builder.Services.AddScoped<StreetUseCases>();
 
             builder.Services.AddScoped<IWatermarkService, WatermarkService>();
 

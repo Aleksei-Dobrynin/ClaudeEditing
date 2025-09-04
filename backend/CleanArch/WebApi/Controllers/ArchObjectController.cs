@@ -89,6 +89,13 @@ namespace WebApi.Controllers
                 tags = requestDto.tags,
                 xcoordinate = requestDto.xcoordinate,
                 ycoordinate = requestDto.ycoordinate,
+                tunduk_district_id = requestDto.tunduk_district_id,
+                tunduk_street_id = requestDto.tunduk_street_id,
+                tunduk_address_unit_id = requestDto.tunduk_address_unit_id,
+                tunduk_uch_num = requestDto.tunduk_uch_num,
+                tunduk_flat_num = requestDto.tunduk_flat_num,
+                tunduk_building_num = requestDto.tunduk_building_num,
+                is_manual = requestDto.is_manual
             };
             var response = await _districtUseCases.Update(request);
             return Ok(response);

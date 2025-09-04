@@ -153,19 +153,11 @@ select post.id from employee e
             }
 
         }
-        public async Task<bool> ForgotPassword(string email)
+        public async Task<bool> ForgotPassword(string email, string newPassword)
         {
             try
             {
-
-                var newPassword = Guid.NewGuid().ToString();
-
                 var reset = await _authService.ForgotPassword(email, newPassword);
-                if (reset)
-                {
-                    await _n8nService.UserSendNewPassword(email, newPassword);
-                    return reset;
-                }
                 return reset;
             }
             catch (Exception ex)

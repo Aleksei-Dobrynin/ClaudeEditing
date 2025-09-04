@@ -642,9 +642,9 @@
     "totalSumTo": "Сумма калькуляции до",
     "totalPayedFrom": "Оплачено от",
     "totalPayedTo": "Оплачено до",
-    "go_to_task": "Перейти к задаче",
-    "my_tasks_title": "Мои задачи",
-    "structure_tasks_title": "Задачи структуры"
+    "filterByTundukDistrict": "Район",
+    "filterByTundukResidentialArea": "Жилмассив (адм. единица)",
+    "filterByTundukStreet": "Улица"
   },
   "ApplicationAddEditView": {
     "entityTitle": "Заявка",
@@ -2372,5 +2372,89 @@
     "is_required": "Обязательный",
     "estimated_days": "Примерное количество дней",
     "wait_for_previous_steps": "Ждать предыдущие этапы"
+  },
+  "AddressUnitTypeAddEditView": {
+    "entityTitle": "Address Unit Type",
+    "code": "Code",
+    "name": "Name",
+    "name_kg": "Name (Kyrgyz)",
+    "description": "Description",
+    "description_kg": "Description (Kyrgyz)"
+  },
+  "AddressUnitTypeListView": {
+    "entityTitle": "Address Unit Types",
+    "code": "Code",
+    "name": "Name",
+    "name_kg": "Name (Kyrgyz)",
+    "description": "Description",
+    "description_kg": "Description (Kyrgyz)"
+  },
+  "AddressUnitAddEditView": {
+    "entityTitle": "Address Unit",
+    "code": "Code",
+    "name": "Name",
+    "name_kg": "Name (Kyrgyz)",
+    "description": "Description",
+    "description_kg": "Description (Kyrgyz)",
+    "type_id": "Address Unit Type",
+    "expired": "Expired",
+    "street_id": "Street ID",
+    "parent_id": "Parent Address Unit"
+  },
+  "AddressUnitListView": {
+    "entityTitle": "Address Units",
+    "code": "Code",
+    "name": "Name",
+    "name_kg": "Name (Kyrgyz)",
+    "description": "Description",
+    "description_kg": "Description (Kyrgyz)",
+    "type_id": "Type",
+    "expired": "Status",
+    "expired_yes": "Expired",
+    "expired_no": "Active",
+    "street_id": "Street ID"
+  },
+  "StreetAddEditView": {
+    "entityTitle": "Street",
+    "code": "Code",
+    "name": "Name",
+    "name_kg": "Name (Kyrgyz)",
+    "type_id": "Street Type",
+    "expired": "Expired",
+    "street_id": "Street ID",
+    "description": "Description",
+    "description_kg": "Description (Kyrgyz)",
+    "address_unit_id": "Administative area"
+  },
+  "StreetListView": {
+    "entityTitle": "Streets",
+    "Street": "Street",
+    "code": "Code",
+    "name": "Name",
+    "name_kg": "Name (Kyrgyz)",
+    "type_id": "Street Type",
+    "expired": "Status",
+    "expired_yes": "Expired",
+    "expired_no": "Active",
+    "description": "Description",
+    "description_kg": "Description (Kyrgyz)",
+    "address_unit_name": "Административная единица"
+  },
+  "StreetTypeAddEditView": {
+    "entityTitle": "Street Type",
+    "code": "Code",
+    "name": "Name",
+    "name_kg": "Name (Kyrgyz)",
+    "description": "Description",
+    "description_kg": "Description (Kyrgyz)"
+  },
+  "StreetTypeListView": {
+    "entityTitle": "Street Types",
+    "StreetType": "Street Type",
+    "code": "Code",
+    "name": "Name",
+    "name_kg": "Name (Kyrgyz)",
+    "description": "Description",
+    "description_kg": "Description (Kyrgyz)"
   }
 }

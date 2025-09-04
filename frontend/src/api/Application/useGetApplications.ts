@@ -1,6 +1,6 @@
 import http from "api/https";
 import { FilterApplication } from "constants/Application";
-import { Dayjs } from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
 
 export const getApplications = (): Promise<any> => {
   return http.get("/Application/GetAll");
@@ -14,9 +14,14 @@ export const getApplicationsPaginationFromCabinet = (filter: FilterApplication):
   return http.post("/Application/GetByFilterFromCabinet", filter);
 };
 
+export const getApplicationsPaginationForEO = (filter: FilterApplication): Promise<any> => {
+  return http.post("/Application/GetByFilterForEO", filter);
+};
+
 export const getApplicationPagination = (filter: FilterApplication): Promise<any> => {
   return http.post(`/Application/GetPaginated`, filter);
 };
+
 export const getApplicationPaginationFinPlan = (filter: FilterApplication): Promise<any> => {
   return http.post(`/Application/GetPaginatedFinPlan`, filter);
 };
@@ -77,6 +82,14 @@ export const getMyApplications = (searchField: string, orderBy: string, orderTyp
                                                   &getCountItems=${getCountItems}&codeFilter=${codeFilter}`);
 };
 
+export const getApplicationForReestrOtchet = (year: number, month: number, status: string, structure_id: number): Promise<any> => {
+  return http.get(`/Application/GetForReestrOtchet?year=${year}&month=${month}&status=${status}&structure_id=${structure_id}`);
+};
+
+export const getApplicationForReestrRealization = (filter: FilterReestr): Promise<any> => {
+  return http.post(`/Application/GetForReestrRealization`, filter);
+};
+
 export const GetApplicationsCountForMyStructure = (startDate: Dayjs, endDate: Dayjs): Promise<any> => {
   const params = new URLSearchParams();
 console.log(startDate)
@@ -90,15 +103,6 @@ console.log(startDate)
 
   return http.get(`/Service/GetApplicationsCountForMyStructure?${params.toString()}`);
 };
-
-export const getApplicationForReestrOtchet = (year: number, month: number, status: string, structure_id: number): Promise<any> => {
-  return http.get(`/Application/GetForReestrOtchet?year=${year}&month=${month}&status=${status}&structure_id=${structure_id}`);
-};
-
-export const getApplicationForReestrRealization = (filter: FilterReestr): Promise<any> => {
-  return http.post(`/Application/GetForReestrRealization`, filter);
-};
-
 
 export const getTaxReport = (year: number, month: number, status: string): Promise<any> => {
   return http.get(`/application_in_reestr/GetTaxReport?year=${year}&month=${month}&status=${status}`);

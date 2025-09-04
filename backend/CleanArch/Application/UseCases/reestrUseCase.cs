@@ -1,3 +1,4 @@
+using Application.Exceptions;
 using Application.Models;
 using Application.Repositories;
 using Application.Services;
@@ -143,6 +144,18 @@ namespace Application.UseCases
 
         public async Task<application_in_reestr> SetApplicationToReestr(int application_id, int reestr_id)
         {
+            var existingList = await unitOfWork.application_in_reestrRepository.GetByAppId(application_id);
+            
+            if (existingList != null && existingList.Count > 0)
+            {
+                var existing = existingList.First();
+                var reestr = await unitOfWork.reestrRepository.GetOne(existing.reestr_id);
+                throw new RepositoryException(
+                    $"Заявка уже находится в другом реестре (Название: {reestr.name})",
+                    null
+                );
+            }
+            
             var user_id = await unitOfWork.UserRepository.GetUserID();
             var application_in_reestr = new application_in_reestr
             {

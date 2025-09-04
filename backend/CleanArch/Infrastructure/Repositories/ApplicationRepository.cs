@@ -62,7 +62,8 @@ namespace Infrastructure.Repositories
                                     status_id, app.workflow_id, service_id, deadline, arch_object_id, work_description, obj.name as arch_object_name, s.name service_name, s.day_count,
                                      is_paid, number, string_agg(DISTINCT obj.address, '; ') as arch_object_address, string_agg(DISTINCT dis.name, '; ') as arch_object_district,
        app.status_id as application_status_id,
-       st.code as application_status_code
+       st.code as application_status_code,
+       st.group_code as application_status_group_code
                                     FROM application app
     left join application_status st on st.id = app.status_id
                                     left join service s on s.id = app.service_id
@@ -91,62 +92,60 @@ limit 100
                 var countSql = @"
 SELECT count(distinct app.id)
 FROM application app
-        	LEFT JOIN customer cus on cus.id = app.customer_id 
-        	LEFT JOIN service on service.id = app.service_id
-        	LEFT JOIN application_object ao on ao.application_id = app.id
-        	LEFT JOIN arch_object obj on ao.arch_object_id = obj.id
-        	LEFT JOIN district dis on obj.district_id = dis.id
-           -- LEFT JOIN arch_object_tag obj_tag on app.arch_object_id = obj_tag.id_object
-           -- LEFT JOIN tag on obj_tag.id_tag = tag.id
-        	LEFT JOIN application_status st on app.status_id = st.id
-        	LEFT JOIN application_task task on task.application_id = app.id
-        	LEFT JOIN application_task_assignee ats on ats.application_task_id = task.id
-        	LEFT JOIN employee_in_structure eis on eis.id = ats.structure_employee_id
-            LEFT JOIN structure_post sp on sp.id = eis.post_id
-        	LEFT JOIN employee eee on eee.id = eis.employee_id
-        	LEFT JOIN customer_contact cc on cus.id = cc.customer_id 
-                    left join ""User"" uc on uc.id = app.created_by
-                    left join employee emp_c on emp_c.user_id = uc.""userId""
-            left join workflow w on service.workflow_id = w.id
-
-            LEFT JOIN architecture_process proc on proc.id = app.id
-            LEFT JOIN ""User"" u_proc on u_proc.id = proc.created_by
-            LEFT JOIN employee e_proc on e_proc.user_id = u_proc.""userId""
+        LEFT JOIN customer cus on cus.id = app.customer_id 
+        LEFT JOIN service on service.id = app.service_id
+        LEFT JOIN application_object ao on ao.application_id = app.id
+        LEFT JOIN arch_object obj on ao.arch_object_id = obj.id
+        LEFT JOIN district dis on obj.district_id = dis.id
+        LEFT JOIN application_status st on app.status_id = st.id
+        LEFT JOIN application_task task on task.application_id = app.id
+        LEFT JOIN application_task_assignee ats on ats.application_task_id = task.id
+        LEFT JOIN employee_in_structure eis on eis.id = ats.structure_employee_id
+        LEFT JOIN structure_post sp on sp.id = eis.post_id
+        LEFT JOIN employee eee on eee.id = eis.employee_id
+        LEFT JOIN customer_contact cc on cus.id = cc.customer_id 
+        left join ""User"" uc on uc.id = app.created_by
+        left join employee emp_c on emp_c.user_id = uc.""userId""
+        left join workflow w on service.workflow_id = w.id
+        LEFT JOIN architecture_process proc on proc.id = app.id
+        LEFT JOIN ""User"" u_proc on u_proc.id = proc.created_by
+        LEFT JOIN employee e_proc on e_proc.user_id = u_proc.""userId""
         ";
 
                 var mainSql = @"
-SELECT app.id, app.done_date, app.object_tag_id, registration_date, app.customer_id, cus.full_name as customer_name, cus.pin as customer_pin, app.status_id, app.workflow_id, st.name status_name, st.code status_code, st.status_color status_color, maria_db_statement_id,
-                service_id, service.name as service_name, deadline,work_description, 
-        		string_agg(DISTINCT obj.name, '; ') as arch_object_name, string_agg(DISTINCT obj.address, '; ') as arch_object_address, string_agg(DISTINCT dis.name, '; ') as arch_object_district,
-                CONCAT(emp_c.last_name, ' ', emp_c.first_name, ' ', emp_c.second_name) AS created_by_name,
-                is_paid, number, app.total_sum, app.total_payed, service.day_count,
-        		string_agg(DISTINCT CONCAT(COALESCE(eee.last_name, ''), ' ', COALESCE(eee.first_name, '')), ', ') AS assigned_employees_names,
-                --'' AS assigned_employees_names,
-        		string_agg(DISTINCT coalesce(cc.value), ', ') AS customer_contacts
-        FROM application app
-        	LEFT JOIN customer cus on cus.id = app.customer_id 
-        	LEFT JOIN service on service.id = app.service_id
-        	LEFT JOIN application_object ao on ao.application_id = app.id
-        	LEFT JOIN arch_object obj on ao.arch_object_id = obj.id
-        	LEFT JOIN district dis on obj.district_id = dis.id
-           -- LEFT JOIN arch_object_tag obj_tag on app.arch_object_id = obj_tag.id_object
-           -- LEFT JOIN tag on obj_tag.id_tag = tag.id
-        	LEFT JOIN application_status st on app.status_id = st.id
-        	LEFT JOIN application_task task on task.application_id = app.id
-        	LEFT JOIN application_task_assignee ats on ats.application_task_id = task.id
-        	LEFT JOIN employee_in_structure eis on eis.id = ats.structure_employee_id
-            LEFT JOIN structure_post sp on sp.id = eis.post_id
-        	LEFT JOIN employee eee on eee.id = eis.employee_id
-        	LEFT JOIN customer_contact cc on cus.id = cc.customer_id 
-                    left join ""User"" uc on uc.id = app.created_by
-                    left join employee emp_c on emp_c.user_id = uc.""userId""
-            left join workflow w on service.workflow_id = w.id
-
-            LEFT JOIN architecture_process proc on proc.id = app.id
-            LEFT JOIN ""User"" u_proc on u_proc.id = proc.created_by
-            LEFT JOIN employee e_proc on e_proc.user_id = u_proc.""userId""
-
+SELECT app.id, app.done_date, app.object_tag_id, registration_date, app.customer_id, 
+       cus.full_name as customer_name, cus.pin as customer_pin, app.status_id, 
+       app.workflow_id, st.name status_name, st.code status_code, 
+       st.status_color status_color, maria_db_statement_id,
+       service_id, service.name as service_name, deadline, work_description, 
+       string_agg(DISTINCT obj.name, '; ') as arch_object_name, 
+       string_agg(DISTINCT obj.address, '; ') as arch_object_address, 
+       string_agg(DISTINCT dis.name, '; ') as arch_object_district,
+       CONCAT(emp_c.last_name, ' ', emp_c.first_name, ' ', emp_c.second_name) AS created_by_name,
+       is_paid, number, app.total_sum, app.total_payed, service.day_count,
+       string_agg(DISTINCT CONCAT(COALESCE(eee.last_name, ''), ' ', COALESCE(eee.first_name, '')), ', ') AS assigned_employees_names,
+       string_agg(DISTINCT coalesce(cc.value), ', ') AS customer_contacts
+FROM application app
+        LEFT JOIN customer cus on cus.id = app.customer_id 
+        LEFT JOIN service on service.id = app.service_id
+        LEFT JOIN application_object ao on ao.application_id = app.id
+        LEFT JOIN arch_object obj on ao.arch_object_id = obj.id
+        LEFT JOIN district dis on obj.district_id = dis.id
+        LEFT JOIN application_status st on app.status_id = st.id
+        LEFT JOIN application_task task on task.application_id = app.id
+        LEFT JOIN application_task_assignee ats on ats.application_task_id = task.id
+        LEFT JOIN employee_in_structure eis on eis.id = ats.structure_employee_id
+        LEFT JOIN structure_post sp on sp.id = eis.post_id
+        LEFT JOIN employee eee on eee.id = eis.employee_id
+        LEFT JOIN customer_contact cc on cus.id = cc.customer_id 
+        left join ""User"" uc on uc.id = app.created_by
+        left join employee emp_c on emp_c.user_id = uc.""userId""
+        left join workflow w on service.workflow_id = w.id
+        LEFT JOIN architecture_process proc on proc.id = app.id
+        LEFT JOIN ""User"" u_proc on u_proc.id = proc.created_by
+        LEFT JOIN employee e_proc on e_proc.user_id = u_proc.""userId""
         ";
+
                 var sql = "";
 
                 // Check if only_cabinet filter is true
@@ -176,48 +175,23 @@ or lower(app.outgoing_numbers) LIKE lower(CONCAT('%', @common_filter, '%')))";
                         {
                             if ((filter.deadline_day ?? 0) == 0)
                             {
-                                sql += @$" AND (deadline::date < CURRENT_DATE and (st.code in ('review',
-'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready')))";
+                                sql += @$" AND (deadline::date < CURRENT_DATE and (st.group_code in ('in_progress')))";
                             }
                             else if (filter.deadline_day == -1)
                             {
-                                sql += @$" AND (deadline::date = CURRENT_DATE and (st.code in ('review',
-'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready')))";
+                                sql += @$" AND (deadline::date = CURRENT_DATE and (st.group_code in ('in_progress')))";
                             }
                             else if (filter.deadline_day == 7)
                             {
-                                sql += @$" and (deadline::DATE BETWEEN CURRENT_DATE + INTERVAL '4 days' AND CURRENT_DATE + INTERVAL '7 days' AND (st.code in ('review',
-'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready')))";
+                                sql += @$" and (deadline::DATE BETWEEN CURRENT_DATE + INTERVAL '4 days' AND CURRENT_DATE + INTERVAL '7 days' AND (st.group_code in ('in_progress')))";
                             }
                             else if (filter.deadline_day == 3)
                             {
-                                sql += @$" and (deadline::DATE BETWEEN CURRENT_DATE + INTERVAL '1 days' AND CURRENT_DATE + INTERVAL '3 days' AND (st.code in ('review',
-'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready')))";
+                                sql += @$" and (deadline::DATE BETWEEN CURRENT_DATE + INTERVAL '1 days' AND CURRENT_DATE + INTERVAL '3 days' AND (st.group_code in ('in_progress')))";
                             }
                             else if (filter.deadline_day == 1)
                             {
-                                sql += @$" and (deadline::DATE = CURRENT_DATE + INTERVAL '1 day' and  (st.code in ('review',
-'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready')))";
+                                sql += @$" and (deadline::DATE = CURRENT_DATE + INTERVAL '1 day' and  (st.group_code in ('in_progress')))";
                             }
                         }
                     }
@@ -276,6 +250,20 @@ or lower(app.outgoing_numbers) LIKE lower(CONCAT('%', @common_filter, '%')))";
         AND obj.district_id = {filter.district_id}";
                     }
 
+                    // NEW: Tunduk address unit filtering
+                    if (filter.tunduk_address_unit_id != null && filter.tunduk_address_unit_id != 0)
+                    {
+                        sql += @$"
+        AND obj.tunduk_address_unit_id = {filter.tunduk_address_unit_id}";
+                    }
+
+                    // NEW: Tunduk street filtering
+                    if (filter.tunduk_street_id != null && filter.tunduk_street_id != 0)
+                    {
+                        sql += @$"
+        AND obj.tunduk_street_id = {filter.tunduk_street_id}";
+                    }
+
                     if (filter.employee_arch_id != null && filter.employee_arch_id != 0)
                     {
                         sql += @$"
@@ -291,12 +279,6 @@ or lower(app.outgoing_numbers) LIKE lower(CONCAT('%', @common_filter, '%')))";
             AND proc.created_at <= @dashboard_date_end";
                         }
                     }
-
-                    //                if (tag_id != null && tag_id != 0)
-                    //                {
-                    //                    sql += @$"
-                    //AND tag.id = {tag_id}";
-                    //                }
 
                     if (filter.employee_id != null && filter.employee_id != 0)
                     {
@@ -317,51 +299,25 @@ or lower(app.outgoing_numbers) LIKE lower(CONCAT('%', @common_filter, '%')))";
                     {
                         if ((filter.deadline_day ?? 0) == 0)
                         {
-                            sql += @$" AND (deadline::date < CURRENT_DATE and (st.code in ('review',
-'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready')))";
+                            sql += @$" AND (deadline::date < CURRENT_DATE and (st.group_code in ('in_progress')))";
                         }
                         else if (filter.deadline_day == -1)
                         {
-                            sql += @$" AND (deadline::date = CURRENT_DATE and (st.code in ('review',
-'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready')))";
+                            sql += @$" AND (deadline::date = CURRENT_DATE and (st.group_code in ('in_progress')))";
                         }
                         else if (filter.deadline_day == 7)
                         {
-                            sql += @$" and (deadline::DATE BETWEEN CURRENT_DATE + INTERVAL '4 days' AND CURRENT_DATE + INTERVAL '7 days' AND (st.code in ('review',
-'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready')))";
+                            sql += @$" and (deadline::DATE BETWEEN CURRENT_DATE + INTERVAL '4 days' AND CURRENT_DATE + INTERVAL '7 days' AND (st.group_code in ('in_progress')))";
                         }
                         else if (filter.deadline_day == 3)
                         {
-                            sql += @$" and (deadline::DATE BETWEEN CURRENT_DATE + INTERVAL '1 days' AND CURRENT_DATE + INTERVAL '3 days' AND (st.code in ('review',
-'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready')))";
+                            sql += @$" and (deadline::DATE BETWEEN CURRENT_DATE + INTERVAL '1 days' AND CURRENT_DATE + INTERVAL '3 days' AND (st.group_code in ('in_progress')))";
                         }
                         else if (filter.deadline_day == 1)
                         {
-                            sql += @$" and (deadline::DATE = CURRENT_DATE + INTERVAL '1 day' and  (st.code in ('review',
-'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready')))";
+                            sql += @$" and (deadline::DATE = CURRENT_DATE + INTERVAL '1 day' and  (st.group_code in ('in_progress')))";
                         }
                     }
-
 
                     if (filter.date_start != null)
                     {
@@ -375,7 +331,6 @@ or lower(app.outgoing_numbers) LIKE lower(CONCAT('%', @common_filter, '%')))";
         AND registration_date <= @date_end";
                     }
                 }
-
 
                 if (filter.structure_ids != null && filter.structure_ids.Length > 0)
                 {
@@ -456,16 +411,12 @@ or lower(app.outgoing_numbers) LIKE lower(CONCAT('%', @common_filter, '%')))";
 
                 var domainItems = models.ToList();
                 return domainItems;
-
-                //return new PaginatedList<Domain.Entities.Application>(domainItems, totalItems, filter.pageNumber,
-                //    filter.pageSize);
             }
             catch (Exception ex)
             {
                 throw new RepositoryException("Failed to get Application", ex);
             }
         }
-
         public async Task<int> GetCountAppsFromCabinet()
         {
             try
@@ -508,6 +459,7 @@ select app.id,
        app.tech_decision_id,
        app.status_id as application_status_id,
        st.code as application_status_code,
+       st.group_code as application_status_group_code,
        task.id task_id,
        s.name service_name,
        ts.name status_name,
@@ -526,7 +478,7 @@ from application app
     left join employee e on e.id = eis.employee_id
     left join employee es on es.id = eiss.employee_id
     left JOIN task_assignee_count tac ON task.id = tac.task_id and (eis.id = ANY(tac.structure_employee_ids))
-    where st.code != 'done' and st.code != 'refusal_issued' and st.code != 'document_issued' and (e.user_id = @userID or es.user_id = @userID)
+    where st.group_code != 'completed' and st.group_code != 'refusal' and (e.user_id = @userID or es.user_id = @userID)
 	and (LOWER(app.number) like concat('%', @searchField, '%') or LOWER(s.name) like concat('%', @searchField, '%') or LOWER(task.name) like concat('%', @searchField, '%'))
 ";
 
@@ -537,7 +489,7 @@ from application app
 
                 sql += @" GROUP BY
                             app.id, app.object_tag_id, app.deadline, app.number, app.registration_date,
-                            task.id, s.name, ts.name, ts.textcolor, ts.backcolor, tas.id, eis.id, app.status_id, st.code";
+                            task.id, s.name, ts.name, ts.textcolor, ts.backcolor, tas.id, eis.id, app.status_id, st.id";
 
                 if (orderBy != null && orderType != null)
                 {
@@ -791,9 +743,11 @@ limit 1";
         {
             try
             {
+                var updated_by = await _userRepository.GetUserID();
+                var updated_at = DateTime.Now;
 
-                var sql = @"UPDATE application SET is_paid = true, total_payed = @sum WHERE id = @id";
-                var affected = await _dbConnection.ExecuteAsync(sql, new { sum, id }, transaction: _dbTransaction);
+                var sql = @"UPDATE application SET is_paid = true, total_payed = @sum, updated_by = @updated_by, updated_at = @updated_at   WHERE id = @id";
+                var affected = await _dbConnection.ExecuteAsync(sql, new { sum, id, updated_at, updated_by }, transaction: _dbTransaction);
                 if (affected == 0)
                 {
                     throw new RepositoryException("Not found", null);
@@ -813,6 +767,7 @@ limit 1";
                 //domain.updated_by = await _userRepository.GetUserID();
                 //var setUserQuery = $"SET LOCAL \"bga.current_user\" TO '{domain.updated_by}'";
                 //_dbConnection.Execute(setUserQuery, transaction: _dbTransaction);
+                var userId = await UserSessionHelper.SetCurrentUserAsync(_userRepository, _dbConnection, _dbTransaction);
 
                 var model = new Domain.Entities.Application
                 {
@@ -820,6 +775,7 @@ limit 1";
                     tech_decision_id = domain.tech_decision_id,
                     tech_decision_date = domain.tech_decision_date,
                 };
+                await FillLogDataHelper.FillLogDataUpdate(model, userId);
                 var sql = @"UPDATE application SET tech_decision_id = @tech_decision_id, tech_decision_date = @tech_decision_date WHERE id = @id";
                 var affected = await _dbConnection.ExecuteAsync(sql, model, transaction: _dbTransaction);
                 if (affected == 0)
@@ -949,8 +905,307 @@ limit 1";
 
             return whereClause;
         }
+        public async Task<PaginatedList<Domain.Entities.Application>> GetByFilterFromEO(PaginationFields filter, bool onlyCount)
+        {
+            try
+            {
+                var countSql = @"
+SELECT count(distinct app.id)
+FROM application app
+        	LEFT JOIN customer cus on cus.id = app.customer_id 
+        	LEFT JOIN service on service.id = app.service_id
+        	LEFT JOIN application_object ao on ao.application_id = app.id
+        	LEFT JOIN arch_object obj on ao.arch_object_id = obj.id
+        	LEFT JOIN district dis on obj.district_id = dis.id
+        	LEFT JOIN application_status st on app.status_id = st.id
+        	LEFT JOIN application_task task on task.application_id = app.id
+        	LEFT JOIN application_task_assignee ats on ats.application_task_id = task.id
+        	LEFT JOIN employee_in_structure eis on eis.id = ats.structure_employee_id
+            LEFT JOIN structure_post sp on sp.id = eis.post_id
+        	LEFT JOIN employee eee on eee.id = eis.employee_id
+        	LEFT JOIN customer_contact cc on cus.id = cc.customer_id 
+                    left join ""User"" uc on uc.id = app.created_by
+                    left join employee emp_c on emp_c.user_id = uc.""userId""
+            left join workflow w on service.workflow_id = w.id
 
+            LEFT JOIN architecture_process proc on proc.id = app.id
+            LEFT JOIN ""User"" u_proc on u_proc.id = proc.created_by
+            LEFT JOIN employee e_proc on e_proc.user_id = u_proc.""userId""
+        ";
 
+                var mainSql = @"
+SELECT app.id, app.done_date, app.object_tag_id, registration_date, app.customer_id, cus.full_name as customer_name, cus.pin as customer_pin, app.status_id, app.workflow_id, st.name status_name, st.code status_code, st.status_color status_color, maria_db_statement_id,
+                service_id, service.name as service_name, deadline,work_description, 
+        		string_agg(DISTINCT obj.name, '; ') as arch_object_name, string_agg(DISTINCT obj.address, '; ') as arch_object_address, string_agg(DISTINCT dis.name, '; ') as arch_object_district,
+                CONCAT(emp_c.last_name, ' ', emp_c.first_name, ' ', emp_c.second_name) AS created_by_name,
+                is_paid, number, app.total_sum, app.total_payed, service.day_count,
+        		string_agg(DISTINCT CONCAT(COALESCE(eee.last_name, ''), ' ', COALESCE(eee.first_name, '')), ', ') AS assigned_employees_names,
+        		string_agg(DISTINCT coalesce(cc.value), ', ') AS customer_contacts,
+       app.status_id as application_status_id,
+       st.code as application_status_code,
+       st.group_code as application_status_group_code
+        FROM application app
+        	LEFT JOIN customer cus on cus.id = app.customer_id 
+        	LEFT JOIN service on service.id = app.service_id
+        	LEFT JOIN application_object ao on ao.application_id = app.id
+        	LEFT JOIN arch_object obj on ao.arch_object_id = obj.id
+        	LEFT JOIN district dis on obj.district_id = dis.id
+        	LEFT JOIN application_status st on app.status_id = st.id
+        	LEFT JOIN application_task task on task.application_id = app.id
+        	LEFT JOIN application_task_assignee ats on ats.application_task_id = task.id
+        	LEFT JOIN employee_in_structure eis on eis.id = ats.structure_employee_id
+            LEFT JOIN structure_post sp on sp.id = eis.post_id
+        	LEFT JOIN employee eee on eee.id = eis.employee_id
+        	LEFT JOIN customer_contact cc on cus.id = cc.customer_id 
+                    left join ""User"" uc on uc.id = app.created_by
+                    left join employee emp_c on emp_c.user_id = uc.""userId""
+            left join workflow w on service.workflow_id = w.id
+
+            LEFT JOIN architecture_process proc on proc.id = app.id
+            LEFT JOIN ""User"" u_proc on u_proc.id = proc.created_by
+            LEFT JOIN employee e_proc on e_proc.user_id = u_proc.""userId""
+
+        ";
+
+                // ГЛАВНОЕ УСЛОВИЕ: ВСЕГДА фильтруем только по EO статусам
+                var sql = " WHERE (st.code = 'return_to_eo' OR st.code = 'rejection_ready' OR st.code = 'ready_for_eo' OR st.code = 'tech_rejection_to_eo' OR st.code = 'act_rejection_to_eo') ";
+
+                // Добавляем дополнительные фильтры
+                if (filter.useCommon && !string.IsNullOrWhiteSpace(filter.common_filter))
+                {
+                    sql += @" AND (lower(app.number) LIKE lower (CONCAT('%', @common_filter, '%'))
+or lower(cus.full_name) LIKE lower(CONCAT('%', @common_filter, '%'))
+or lower(cus.pin) LIKE lower(CONCAT('%', @common_filter, '%'))
+or lower(obj.address) LIKE lower(CONCAT('%', @common_filter, '%'))
+or lower(cc.value) LIKE lower(CONCAT('%', @common_filter, '%'))
+or lower(app.work_description) LIKE lower(CONCAT('%', @common_filter, '%'))
+or lower(app.incoming_numbers) LIKE lower(CONCAT('%', @common_filter, '%'))
+or lower(app.outgoing_numbers) LIKE lower(CONCAT('%', @common_filter, '%')))";
+                }
+
+                // Фильтры истечения срока (только при useCommon без текста поиска)
+                if (filter.useCommon && string.IsNullOrWhiteSpace(filter.common_filter) && filter.isExpired != null && filter.isExpired.Value)
+                {
+                    if ((filter.deadline_day ?? 0) == 0)
+                    {
+                        sql += @$" AND (deadline::date < CURRENT_DATE and (st.group_code in ('in_progress')))";
+                    }
+                    else if (filter.deadline_day == -1)
+                    {
+                        sql += @$" AND (deadline::date = CURRENT_DATE and (st.group_code in ('in_progress')))";
+                    }
+                    else if (filter.deadline_day == 7)
+                    {
+                        sql += @$" and (deadline::DATE BETWEEN CURRENT_DATE + INTERVAL '4 days' AND CURRENT_DATE + INTERVAL '7 days' AND (st.group_code in ('in_progress')))";
+                    }
+                    else if (filter.deadline_day == 3)
+                    {
+                        sql += @$" and (deadline::DATE BETWEEN CURRENT_DATE + INTERVAL '1 days' AND CURRENT_DATE + INTERVAL '3 days' AND (st.group_code in ('in_progress')))";
+                    }
+                    else if (filter.deadline_day == 1)
+                    {
+                        sql += @$" and (deadline::DATE = CURRENT_DATE + INTERVAL '1 day' and  (st.group_code in ('in_progress')))";
+                    }
+                }
+
+                // Индивидуальные фильтры (когда НЕ используется общий поиск)
+                if (!filter.useCommon)
+                {
+                    if (filter.withoutAssignedEmployee == true)
+                    {
+                        sql += " and sp.code != 'employee' ";
+                    }
+                    if (!string.IsNullOrEmpty(filter.pin))
+                    {
+                        sql += " and LOWER(cus.pin) like concat('%', @pin, '%') ";
+                    }
+                    if (!string.IsNullOrEmpty(filter.number))
+                    {
+                        sql += " and LOWER(app.number) like concat('%', @number, '%') ";
+                    }
+                    if (!string.IsNullOrEmpty(filter.address))
+                    {
+                        sql += @$"
+        AND LOWER(obj.address) like '%{filter.address.ToLower()}%'";
+                    }
+                    if (!string.IsNullOrEmpty(filter.customerName))
+                    {
+                        sql += @$"
+        AND LOWER(cus.full_name) LIKE concat('%',@customer_name,'%') ";
+                    }
+
+                    if (filter.service_ids.Count() > 0)
+                    {
+                        sql += @$"
+        AND service_id in ({string.Join(',', filter.service_ids)})";
+                    }
+                    if (filter.status_ids.Count() > 0)
+                    {
+                        sql += @$"
+        AND app.status_id in ({string.Join(',', filter.status_ids)})";
+                    }
+
+                    if (filter.district_id != null && filter.district_id != 0)
+                    {
+                        sql += @$"
+        AND obj.district_id = {filter.district_id}";
+                    }
+
+                    if (filter.employee_arch_id != null && filter.employee_arch_id != 0)
+                    {
+                        sql += @$"
+        AND e_proc.id = {filter.employee_arch_id}";
+                        if (filter.dashboard_date_start != null)
+                        {
+                            sql += @$"
+            AND proc.created_at >= @dashboard_date_start";
+                        }
+                        if (filter.dashboard_date_end != null)
+                        {
+                            sql += @$"
+            AND proc.created_at <= @dashboard_date_end";
+                        }
+                    }
+
+                    if (filter.employee_id != null && filter.employee_id != 0)
+                    {
+                        sql += @$" AND eee.id = {filter.employee_id}";
+                    }
+
+                    if (!string.IsNullOrEmpty(filter.incoming_numbers))
+                    {
+                        sql += " and LOWER(app.incoming_numbers) like concat('%', @incomingNumbers, '%') ";
+                    }
+
+                    if (!string.IsNullOrEmpty(filter.outgoing_numbers))
+                    {
+                        sql += " and LOWER(app.outgoing_numbers) like concat('%', @outgoingNumbers, '%') ";
+                    }
+
+                    if (filter.isExpired != null && filter.isExpired.Value)
+                    {
+                        if ((filter.deadline_day ?? 0) == 0)
+                        {
+                            sql += @$" AND (deadline::date < CURRENT_DATE and (st.group_code in ('in_progress')))";
+                        }
+                        else if (filter.deadline_day == -1)
+                        {
+                            sql += @$" AND (deadline::date = CURRENT_DATE and (st.group_code in ('in_progress')))";
+                        }
+                        else if (filter.deadline_day == 7)
+                        {
+                            sql += @$" and (deadline::DATE BETWEEN CURRENT_DATE + INTERVAL '4 days' AND CURRENT_DATE + INTERVAL '7 days' AND (st.group_code in ('in_progress')))";
+                        }
+                        else if (filter.deadline_day == 3)
+                        {
+                            sql += @$" and (deadline::DATE BETWEEN CURRENT_DATE + INTERVAL '1 days' AND CURRENT_DATE + INTERVAL '3 days' AND (st.group_code in ('in_progress')))";
+                        }
+                        else if (filter.deadline_day == 1)
+                        {
+                            sql += @$" and (deadline::DATE = CURRENT_DATE + INTERVAL '1 day' and  (st.group_code in ('in_progress')))";
+                        }
+                    }
+
+                    if (filter.date_start != null)
+                    {
+                        sql += @$"
+        AND registration_date >= @date_start";
+                    }
+
+                    if (filter.date_end != null)
+                    {
+                        sql += @$"
+        AND registration_date <= @date_end";
+                    }
+                }
+
+                if (filter.structure_ids != null && filter.structure_ids.Length > 0)
+                {
+                    sql += @$"
+                        AND w.id in (select wtt.workflow_id from workflow_task_template wtt where wtt.type_id != 1 and wtt.structure_id in ({string.Join(',', filter.structure_ids)}))";
+                }
+
+                if (filter.is_paid != null)
+                {
+                    sql += $@"
+           AND (
+        (@is_paid = true AND (is_paid = true OR (is_paid = false AND total_payed >= total_sum AND total_payed > 0)))
+        OR (@is_paid = false AND is_paid = false AND total_payed < total_sum)
+    )";
+                }
+
+                countSql = countSql + sql;
+                // group
+                sql += @$" 
+        group by app.id, cus.id, service.id, st.id, emp_c.id";
+
+                // sort
+                if (filter.sort_by != null && filter.sort_type != null)
+                {
+                    sql += @$"
+        ORDER BY {filter.sort_by} {filter.sort_type}";
+                }
+                else
+                {
+                    sql += @$"
+        ORDER BY app.id desc";
+                }
+
+                // pagesize
+                var sqlWithPagination = sql + @"
+        OFFSET @pageSize * @pageNumber Limit @pageSize;
+        ";
+
+                IEnumerable<Domain.Entities.Application> models = new List<Domain.Entities.Application>();
+                if (!onlyCount)
+                {
+                    models = await _dbConnection.QueryAsync<Domain.Entities.Application>(mainSql + sqlWithPagination,
+                    new
+                    {
+                        filter.pageSize,
+                        filter.pageNumber,
+                        pin = filter.pin?.ToLower(),
+                        customer_name = filter.customerName?.ToLower(),
+                        number = filter.number?.ToLower(),
+                        filter.date_start,
+                        filter.date_end,
+                        filter.common_filter,
+                        incomingNumbers = filter.incoming_numbers,
+                        outgoingNumbers = filter.outgoing_numbers,
+                        filter.dashboard_date_start,
+                        filter.dashboard_date_end,
+                        is_paid = filter.is_paid,
+                    }, transaction: _dbTransaction);
+                }
+
+                var totalItems = await _dbConnection.ExecuteScalarAsync<int>(countSql,
+                  new
+                  {
+                      filter.pageSize,
+                      filter.pageNumber,
+                      pin = filter.pin?.ToLower(),
+                      customer_name = filter.customerName?.ToLower(),
+                      number = filter.number?.ToLower(),
+                      filter.date_start,
+                      filter.date_end,
+                      filter.common_filter,
+                      incomingNumbers = filter.incoming_numbers,
+                      outgoingNumbers = filter.outgoing_numbers,
+                      filter.dashboard_date_start,
+                      filter.dashboard_date_end,
+                      is_paid = filter.is_paid,
+                  }, transaction: _dbTransaction);
+
+                var domainItems = models.ToList();
+
+                return new PaginatedList<Domain.Entities.Application>(domainItems, totalItems, filter.pageNumber,
+                    filter.pageSize);
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to get Application from EO", ex);
+            }
+        }
         private string BuildExtendedWhereClause(PaginationFields filter)
         {
             var whereClause = "";
@@ -1151,30 +1406,18 @@ ORDER BY app.id DESC";
         {
             try
             {
-                // Base joins for task filtering
-                var taskJoins = "";
-                if (filter.org_structure_id.HasValue && filter.org_structure_id.Value > 0 ||
-                    filter.employee_id.HasValue && filter.employee_id.Value > 0)
-                {
-                    taskJoins = @"
-    INNER JOIN application_task at ON at.application_id = app.id
-    INNER JOIN application_task_assignee ata ON ata.application_task_id = at.id
-    INNER JOIN employee_in_structure eis ON eis.id = ata.structure_employee_id
-    INNER JOIN employee emp ON emp.id = eis.employee_id
-    INNER JOIN org_structure os ON os.id = eis.structure_id";
-                }
-
-                // Updated count query with task filtering
-                var countSql = $@"
+                // Updated count query - using extracted columns instead of JSON operations
+                var countSql = @"
 SELECT count(distinct app.id)
 FROM application app
-    INNER JOIN service on service.id = app.service_id
-    INNER JOIN application_status st on app.status_id = st.id
-    {taskJoins}
+    inner JOIN service on service.id = app.service_id
+    inner JOIN application_status st on app.status_id = st.id
+    LEFT JOIN application_object ao ON ao.application_id = app.id
+    LEFT JOIN arch_object obj ON ao.arch_object_id = obj.id
         ";
 
-                // Updated main query with task filtering
-                var mainSql = $@"
+                // Updated main query - using extracted columns for better performance
+                var mainSql = @"
 SELECT app.id, app.done_date, app.object_tag_id, registration_date, app.customer_id, 
        app.customer_name_extracted as customer_name, 
        app.customer_pin_extracted as customer_pin, 
@@ -1190,11 +1433,12 @@ SELECT app.id, app.done_date, app.object_tag_id, registration_date, app.customer
        is_paid, number, app.total_sum, app.total_payed, service.day_count,
        app.cashed_info->>'assignees' AS assigned_employees_names,
        app.cashed_info->>'comments' AS comments,
-       app.customer_contacts_extracted AS customer_contacts{(taskJoins != "" ? ",\n       at.id as current_task_id" : "")}
+       app.customer_contacts_extracted AS customer_contacts
 FROM application app
     LEFT JOIN service on service.id = app.service_id
     LEFT JOIN application_status st on app.status_id = st.id
-    {taskJoins}
+    LEFT JOIN application_object ao ON ao.application_id = app.id
+    LEFT JOIN arch_object obj ON ao.arch_object_id = obj.id
         ";
 
                 var sql = "";
@@ -1309,9 +1553,22 @@ AND service_id in ({string.Join(',', filter.service_ids)})";
 AND app.status_id in ({string.Join(',', filter.status_ids)})";
                     }
 
+                    // District filtering
                     if (filter.district_id != null && filter.district_id != 0)
                     {
                         sql += $" AND app.cashed_info->'district_ids' @> '[{filter.district_id}]' ";
+                    }
+
+                    // NEW: Tunduk address unit filtering
+                    if (filter.tunduk_address_unit_id != null && filter.tunduk_address_unit_id != 0)
+                    {
+                        sql += @$" AND obj.tunduk_address_unit_id = {filter.tunduk_address_unit_id}";
+                    }
+
+                    // NEW: Tunduk street filtering
+                    if (filter.tunduk_street_id != null && filter.tunduk_street_id != 0)
+                    {
+                        sql += @$" AND obj.tunduk_street_id = {filter.tunduk_street_id}";
                     }
 
                     // Architecture process filtering using cached data
@@ -1334,7 +1591,6 @@ AND (app.cashed_info->>'dp_created_at')::timestamp <= @dashboard_date_end";
                         }
                     }
 
-                    // Existing employee filter (using cached data)
                     if (filter.employee_id != null && filter.employee_id != 0)
                     {
                         sql += $" AND app.cashed_info->'assignee_ids' @> '[{filter.employee_id}]'";
@@ -1430,20 +1686,10 @@ AND registration_date <= @date_end";
                     {
                         sql += " AND app.total_payed <= @total_payed_to";
                     }
-                }
-
-                // NEW: Task assignment filtering
-                // Priority 1: Filter by organization structure if provided
-                if (filter.org_structure_id.HasValue && filter.org_structure_id.Value > 0)
-                {
-                    sql += @$"
-AND os.id = @org_structure_id";
-                }
-                // Priority 2: Filter by employee if org_structure_id is not provided
-                else if (filter.employee_id.HasValue && filter.employee_id.Value > 0)
-                {
-                    sql += @$"
-AND emp.id = @employee_id";
+                    if (filter.app_ids?.Count() > 0)
+                    {
+                        sql += " AND app.id = ANY(@appids)";
+                    }
                 }
 
                 // Structure filtering - unchanged
@@ -1451,6 +1697,15 @@ AND emp.id = @employee_id";
                 {
                     sql += @$"
 AND service.structure_id in ({string.Join(',', filter.structure_ids)}) ";
+                }
+
+                if (filter.journals_id != null && filter.journals_id != 0)
+                {
+                    sql += " AND app.id IN (SELECT application_id FROM journal_application WHERE journal_id = @journal_id)";
+                }
+                if (filter.journals_id == 0 && filter.is_journal == true)
+                {
+                    sql += " AND app.id IN (SELECT application_id FROM journal_application)";
                 }
 
                 // Payment status filtering - unchanged
@@ -1462,21 +1717,16 @@ AND (
     OR (@is_paid = false AND is_paid = false AND total_payed < total_sum)
 )";
                 }
+                if (filter.app_ids?.Count() > 0)
+                {
+                    sql += " AND app.id = ANY(@appids)";
+                }
 
                 countSql = countSql + sql;
 
-                // Group by clause - updated to include task-related fields when needed
-                if (filter.org_structure_id.HasValue && filter.org_structure_id.Value > 0 ||
-                    filter.employee_id.HasValue && filter.employee_id.Value > 0)
-                {
-                    sql += @$" 
-group by app.id, st.id, service.id, at.id, ata.id, eis.id, emp.id, os.id";
-                }
-                else
-                {
-                    sql += @$" 
+                // Group by clause - simplified since we removed architecture_process JOIN
+                sql += @$" 
 group by app.id, st.id, service.id";
-                }
 
                 // Sorting logic - unchanged
                 if (filter.sort_by != null && filter.sort_type != null)
@@ -1511,6 +1761,7 @@ OFFSET @pageSize * @pageNumber Limit @pageSize;
                         filter.date_start,
                         filter.date_end,
                         filter.common_filter,
+                        journal_id = filter.journals_id,
                         incomingNumbers = filter.incoming_numbers,
                         outgoingNumbers = filter.outgoing_numbers,
                         filter.dashboard_date_start,
@@ -1520,8 +1771,7 @@ OFFSET @pageSize * @pageNumber Limit @pageSize;
                         filter.total_payed_to,
                         filter.total_sum_from,
                         filter.total_sum_to,
-                        filter.org_structure_id,
-                        filter.employee_id,
+                        appids = filter.app_ids?.ToArray()
                     }, transaction: _dbTransaction);
                 }
 
@@ -1541,6 +1791,7 @@ OFFSET @pageSize * @pageNumber Limit @pageSize;
                         filter.date_start,
                         filter.date_end,
                         filter.common_filter,
+                        journal_id = filter.journals_id,
                         incomingNumbers = filter.incoming_numbers,
                         outgoingNumbers = filter.outgoing_numbers,
                         filter.dashboard_date_start,
@@ -1550,8 +1801,7 @@ OFFSET @pageSize * @pageNumber Limit @pageSize;
                         filter.total_payed_to,
                         filter.total_sum_from,
                         filter.total_sum_to,
-                        filter.org_structure_id,
-                        filter.employee_id,
+                        appids = filter.app_ids?.ToArray()
                     }, transaction: _dbTransaction);
                 }
 
@@ -1573,10 +1823,10 @@ OFFSET @pageSize * @pageNumber Limit @pageSize;
             {
                 if (string.IsNullOrWhiteSpace(filter.common_filter))
                 {
-                    whereClause += BuildExpirationFilter(filter);
-                }
+                whereClause += BuildExpirationFilter(filter);
+            }
                 else
-                {
+            {
                     whereClause += @"
 AND (lower(app.number) LIKE lower (CONCAT('%', @common_filter, '%'))
   OR lower(cus.full_name) LIKE lower(CONCAT('%', @common_filter, '%'))
@@ -1652,7 +1902,7 @@ AND (lower(app.number) LIKE lower (CONCAT('%', @common_filter, '%'))
                 if (filter.date_start != null)
                 {
                     whereClause += " AND registration_date >= @date_start";
-                }
+            }
                 if (filter.date_end != null)
                 {
                     whereClause += " AND registration_date <= @date_end";
@@ -1679,20 +1929,15 @@ AND (lower(app.number) LIKE lower (CONCAT('%', @common_filter, '%'))
         {
             if (filter.isExpired != true) return "";
 
-            var statusCodes = @"('review',
-'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready')";
+            var statusCodes = @"('in_progress')";
 
             return (filter.deadline_day ?? 0) switch
             {
-                0 => $" AND (deadline::date < CURRENT_DATE and (st.code in {statusCodes}))",
-                -1 => $" AND (deadline::date = CURRENT_DATE and (st.code in {statusCodes}))",
-                7 => $" AND (deadline::DATE BETWEEN CURRENT_DATE + INTERVAL '4 days' AND CURRENT_DATE + INTERVAL '7 days' AND (st.code in {statusCodes}))",
-                3 => $" AND (deadline::DATE BETWEEN CURRENT_DATE + INTERVAL '1 days' AND CURRENT_DATE + INTERVAL '3 days' AND (st.code in {statusCodes}))",
-                1 => $" AND (deadline::DATE = CURRENT_DATE + INTERVAL '1 day' and  (st.code in {statusCodes}))",
+                0 => $" AND (deadline::date < CURRENT_DATE and (st.group_code in {statusCodes}))",
+                -1 => $" AND (deadline::date = CURRENT_DATE and (st.group_code in {statusCodes}))",
+                7 => $" AND (deadline::DATE BETWEEN CURRENT_DATE + INTERVAL '4 days' AND CURRENT_DATE + INTERVAL '7 days' AND (st.group_code in {statusCodes}))",
+                3 => $" AND (deadline::DATE BETWEEN CURRENT_DATE + INTERVAL '1 days' AND CURRENT_DATE + INTERVAL '3 days' AND (st.group_code in {statusCodes}))",
+                1 => $" AND (deadline::DATE = CURRENT_DATE + INTERVAL '1 day' and  (st.group_code in {statusCodes}))",
                 _ => ""
             };
         }
@@ -1812,19 +2057,19 @@ SELECT app.id, app.object_tag_id, registration_date, app.customer_id, cus.full_n
                         {
                             if ((filter.deadline_day ?? 0) == 0)
                             {
-                                sql += @$" AND (deadline <= now() and (st.code = 'review' or st.code = 'ready_for_eo' or st.code = 'preparation' or st.code = 'executor_assignment'))";
+                                sql += @$" AND (deadline <= now() and (st.group_code = 'in_progress'))";
                             }
                             else if (filter.deadline_day == 7)
                             {
-                                sql += @$" and (deadline::DATE BETWEEN CURRENT_DATE + INTERVAL '4 days' AND CURRENT_DATE + INTERVAL '7 days' AND (st.code = 'review' or st.code = 'ready_for_eo' or st.code = 'preparation' or st.code = 'executor_assignment'))";
+                                sql += @$" and (deadline::DATE BETWEEN CURRENT_DATE + INTERVAL '4 days' AND CURRENT_DATE + INTERVAL '7 days' AND (st.group_code = 'in_progress'))";
                             }
                             else if (filter.deadline_day == 3)
                             {
-                                sql += @$" and (deadline::DATE BETWEEN CURRENT_DATE + INTERVAL '1 days' AND CURRENT_DATE + INTERVAL '3 days' AND (st.code = 'review' or st.code = 'ready_for_eo' or st.code = 'preparation' or st.code = 'executor_assignment'))";
+                                sql += @$" and (deadline::DATE BETWEEN CURRENT_DATE + INTERVAL '1 days' AND CURRENT_DATE + INTERVAL '3 days' AND (st.group_code = 'in_progress'))";
                             }
                             else if (filter.deadline_day == 1)
                             {
-                                sql += @$" and (deadline::DATE = CURRENT_DATE + INTERVAL '1 day' and  (st.code = 'review' or st.code = 'ready_for_eo' or st.code = 'preparation' or st.code = 'executor_assignment'))";
+                                sql += @$" and (deadline::DATE = CURRENT_DATE + INTERVAL '1 day' and  (st.group_code = 'in_progress'))";
                             }
                         }
                     }
@@ -1920,19 +2165,19 @@ SELECT app.id, app.object_tag_id, registration_date, app.customer_id, cus.full_n
                     {
                         if ((filter.deadline_day ?? 0) == 0)
                         {
-                            sql += @$" AND (deadline <= now() and (st.code = 'review' or st.code = 'ready_for_eo' or st.code = 'preparation' or st.code = 'executor_assignment'))";
+                            sql += @$" AND (deadline <= now() and (st.group_code = 'in_progress'))";
                         }
                         else if (filter.deadline_day == 7)
                         {
-                            sql += @$" and (deadline::DATE BETWEEN CURRENT_DATE + INTERVAL '4 days' AND CURRENT_DATE + INTERVAL '7 days' AND (st.code = 'review' or st.code = 'ready_for_eo' or st.code = 'preparation' or st.code = 'executor_assignment'))";
+                            sql += @$" and (deadline::DATE BETWEEN CURRENT_DATE + INTERVAL '4 days' AND CURRENT_DATE + INTERVAL '7 days' AND (st.group_code = 'in_progress'))";
                         }
                         else if (filter.deadline_day == 3)
                         {
-                            sql += @$" and (deadline::DATE BETWEEN CURRENT_DATE + INTERVAL '1 days' AND CURRENT_DATE + INTERVAL '3 days' AND (st.code = 'review' or st.code = 'ready_for_eo' or st.code = 'preparation' or st.code = 'executor_assignment'))";
+                            sql += @$" and (deadline::DATE BETWEEN CURRENT_DATE + INTERVAL '1 days' AND CURRENT_DATE + INTERVAL '3 days' AND (st.group_code = 'in_progress'))";
                         }
                         else if (filter.deadline_day == 1)
                         {
-                            sql += @$" and (deadline::DATE = CURRENT_DATE + INTERVAL '1 day' and  (st.code = 'review' or st.code = 'ready_for_eo' or st.code = 'preparation' or st.code = 'executor_assignment'))";
+                            sql += @$" and (deadline::DATE = CURRENT_DATE + INTERVAL '1 day' and  (st.group_code = 'in_progress'))";
                         }
                     }
 
@@ -2091,44 +2336,14 @@ select
 	app.registration_date,
 	ast.name as status,
     CASE
-        WHEN ast.code IN ('done',
-'document_ready',
-'ready_for_ppo',
-'document_issued') THEN 'Завершено'
-        WHEN ast.code IN ('review',
-'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready') and CURRENT_DATE - deadline::date BETWEEN 1 AND 3 THEN '1-3 дней опоздания'
-        WHEN ast.code IN ('review',
-'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready') and CURRENT_DATE - deadline::date BETWEEN 4 AND 7 THEN '4-7 дней опоздания'
-        WHEN ast.code IN ('review',
-'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready') and CURRENT_DATE - deadline::date BETWEEN 8 AND 14 THEN '8-14 дней опоздания'
-        WHEN ast.code IN ('review',
-'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready') and CURRENT_DATE - deadline::date > 14 THEN 'Более 14 дней опоздания'
-		WHEN ast.code IN ('review',
-'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready') and CURRENT_DATE < deadline::date THEN 'В работе, без опоздания'
+        WHEN ast.group_code IN ('completed') THEN 'Завершено'
+        WHEN ast.group_code IN ('in_progress') and CURRENT_DATE - deadline::date BETWEEN 1 AND 3 THEN '1-3 дней опоздания'
+        WHEN ast.group_code IN ('in_progress') and CURRENT_DATE - deadline::date BETWEEN 4 AND 7 THEN '4-7 дней опоздания'
+        WHEN ast.group_code IN ('in_progress') and CURRENT_DATE - deadline::date BETWEEN 8 AND 14 THEN '8-14 дней опоздания'
+        WHEN ast.group_code IN ('in_progress') and CURRENT_DATE - deadline::date > 14 THEN 'Более 14 дней опоздания'
+		WHEN ast.group_code IN ('in_progress') and CURRENT_DATE < deadline::date THEN 'В работе, без опоздания'
 
-		WHEN ast.code IN ('refusal_ready',
-'refusal_issued','refusal_without_technical_council',
-'deleted') THEN 'Отказано'
+		WHEN ast.group_code IN ('refusal') THEN 'Отказано'
         ELSE 'В работе, без опоздания'
 
 
@@ -2179,44 +2394,14 @@ select
 	app.registration_date,
 	ast.name as status,
     CASE
-        WHEN ast.code IN ('done',
-'document_ready',
-'ready_for_ppo',
-'document_issued') THEN 'Завершено'
-        WHEN ast.code IN ('review',
-'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready') and CURRENT_DATE - deadline::date BETWEEN 1 AND 3 THEN '1-3 дней опоздания'
-        WHEN ast.code IN ('review',
-'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready') and CURRENT_DATE - deadline::date BETWEEN 4 AND 7 THEN '4-7 дней опоздания'
-        WHEN ast.code IN ('review',
-'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready') and CURRENT_DATE - deadline::date BETWEEN 8 AND 14 THEN '8-14 дней опоздания'
-        WHEN ast.code IN ('review',
-'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready') and CURRENT_DATE - deadline::date > 14 THEN 'Более 14 дней опоздания'
-		WHEN ast.code IN ('review',
-'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready') and CURRENT_DATE < deadline::date THEN 'В работе, без опоздания'
+        WHEN ast.group_code IN ('completed') THEN 'Завершено'
+        WHEN ast.group_code IN ('in_progress') and CURRENT_DATE - deadline::date BETWEEN 1 AND 3 THEN '1-3 дней опоздания'
+        WHEN ast.group_code IN ('in_progress') and CURRENT_DATE - deadline::date BETWEEN 4 AND 7 THEN '4-7 дней опоздания'
+        WHEN ast.group_code IN ('in_progress') and CURRENT_DATE - deadline::date BETWEEN 8 AND 14 THEN '8-14 дней опоздания'
+        WHEN ast.group_code IN ('in_progress') and CURRENT_DATE - deadline::date > 14 THEN 'Более 14 дней опоздания'
+		WHEN ast.group_code IN ('in_progress') and CURRENT_DATE < deadline::date THEN 'В работе, без опоздания'
 
-		WHEN ast.code IN ('refusal_ready',
-'refusal_issued','refusal_without_technical_council',
-'deleted') THEN 'Отказано'
+		WHEN ast.group_code IN ('refusal') THEN 'Отказано'
         ELSE 'В работе, без опоздания'
 
 

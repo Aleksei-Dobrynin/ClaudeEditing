@@ -204,5 +204,24 @@ namespace Infrastructure.Repositories
                 throw new RepositoryException("Failed to delete JournalApplication", ex);
             }
         }
+        
+        public async Task<List<JournalApplication>> GetByAppID(List<int> appIds)
+        {
+            try
+            {
+                var sql = @"SELECT ja.application_id, dj.name as journal_name, ja.outgoing_number, ja.created_at
+          FROM journal_application ja
+          LEFT JOIN document_journals dj ON dj.id = ja.journal_id
+          WHERE ja.application_id = ANY(@appIds)";
+                var result = await _dbConnection.QueryAsync<JournalApplication>(sql, new { appIds },
+                    transaction: _dbTransaction);
+                
+                return result.ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to get JournalApplication by appIds", ex);
+            }
+        }
     }
 }

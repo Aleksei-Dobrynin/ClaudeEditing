@@ -40,11 +40,16 @@ export const schema = yup.object().shape({
   FileName: yup
     .string()
     .nullable()
-    .test(
-      'not-empty-string',
-      'Обязательное поле',
-      (value) => value === null || (typeof value === 'string' && value.trim() !== '')
-    )
+    .when('$skipFileCheck', {
+      is: true,
+      then: (schema) => schema.optional(),
+      otherwise: (schema) =>
+        schema.test(
+          'not-empty-string',
+          'Обязательное поле',
+          (value) => value === null || (typeof value === 'string' && value.trim() !== '')
+        )
+    })
 });
 
 export const validateField = async (name: string, value: any, context: any = {}) => {

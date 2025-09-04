@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import styled from "styled-components";
 import Dialog from "@mui/material/Dialog";
 import MuiDialogContent from "@mui/material/DialogContent";
-import CustomTextField from "components/TextField_OLD";
+import CustomTextField from "components/TextField";
 import MaskedTextField from "components/MaskedTextField";
 import MainStore from "./../MainStore";
 import CustomButton from "./Button";
@@ -16,7 +16,7 @@ import { send } from "process";
 const DigitalSignDialog = observer(() => {
   const { t } = useTranslation();
   const translate = t;
-  
+
   // Локальные состояния для управления формой
   const [pin, setPin] = useState("");
   const [pinCode, setPinCode] = useState("");
@@ -49,14 +49,18 @@ const DigitalSignDialog = observer(() => {
 
   // Обработчик отправки кода
   const handleSendCode = async () => {
-    setIsSend(true);
 
     try {
       MainStore.changeLoader(true);
       const response = await sendCode(pin);
-      
+      if (response?.data == false) {
+        MainStore.setSnackbar(i18n.t("Ошибка подключения: Сервер ГУ Кызмат (Инфоком) временно недоступен. Пожалуйста, попробуйте позже."), "error");
+        return;
+      }
       if ((response.status === 201 || response.status === 200)) {
         MainStore.setSnackbar(i18n.t("ПИН код отправлен"), "success");
+        setIsSend(true);
+
       } else {
         throw new Error();
       }
@@ -73,12 +77,12 @@ const DigitalSignDialog = observer(() => {
     try {
       MainStore.changeLoader(true);
       const response = await signFile(
-        MainStore.digitalSign.fileId, 
+        MainStore.digitalSign.fileId,
         MainStore.digitalSign.uplId,
         pin,
         pinCode
       );
-      
+
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
         MainStore.setSnackbar(i18n.t("Успешно подписано"), "success");
         setIsSend(false);
@@ -126,7 +130,7 @@ const DigitalSignDialog = observer(() => {
           id='id_dialog_sign_pin'
           name='dialog_sign_pin'
         />
-        
+
         {isSend && (
           <>
             <div style={{ margin: 15 }}>
@@ -142,7 +146,7 @@ const DigitalSignDialog = observer(() => {
             />
           </>
         )}
-        
+
         <ActionsWrapper>
           {!isSend && (
             <ButtonWrapper>
@@ -173,7 +177,7 @@ const DigitalSignDialog = observer(() => {
               </CustomButton>
             </ButtonWrapper>
           )}
-          
+
           <ButtonWrapper>
             <CustomButton
               color={"error"}

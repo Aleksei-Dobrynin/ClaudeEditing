@@ -97,11 +97,12 @@ const ReestrListView: FC<reestrListViewProps> = observer((props) => {
               props.onClickReestr?.(param.row.id, param.row.name);
             }
           }}>
-            {translate("common:Choose")}
+            {translate("common:Choose")} &nbsp;    {param.row.id}
           </CustomButton>
         </div>),
         renderHeader: (param) => (<div data-testid="table_reestr_header_status_id">{param.colDef.headerName}</div>)
       })
+
   } else {
     columns.unshift({
       field: 'id',

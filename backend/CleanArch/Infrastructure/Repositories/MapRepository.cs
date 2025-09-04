@@ -17,33 +17,55 @@ namespace Infrastructure.Repositories
     {
         private readonly IDbConnection _dbConnection;
         private IDbTransaction? _dbTransaction;
-        
+        private readonly HttpClient _httpClient;
+        private const int TIMEOUT_SECONDS = 10;
+
         public MapRepository(IDbConnection dbConnection)
         {
             _dbConnection = dbConnection;
+            _httpClient = new HttpClient
+            {
+                Timeout = TimeSpan.FromSeconds(TIMEOUT_SECONDS)
+            };
         }
 
         public void SetTransaction(IDbTransaction dbTransaction)
         {
             _dbTransaction = dbTransaction;
         }
-        
+
         public async Task<List<AddressInfo>> GetFlats(string propcode)
         {
             try
             {
-                var client = new HttpClient();
                 var code = propcode.Replace("-", "");
-                var request = new HttpRequestMessage(HttpMethod.Get, $"http://darek.kg/Map/GetFlats?propcode={code}&_dc={DateTime.Now.Ticks.ToString()}");
-                var response = await client.SendAsync(request);
+                var request = new HttpRequestMessage(HttpMethod.Get,
+                    $"http://darek.kg/Map/GetFlats?propcode={code}&_dc={DateTime.Now.Ticks.ToString()}");
+
+                var response = await _httpClient.SendAsync(request);
                 response.EnsureSuccessStatusCode();
+
                 var json = await response.Content.ReadAsStringAsync();
                 MapDarekInfo root = JsonSerializer.Deserialize<MapDarekInfo>(json);
                 return root.List.Select(feature => new AddressInfo
-                    {
-                        Address = feature.Address.ToString(),
-                        Propcode = feature.PropCode.ToString()
-                    }).ToList();
+                {
+                    Address = feature.Address.ToString(),
+                    Propcode = feature.PropCode.ToString()
+                }).ToList();
+            }
+            catch (TaskCanceledException ex)
+            {
+                throw new ServiceUnavailableException(
+                    "Сервис Darek.kg недоступен. Превышено время ожидания ответа.",
+                    "Darek.kg",
+                    true);
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new ServiceUnavailableException(
+                    "Не удалось подключиться к сервису Darek.kg.",
+                    "Darek.kg",
+                    false);
             }
             catch (Exception ex)
             {
@@ -55,10 +77,12 @@ namespace Infrastructure.Repositories
         {
             try
             {
-                var client = new HttpClient();
-                var request = new HttpRequestMessage(HttpMethod.Get, $"http://darek.kg/Map/SearchAddressesByPropCodeWMS?_dc={DateTime.Now.Ticks.ToString()}&propcode={propcode}");
-                var response = await client.SendAsync(request);
+                var request = new HttpRequestMessage(HttpMethod.Get,
+                    $"http://darek.kg/Map/SearchAddressesByPropCodeWMS?_dc={DateTime.Now.Ticks.ToString()}&propcode={propcode}");
+
+                var response = await _httpClient.SendAsync(request);
                 response.EnsureSuccessStatusCode();
+
                 var xml = await response.Content.ReadAsStringAsync();
                 XmlSerializer serializer = new XmlSerializer(typeof(GetFeatureInfoResponse));
                 using (StringReader reader = new StringReader(xml))
@@ -73,10 +97,12 @@ namespace Infrastructure.Repositories
                             Propcode = feature.Attributes.FirstOrDefault(a => a.Name == "propcode")?.Value,
                             Geometry = feature.Attributes.FirstOrDefault(a => a.Name == "geometry")?.Value
                         }).FirstOrDefault();
+
                     if (resultData != null && !string.IsNullOrEmpty(resultData.Geometry))
                     {
                         var coordinates3857 = ParseMultipolygon(resultData.Geometry);
-                        var coordinates4326 = ConvertToLatLng(coordinates3857).Select<(double X, double Y), double[]>(point => new double[] { point.X, point.Y })
+                        var coordinates4326 = ConvertToLatLng(coordinates3857)
+                            .Select<(double X, double Y), double[]>(point => new double[] { point.X, point.Y })
                             .ToList();
 
                         var data = new
@@ -91,36 +117,68 @@ namespace Infrastructure.Repositories
                     return null;
                 }
             }
+            catch (TaskCanceledException ex)
+            {
+                throw new ServiceUnavailableException(
+                    "Сервис Darek.kg недоступен. Превышено время ожидания ответа.",
+                    "Darek.kg",
+                    true);
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new ServiceUnavailableException(
+                    "Не удалось подключиться к сервису Darek.kg.",
+                    "Darek.kg",
+                    false);
+            }
             catch (Exception ex)
             {
                 throw new RepositoryException("Failed to get Map darek", ex);
             }
         }
-        
+
         public async Task<List<AddressInfo>> SearchPropCodes(string propcode)
         {
             try
             {
-                var client = new HttpClient();
-                const int limit = 30; 
-                var request = new HttpRequestMessage(HttpMethod.Get, $"http://darek.kg/Map/SearchPropCodes?start=0&limit={limit}&query={propcode}&_dc={DateTime.Now.Ticks.ToString()}&callback=stcCallback1009");
-                var response = await client.SendAsync(request);
+                const int limit = 30;
+                var request = new HttpRequestMessage(HttpMethod.Get,
+                    $"http://darek.kg/Map/SearchPropCodes?start=0&limit={limit}&query={propcode}&_dc={DateTime.Now.Ticks.ToString()}&callback=stcCallback1009");
+
+                var response = await _httpClient.SendAsync(request);
                 response.EnsureSuccessStatusCode();
+
                 var jsonResponse = await response.Content.ReadAsStringAsync();
                 var cleanJson = jsonResponse.Replace("stcCallback1009(", "").TrimEnd(')', ';');
                 MapDarekInfoList root = JsonSerializer.Deserialize<MapDarekInfoList>(cleanJson);
-                return root.list.Select(feature => new AddressInfo {
+
+                return root.list.Select(feature => new AddressInfo
+                {
                     Address = feature.address.ToString(),
                     Propcode = feature.code.ToString(),
                     Id = int.Parse(feature.propaddress_id.ToString())
                 }).ToList();
             }
+            catch (TaskCanceledException ex)
+            {
+                throw new ServiceUnavailableException(
+                    "Сервис Darek.kg недоступен. Превышено время ожидания ответа.",
+                    "Darek.kg",
+                    true);
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new ServiceUnavailableException(
+                    "Не удалось подключиться к сервису Darek.kg.",
+                    "Darek.kg",
+                    false);
+            }
             catch (Exception ex)
             {
                 throw new RepositoryException("Failed to get Map darek", ex);
             }
         }
-        
+
         public static List<(double X, double Y)> ParseMultipolygon(string multipolygon)
         {
             var points = new List<(double X, double Y)>();

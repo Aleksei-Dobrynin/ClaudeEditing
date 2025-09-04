@@ -93,11 +93,10 @@ namespace Infrastructure.Repositories
                     comments = domain.comments,
                     app_step_id = domain.app_step_id,
                     document_type_id = domain.document_type_id,
-                    created_at = domain.created_at,
                     is_required_doc = domain.is_required_doc,
                     is_required_approver = domain.is_required_approver,
                 };
-                var sql = @"UPDATE ""document_approval"" SET  is_required_approver = @is_required_approver, is_required_doc = @is_required_doc,  ""id"" = @id, ""updated_at"" = @updated_at, ""created_by"" = @created_by, ""updated_by"" = @updated_by, ""app_document_id"" = @app_document_id, ""file_sign_id"" = @file_sign_id, ""department_id"" = @department_id, ""position_id"" = @position_id, ""status"" = @status, ""approval_date"" = @approval_date, ""comments"" = @comments, ""created_at"" = @created_at, document_type_id = @document_type_id, app_step_id = @app_step_id WHERE id = @id";
+                var sql = @"UPDATE ""document_approval"" SET  is_required_approver = @is_required_approver, is_required_doc = @is_required_doc,  ""id"" = @id, ""updated_at"" = @updated_at, ""updated_by"" = @updated_by, ""app_document_id"" = @app_document_id, ""file_sign_id"" = @file_sign_id, ""department_id"" = @department_id, ""position_id"" = @position_id, ""status"" = @status, ""approval_date"" = @approval_date, ""comments"" = @comments, document_type_id = @document_type_id, app_step_id = @app_step_id WHERE id = @id";
                 var affected = await _dbConnection.ExecuteAsync(sql, model, transaction: _dbTransaction);
                 if (affected == 0)
                 {

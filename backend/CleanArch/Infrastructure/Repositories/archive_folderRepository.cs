@@ -1,11 +1,12 @@
-using System.Data;
-using Dapper;
-using Domain.Entities;
-using Application.Repositories;
-using Infrastructure.Data.Models;
 using Application.Exceptions;
 using Application.Models;
+using Application.Repositories;
+using Dapper;
+using Domain.Entities;
+using Infrastructure.Data.Models;
+using Infrastructure.FillLogData;
 using System;
+using System.Data;
 
 namespace Infrastructure.Repositories
 {
@@ -13,10 +14,12 @@ namespace Infrastructure.Repositories
     {
         private readonly IDbConnection _dbConnection;
         private IDbTransaction? _dbTransaction;
+        private IUserRepository _userRepository;
 
-        public archive_folderRepository(IDbConnection dbConnection)
+        public archive_folderRepository(IDbConnection dbConnection, IUserRepository userRepository)
         {
             _dbConnection = dbConnection;
+            _userRepository = userRepository;
         }
 
         public void SetTransaction(IDbTransaction dbTransaction)
@@ -83,6 +86,9 @@ JOIN
         {
             try
             {
+                var userId = await UserSessionHelper.SetCurrentUserAsync(_userRepository, _dbConnection, _dbTransaction);
+
+
                 var model = new archive_folderModel
                 {
 
@@ -95,6 +101,9 @@ JOIN
                     created_by = domain.created_by,
                     updated_by = domain.updated_by,
                 };
+
+                await FillLogDataHelper.FillLogDataUpdate(model, userId);
+
                 var sql = @"UPDATE ""archive_folder"" SET ""id"" = @id, ""archive_folder_name"" = @archive_folder_name, ""dutyplan_object_id"" = @dutyplan_object_id, ""folder_location"" = @folder_location, ""created_at"" = @created_at, ""updated_at"" = @updated_at, ""created_by"" = @created_by, ""updated_by"" = @updated_by WHERE id = @id";
                 var affected = await _dbConnection.ExecuteAsync(sql, model, transaction: _dbTransaction);
                 if (affected == 0)

@@ -27,7 +27,7 @@ const ApplicationCommentsListView: FC<ApplicationDocumentListViewProps> = observ
 
   return (
     <Container maxWidth="lg" style={{ marginTop: 30 }}>
-      <Typography sx={{ textAlign: "center", fontSize: "25px" }} >{store.data.length > 0 ? translate("label:ApplicationCommentsListView.EntityTitle") : translate("label:ApplicationCommentsListView.EntityNotComment")}</Typography>
+      {/* <Typography sx={{ textAlign: "center", fontSize: "25px" }} >{store.data.length > 0 ? translate("label:ApplicationCommentsListView.EntityTitle") : translate("label:ApplicationCommentsListView.EntityNotComment")}</Typography> */}
       <Box sx={{ ml: "5%", display: "flex", justifyContent: "space-between" }}>
         <CommmentItem
           data={store.isOpenComment == true ? store.dataAll : store.data}
@@ -37,17 +37,18 @@ const ApplicationCommentsListView: FC<ApplicationDocumentListViewProps> = observ
         />
         <Box sx={{ flex: "end", }}>
           {!store.isOpenComment ? (
-            <IconButton
-              disableRipple
-              disableFocusRipple
-              color="primary"
-              sx={{ p: "20px", ml: "auto", mt: "5px", mb: "15px", '&:hover': { backgroundColor: 'transparent' }, '&:active': { backgroundColor: 'transparent', boxShadow: 'none' } }}
-              aria-label={translate("common:openPanel")}
-              onClick={() => store.openPanel()}
-            >
-              <p style={{ padding: "0", marginRight: "5px", fontSize: "14px" }}>({store.dataAll?.length}) {translate("common:all")}</p>
-              <KeyboardArrowRightIcon />
-            </IconButton>
+            // <IconButton
+            //   disableRipple
+            //   disableFocusRipple
+            //   color="primary"
+            //   sx={{ p: "20px", ml: "auto", mt: "5px", mb: "15px", '&:hover': { backgroundColor: 'transparent' }, '&:active': { backgroundColor: 'transparent', boxShadow: 'none' } }}
+            //   aria-label={translate("common:openPanel")}
+            //   onClick={() => store.openPanel()}
+            // >
+            //   <p style={{ padding: "0", marginRight: "5px", fontSize: "14px" }}>({store.dataAll?.length}) {translate("common:all")}</p>
+            //   <KeyboardArrowRightIcon />
+            // </IconButton>
+            <>  </>
           ) : (
             <IconButton
               disableRipple

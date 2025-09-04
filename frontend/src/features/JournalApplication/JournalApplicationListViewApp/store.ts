@@ -56,12 +56,13 @@ class NewStore {
     only_count: false,
     is_paid: null,
     is_journal: null,
-    journals_id: 0,
-    // Новые поля для фильтрации по суммам
     total_sum_from: null,
     total_sum_to: null,
     total_payed_from: null,
-    total_payed_to: null
+    total_payed_to: null,
+    tunduk_district_id: null,
+    tunduk_address_unit_id: null,
+    tunduk_street_id: null,
   };
   checkResult: null | { valid: boolean; errors: Record<string, string> } = null;
   selectedApplicationId: number | null = null;
@@ -170,11 +171,14 @@ class NewStore {
       issued_employee_id: null,
       only_count: false,
       is_paid: null,
-      // Очищаем новые поля
       total_sum_from: null,
       total_sum_to: null,
       total_payed_from: null,
-      total_payed_to: null
+      total_payed_to: null,
+
+      tunduk_district_id: null,
+      tunduk_address_unit_id: null,
+      tunduk_street_id: null,
     };
     this.is_allFilter = false;
 

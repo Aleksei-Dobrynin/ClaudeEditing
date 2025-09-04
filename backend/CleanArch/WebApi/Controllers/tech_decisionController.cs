@@ -44,10 +44,10 @@ namespace WebApi.Controllers
                 name    = requestDto.name,
                 name_kg = requestDto.name_kg,
                 text_color = requestDto.text_color,
-                created_at = requestDto.created_at,
-                updated_at = requestDto.updated_at,
-                created_by = requestDto.created_by,
-                updated_by = requestDto.updated_by,
+                //created_at = requestDto.created_at,
+                //updated_at = requestDto.updated_at,
+                //created_by = requestDto.created_by,
+                //updated_by = requestDto.updated_by,
             };
             var response = await _tech_decisionUseCases.Create(request);
             return Ok(response);
@@ -68,10 +68,10 @@ namespace WebApi.Controllers
                 name = requestDto.name,
                 name_kg = requestDto.name_kg,
                 text_color = requestDto.text_color,
-                created_at = requestDto.created_at,
-                updated_at = requestDto.updated_at,
-                created_by = requestDto.created_by,
-                updated_by = requestDto.updated_by,
+                //created_at = requestDto.created_at,
+                //updated_at = requestDto.updated_at,
+                //created_by = requestDto.created_by,
+                //updated_by = requestDto.updated_by,
             };
             var response = await _tech_decisionUseCases.Update(request);
             return Ok(response);

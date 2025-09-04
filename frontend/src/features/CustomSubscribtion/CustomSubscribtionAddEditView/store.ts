@@ -90,7 +90,7 @@ class NewStore {
   RepeatTypes: RepeatTypeNav[] = [];
   ScheduleTypes: ScheduleNav[] = [];
   DocumentNav: S_DocumentTemplate[] = [];
-  ContactTypes: ContactType[] = []
+  ContactTypes: ContactType[] =[]
 
   //ошибки валидации
   erroridSubscriberType: "";
@@ -223,16 +223,16 @@ class NewStore {
     validate(event);
   }
   getValueIdSubscriptionContactType(id: number): boolean {
-    var index = this.idSubscribtionType.indexOf(id);
+    var index =  this.idSubscribtionType.indexOf(id);
     if (index === -1) {
-      return false;
+      return  false;
     }
     return true;
   }
   handleChangeIdSubscriptionContactType(event: ChangeEvent<HTMLSelectElement | HTMLInputElement>) {
     const idSubContactType = Number(event.target.name);
-    const index: number = this.idSubscribtionType.indexOf(idSubContactType);
-    if (index === -1) {
+    const index : number = this.idSubscribtionType.indexOf(idSubContactType);
+    if(index === -1) {
       this.idSubscribtionType.push(idSubContactType)
     } else {
       this.idSubscribtionType.splice(index, 1);
@@ -276,7 +276,7 @@ class NewStore {
   }
 
   setCurrentRepeatTypeIsPeriod(e: ChangeEvent<HTMLSelectElement | HTMLInputElement>) {
-    if (Number(e.target.value) === 0) {
+    if (Number(e.target.value)  === 0) {
       this.idRepeatType = 0;
       return;
     }
@@ -354,7 +354,7 @@ class NewStore {
         this.idRepeatType = data.idRepeatType;
         this.idSubscriberType = data.idSubscriberType;
         this.sendEmpty = data.sendEmpty;
-        this.timeStart = data.timeStart ? dayjs(new Date(data.timeStart)) : null;
+        this.timeStart = data.timeStart ?  dayjs(new Date(data.timeStart)) : null;
         this.timeEnd = data.timeEnd ? dayjs(new Date(data.timeEnd)) : null;
         this.monday = data.monday;
         this.tuesday = data.tuesday;
@@ -379,7 +379,7 @@ class NewStore {
           name: data.idScheduleNav?.name
         };
         this.repeatTypeNav = data.idRepeatTypeNav;
-        this.SubscriberTypeNav = data.idSubscriberTypeNav;
+        this.SubscriberTypeNav = data.idSubscriberTypeNav ;
         this.sendEmpty = data.sendEmpty;
         this.selectedSchedule = data.idScheduleNav.code;
         this.currentRepeatTypeIsPeriod = data.idRepeatTypeNav !== null ? data.idRepeatTypeNav.isPeriod : false;
@@ -452,10 +452,10 @@ class NewStore {
           idSchedule: this.scheduleItem.id,
           idRepeatType: this.idRepeatType,
           sendEmpty: !!this.sendEmpty,
-          timeStart:
-            this.timeStart
-              ? `${dayjs(this.dayStart ? new Date(this.dayStart.toDate()) : new Date("2000-01-01")).format("YYYY-MM-DD")}T${this.timeStart.format("HH:mm:ss")}`
-              : null,
+          timeStart:  
+          this.timeStart
+            ? `${dayjs(this.dayStart? new Date(this.dayStart.toDate()) :new Date("2000-01-01")).format("YYYY-MM-DD")}T${this.timeStart.format("HH:mm:ss")}`
+            : null,
           timeEnd: this.timeEnd?.format("YYYY-MM-DDTHH:mm:ss"),
           monday: this.monday,
           tuesday: this.tuesday,
@@ -544,12 +544,7 @@ class NewStore {
       MainStore.changeLoader(true);
       const response = await getUserInfo();
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
-        runInAction(() => {
-          MainStore.setCurrentEmployeeId(response.data.idEmployee);
-          MainStore.setCurrentOrgStructureId(response.data.idOrgStructure);
-        });
-        await this.loadEmployee(response.data.id);
-
+         await this.loadEmployee(response.data.id);
       } else {
         throw new Error();
       }
@@ -567,8 +562,6 @@ class NewStore {
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
         runInAction(() => {
           this.idEmployee = response.data.id;
-          MainStore.setCurrentEmployeeId(response.data.idEmployee);
-          MainStore.setCurrentOrgStructureId(response.data.idOrgStructure);
         });
       } else {
         throw new Error();

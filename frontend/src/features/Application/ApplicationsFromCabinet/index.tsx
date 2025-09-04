@@ -246,7 +246,7 @@ const applicationListView: FC<applicationListViewProps> = observer((props) => {
     // },
   ];
   let component = <PageGrid
-    customHeader={<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: "space-between", gap: 2, mb: 2 }}>
+    hustomHeader={<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: "space-between", gap: 2, mb: 2 }}>
       <Typography variant="h1">
         {translate("Заявки из кабинета")}
       </Typography>

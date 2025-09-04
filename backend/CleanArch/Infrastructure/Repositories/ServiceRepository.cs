@@ -70,8 +70,8 @@ namespace Infrastructure.Repositories
                                 FROM service 
                                     LEFT JOIN workflow ON workflow.id = service.workflow_id
                                     LEFT JOIN workflow_task_template wtt ON wtt.workflow_id = service.workflow_id
-                                    LEFT JOIN org_structure os ON wtt.structure_id = os.id
-                                    LEFT JOIN employee_in_structure eis ON os.id = eis.structure_id
+         LEFT JOIN org_structure os ON wtt.structure_id = os.id
+         LEFT JOIN employee_in_structure eis ON os.id = eis.structure_id
                                     LEFT JOIN employee e ON eis.employee_id = e.id 
                                 WHERE e.user_id=@user_id
                                 ORDER BY service.name";
@@ -119,7 +119,7 @@ namespace Infrastructure.Repositories
             try
             {
                 var userId = await UserSessionHelper.SetCurrentUserAsync(_userRepository, _dbConnection, _dbTransaction);
-
+ 
                 var model = new Service
                 {
                     name = domain.name,
@@ -1354,12 +1354,7 @@ inner join employee_in_structure eis on eis.id = ata.structure_employee_id
 inner join employee e on e.id = eis.employee_id
 left join structure_post sp on sp.id = eis.post_id
 where at.created_at >= @date_start and at.created_at <= @date_end
-and a.deadline < now() and a1.code in (
-'refusal_issued',
-'refusal_ready',
-'refusal_sent',
-'rejection_ready'
-) 
+and a.deadline < now() and a1.group_code in ('refusal')
 group by 1, 2
 order by 3 desc
 ";
@@ -1396,12 +1391,7 @@ inner join employee e on e.id = eis.employee_id
 left join structure_post sp on sp.id = eis.post_id
 where at.created_at >= @date_start and at.created_at <= @date_end
 and at.structure_id = @structure_id
-and a.deadline < now() and a1.code in (
-'refusal_issued',
-'refusal_ready',
-'refusal_sent',
-'rejection_ready'
-) 
+and a.deadline < now() and a1.group_code in ('refusal')
 group by 1, 2
 order by 3 desc
 ";
@@ -1683,7 +1673,7 @@ left join application_status st on st.id = app.status_id
             try
             {
                 var sql = @"SELECT ROW_NUMBER() OVER (ORDER BY s.name) AS id,
-    s.name,
+                                   s.name,
     COUNT(DISTINCT CASE 
         WHEN a2.code IN ('done', 'document_ready', 'ready_for_ppo', 'document_issued') 
         THEN a.id 
@@ -1722,8 +1712,8 @@ left join application_status st on st.id = app.status_id
     END) AS all_count
 FROM application a
     LEFT JOIN service s ON a.service_id = s.id
-    LEFT JOIN application_status a2 ON a.status_id = a2.id
-    LEFT JOIN arch_object ao ON a.arch_object_id = ao.id
+                                     LEFT JOIN application_status a2 ON a.status_id = a2.id
+                                     LEFT JOIN arch_object ao ON a.arch_object_id = ao.id
     LEFT JOIN district d ON ao.district_id = d.id
 WHERE a.created_at BETWEEN @date_start AND @date_end
  ";
@@ -1756,25 +1746,11 @@ WHERE a.created_at BETWEEN @date_start AND @date_end
             {
                 var sql = @"SELECT ROW_NUMBER() OVER (ORDER BY s.name) AS id,
                                    s.name,
-                            COUNT(CASE WHEN a2.code in ('done',
-'document_ready',
-'ready_for_ppo',
-'ready_for_eo',
-'document_issued') THEN 1 END) AS completed,
-                            COUNT(CASE WHEN a2.code IN (
-'refusal_ready',
-'rejection_ready',
-'refusal_issued'
-) THEN 1 END) AS refusal,
+                            COUNT(CASE WHEN a2.group_code in ('completed') THEN 1 END) AS completed,
+                            COUNT(CASE WHEN a2.group_code IN ('refusal') THEN 1 END) AS refusal,
 
 
-                            COUNT(CASE WHEN a2.code IN (
-'review',
-'executor_assignment',
-'preparation',
-'refusal_issued',
-'return_to_eo'
-) THEN 1 END) AS in_work,
+                            COUNT(CASE WHEN a2.group_code IN ('in_progress') THEN 1 END) AS in_work,
                             COUNT(a.id) AS all_count
                             FROM application a
                                      LEFT JOIN service s ON a.service_id = s.id
@@ -1802,6 +1778,200 @@ WHERE a.created_at BETWEEN @date_start AND @date_end
             catch (Exception ex)
             {
                 throw new RepositoryException("Failed to get application category count.", ex);
+            }
+        }
+
+        public async Task<object> GetApplicationsCountForMyStructure(DateTime? date_start, DateTime? date_end, string user_id, List<int> ids)
+        {
+            try
+            {
+                var sqlCounts = @"SELECT
+    -- Назначено на меня
+    (SELECT COUNT(a.id)
+     FROM application a
+     LEFT JOIN application_status a2 ON a2.id = a.status_id
+        LEFT JOIN application_task at ON a.id = at.application_id
+        LEFT JOIN application_task_assignee ata on at.id = ata.application_task_id
+        LEFT JOIN employee_in_structure eis ON eis.id = ata.structure_employee_id
+        LEFT JOIN employee e ON eis.employee_id = e.id
+     WHERE a2.group_code = 'in_progress' AND e.user_id = @user_id) AS assigned_to_me,
+         
+    -- Завершенные заявки
+    (SELECT COUNT(a.id)
+     FROM application a
+     LEFT JOIN application_status a2 ON a2.id = a.status_id
+        LEFT JOIN application_task at ON a.id = at.application_id
+        LEFT JOIN application_task_assignee ata on at.id = ata.application_task_id
+        LEFT JOIN employee_in_structure eis ON eis.id = ata.structure_employee_id
+        LEFT JOIN employee e ON eis.employee_id = e.id
+     WHERE a2.group_code = 'completed' AND e.user_id = @user_id) AS completed_applications,
+
+    -- Просрочено
+    (SELECT COUNT(distinct a.id)
+FROM application a
+         LEFT JOIN application_status a2 ON a2.id = a.status_id
+         LEFT JOIN application_task at ON a.id = at.application_id
+         LEFT JOIN application_task_assignee ata on at.id = ata.application_task_id
+         LEFT JOIN employee_in_structure eis ON eis.id = ata.structure_employee_id
+         LEFT JOIN employee e ON eis.employee_id = e.id
+WHERE a2.group_code = 'in_progress' AND deadline::date < now()::date AND e.user_id = @user_id) AS overdue_applications,
+
+    -- На подписание
+    (SELECT COUNT(DISTINCT app.id)
+FROM document_approval val
+         LEFT JOIN uploaded_application_document uad ON uad.id = val.app_document_id
+         LEFT JOIN application_document ad ON ad.id = val.document_type_id
+         LEFT JOIN application_step apps ON apps.id = val.app_step_id
+         LEFT JOIN application app ON apps.application_id = app.id
+         LEFT JOIN application_task at ON app.id = at.application_id
+         LEFT JOIN application_task_assignee ata on at.id = ata.application_task_id
+         LEFT JOIN employee_in_structure eis ON eis.id = ata.structure_employee_id
+         LEFT JOIN employee e ON eis.employee_id = e.id
+         LEFT JOIN service srv ON srv.id = app.service_id
+         LEFT JOIN customer cl ON cl.id = app.customer_id
+         LEFT JOIN LATERAL (
+    SELECT at.*
+    FROM application_task at
+    WHERE at.application_id = app.id
+    ORDER BY at.created_at ASC
+    LIMIT 1
+    ) atask ON true
+WHERE val.file_sign_id IS NULL AND e.user_id = @user_id) AS unsigned_documents;
+";
+                
+                var sql_assigned_to_me = @"
+SELECT a.id, a.number, s.name AS service_name, string_agg(distinct obj.address, ', ') AS addresses
+FROM application a
+    LEFT JOIN application_status a2 ON a2.id = a.status_id
+    LEFT JOIN application_task at ON a.id = at.application_id
+    LEFT JOIN application_task_assignee ata ON at.id = ata.application_task_id
+    LEFT JOIN employee_in_structure eis ON eis.id = ata.structure_employee_id
+    LEFT JOIN employee e ON eis.employee_id = e.id
+    LEFT JOIN service s ON a.service_id = s.id
+    LEFT JOIN application_object ao ON a.id = ao.application_id
+    LEFT JOIN arch_object obj ON obj.id = ao.arch_object_id
+WHERE a2.group_code = 'in_progress'
+  AND e.user_id = @user_id
+  AND a.registration_date >= COALESCE(@date_start::date, a.registration_date)
+  AND a.registration_date <= COALESCE(@date_end::date, a.registration_date)
+GROUP BY a.id, a.number, s.name
+";
+                
+                var sql_completed_applications = @"
+SELECT a.id, a.number, s.name AS service_name, string_agg(distinct obj.address, ', ') AS addresses
+FROM application a
+    LEFT JOIN application_status a2 ON a2.id = a.status_id
+    LEFT JOIN application_task at ON a.id = at.application_id
+    LEFT JOIN application_task_assignee ata ON at.id = ata.application_task_id
+    LEFT JOIN employee_in_structure eis ON eis.id = ata.structure_employee_id
+    LEFT JOIN employee e ON eis.employee_id = e.id
+    LEFT JOIN service s ON a.service_id = s.id
+    LEFT JOIN application_object ao ON a.id = ao.application_id
+    LEFT JOIN arch_object obj ON obj.id = ao.arch_object_id
+WHERE a2.group_code = 'completed'
+  AND e.user_id = @user_id
+  AND a.registration_date >= COALESCE(@date_start::date, a.registration_date)
+  AND a.registration_date <= COALESCE(@date_end::date, a.registration_date)
+GROUP BY a.id, a.number, s.name
+";
+                
+                var sql_overdue_applications = @"
+SELECT a.id, a.number, s.name AS service_name, string_agg(distinct obj.address, ', ') AS addresses
+FROM application a
+    LEFT JOIN application_status a2 ON a2.id = a.status_id
+    LEFT JOIN application_task at ON a.id = at.application_id
+    LEFT JOIN application_task_assignee ata ON at.id = ata.application_task_id
+    LEFT JOIN employee_in_structure eis ON eis.id = ata.structure_employee_id
+    LEFT JOIN employee e ON eis.employee_id = e.id
+    LEFT JOIN service s ON a.service_id = s.id
+    LEFT JOIN application_object ao ON a.id = ao.application_id
+    LEFT JOIN arch_object obj ON obj.id = ao.arch_object_id
+WHERE a2.group_code = 'in_progress'
+  AND deadline::date < now()::date
+  AND e.user_id = @user_id
+  AND a.registration_date >= COALESCE(@date_start::date, a.registration_date)
+  AND a.registration_date <= COALESCE(@date_end::date, a.registration_date)
+GROUP BY a.id, a.number, s.name
+";
+                
+                var sql_unsigned_documents = @"
+SELECT app.id, app.number, srv.name AS service_name, string_agg(distinct obj.address, ', ') AS addresses
+FROM document_approval val
+         LEFT JOIN uploaded_application_document uad ON uad.id = val.app_document_id
+         LEFT JOIN application_document ad ON ad.id = val.document_type_id
+         LEFT JOIN application_step apps ON apps.id = val.app_step_id
+         LEFT JOIN application app ON apps.application_id = app.id
+         LEFT JOIN application_task at ON app.id = at.application_id
+         LEFT JOIN application_task_assignee ata on at.id = ata.application_task_id
+         LEFT JOIN employee_in_structure eis ON eis.id = ata.structure_employee_id
+         LEFT JOIN employee e ON eis.employee_id = e.id
+         LEFT JOIN service srv ON srv.id = app.service_id
+         LEFT JOIN customer cl ON cl.id = app.customer_id
+         LEFT JOIN application_object ao ON app.id = ao.application_id
+         LEFT JOIN arch_object obj ON obj.id = ao.arch_object_id
+         LEFT JOIN LATERAL (
+    SELECT at.*
+    FROM application_task at
+    WHERE at.application_id = app.id
+    ORDER BY at.created_at ASC
+    LIMIT 1
+    ) atask ON true
+WHERE val.file_sign_id IS NULL AND e.user_id = @user_id
+  AND app.registration_date >= COALESCE(@date_start::date, app.registration_date)
+  AND app.registration_date <= COALESCE(@date_end::date, app.registration_date)
+GROUP BY app.id, app.number, srv.name
+";
+                
+                var time_control_categories = @"
+with categories as (
+    select unnest(array['overdue', 'due_soon_2', 'due_soon_5', 'in_work']) as deadline_category
+),
+     user_applications as (
+         select
+             a.id,
+             case
+                 when a.deadline::date < current_date then 'overdue'
+                 when a.deadline::date >= current_date and a.deadline::date < current_date + interval '2 days' then 'due_soon_2'
+                 when a.deadline::date >= current_date and a.deadline::date < current_date + interval '5 days' then 'due_soon_5'
+                 else 'in_work'
+                 end as deadline_category
+         from application a
+                  left join application_status a2 on a2.id = a.status_id
+                  left join application_task at on a.id = at.application_id
+                  left join application_task_assignee ata on at.id = ata.application_task_id
+                  left join employee_in_structure eis on eis.id = ata.structure_employee_id
+                  left join employee e on eis.employee_id = e.id
+         where a2.group_code = 'in_progress'
+           and e.user_id = @user_id
+     )
+select c.deadline_category, count(ua.deadline_category) as count, COALESCE(array_agg(ua.id) FILTER (WHERE ua.id IS NOT NULL), '{}') AS ids
+from categories c
+         left join user_applications ua on ua.deadline_category = c.deadline_category
+group by c.deadline_category
+order by c.deadline_category;
+";
+                
+                var counts = await _dbConnection.QuerySingleOrDefaultAsync<object>(sqlCounts, new { user_id }, transaction: _dbTransaction);
+                
+                var assignedList = await _dbConnection.QueryAsync<object>(sql_assigned_to_me, new { user_id, date_start = (object?)date_start ?? DBNull.Value, date_end = (object?)date_end ?? DBNull.Value }, transaction: _dbTransaction);
+                var completedList = await _dbConnection.QueryAsync<object>(sql_completed_applications, new { user_id, date_start = (object?)date_start ?? DBNull.Value, date_end = (object?)date_end ?? DBNull.Value }, transaction: _dbTransaction);
+                var overdueList = await _dbConnection.QueryAsync<object>(sql_overdue_applications, new { user_id, date_start = (object?)date_start ?? DBNull.Value, date_end = (object?)date_end ?? DBNull.Value }, transaction: _dbTransaction);
+                var unsignedList = await _dbConnection.QueryAsync<object>(sql_unsigned_documents, new { user_id, date_start = (object?)date_start ?? DBNull.Value, date_end = (object?)date_end ?? DBNull.Value }, transaction: _dbTransaction);
+                var time_control = await _dbConnection.QueryAsync<object>(time_control_categories, new { user_id }, transaction: _dbTransaction);
+
+                return new
+                {
+                    counts,
+                    time_control,
+                    assigned_to_me = assignedList,
+                    completed_applications = completedList,
+                    overdue_applications = overdueList,
+                    unsigned_documents = unsignedList,
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to get application count.", ex);
             }
         }
     }

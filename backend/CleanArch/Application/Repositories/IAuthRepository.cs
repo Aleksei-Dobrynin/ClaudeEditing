@@ -13,7 +13,7 @@ namespace Application.Repositories
         Task<List<string>> GetMyRoles();
         Task<List<int>> GetMyRoleIds();
         Task<UserInfo> GetByUserId(string userId);
-        Task<bool> ForgotPassword(string email);
+        Task<bool> ForgotPassword(string email, string newPassword);
         Task<string> Create(string username, string password);
     }
 }

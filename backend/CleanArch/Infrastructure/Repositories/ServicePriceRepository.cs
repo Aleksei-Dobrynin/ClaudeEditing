@@ -45,12 +45,49 @@ namespace Infrastructure.Repositories
        sp.service_id,
        sp.structure_id,
        sp.price,
+       sp.document_template_id,
        s.name AS service_name,
        os.name AS structure_name
 FROM service_price sp
          LEFT JOIN service s ON sp.service_id = s.id
          LEFT JOIN org_structure os ON sp.structure_id = os.id";
             var result = await _dbConnection.QueryAsync<ServicePrice>(sql, transaction: _dbTransaction);
+            return result.ToList();
+        }
+        
+        public async Task<List<ServicePrice>> GetByStructure(int structure_id)
+        {
+            var sql = @"SELECT sp.id,
+       sp.service_id,
+       sp.structure_id,
+       sp.price,
+       sp.document_template_id,
+       s.name AS service_name,
+       os.name AS structure_name
+FROM service_price sp
+         LEFT JOIN service s ON sp.service_id = s.id
+         LEFT JOIN org_structure os ON sp.structure_id = os.id
+WHERE sp.structure_id = @structure_id";
+            var result = await _dbConnection.QueryAsync<ServicePrice>(sql, new { structure_id }, transaction: _dbTransaction);
+            return result.ToList();
+        }
+        
+        public async Task<List<ServicePrice>> GetByStructureAndService(int structure_id, int service_id)
+        {
+            var sql = @"SELECT sp.id,
+       sp.service_id,
+       sp.structure_id,
+       sp.price,
+       sp.document_template_id,
+       s.name AS service_name,
+       os.name AS structure_name,
+       dt.name AS document_template_name
+FROM service_price sp
+         LEFT JOIN service s ON sp.service_id = s.id
+         LEFT JOIN org_structure os ON sp.structure_id = os.id
+         LEFT JOIN ""S_DocumentTemplate"" dt ON sp.document_template_id = dt.id
+WHERE sp.structure_id = @structure_id AND sp.service_id = @service_id";
+            var result = await _dbConnection.QueryAsync<ServicePrice>(sql, new { structure_id, service_id }, transaction: _dbTransaction);
             return result.ToList();
         }
         
@@ -64,6 +101,42 @@ FROM service
 WHERE service.id not in (select service_id from service_price)
 ORDER BY service.name;";
                 var models = await _dbConnection.QueryAsync<Service>(sql, transaction: _dbTransaction);
+                return models.ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to get Service", ex);
+            }
+        }
+        
+        public async Task<List<Service>> GetServiceAll(int service_id)
+        {
+            try
+            {
+                var sql = @"SELECT service.id, service.name, short_name, code, description, day_count, workflow_id, price, workflow.name as workflow_name, service.is_active
+FROM service
+         left join workflow on workflow.id = service.workflow_id
+WHERE service.id not in (select service_id from service_price where service_id != @ServiceId)
+ORDER BY service.name;";
+                var models = await _dbConnection.QueryAsync<Service>(sql, new { ServiceId = service_id }, transaction: _dbTransaction);
+                return models.ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to get Service", ex);
+            }
+        }
+        
+        public async Task<List<Service>> GetServiceByStructure(int structure_id, int? service_id)
+        {
+            try
+            {
+                var sql = @"SELECT service.id, service.name, short_name, code, description, day_count, workflow_id, price, workflow.name as workflow_name, service.is_active
+FROM service
+         left join workflow on workflow.id = service.workflow_id
+WHERE structure_id = @StructureId AND service.id not in (select service_id from service_price where @ServiceId IS NULL OR service_id != @ServiceId)
+ORDER BY service.name;";
+                var models = await _dbConnection.QueryAsync<Service>(sql, new { StructureId = structure_id, ServiceId = service_id }, transaction: _dbTransaction);
                 return models.ToList();
             }
             catch (Exception ex)
@@ -88,8 +161,8 @@ ORDER BY service.name;";
                 await FillLogDataHelper.FillLogDataCreate(domain, userId);
 
                 var sql = @"
-                    INSERT INTO service_price (service_id, structure_id, price, created_at, updated_at, created_by, updated_by)
-                    VALUES (@service_id, @structure_id, @price, @created_at, @updated_at, @created_by, @updated_by)
+                    INSERT INTO service_price (service_id, structure_id, price, created_at, updated_at, created_by, updated_by, document_template_id)
+                    VALUES (@service_id, @structure_id, @price, @created_at, @updated_at, @created_by, @updated_by, @document_template_id)
                     RETURNING id";
 
                 return await _dbConnection.ExecuteScalarAsync<int>(sql, domain, _dbTransaction);
@@ -116,8 +189,11 @@ ORDER BY service.name;";
                     UPDATE service_price SET 
                         price = @price,
                         updated_at = @updated_at,
-                        updated_by = @updated_by
-                    WHERE service_id = @service_id AND structure_id = @structure_id";
+                        updated_by = @updated_by,
+                        document_template_id = @document_template_id,
+                        service_id = @service_id,
+                        structure_id = @structure_id
+                    WHERE id = @id";
 
                 var affected = await _dbConnection.ExecuteAsync(sql, domain, _dbTransaction);
                 if (affected == 0)

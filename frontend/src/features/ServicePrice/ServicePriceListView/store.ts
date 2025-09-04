@@ -1,8 +1,9 @@
 import { makeAutoObservable, runInAction } from "mobx";
 import i18n from "i18next";
 import MainStore from "MainStore";
-import { getServicePrices, deleteServicePrice } from "api/ServicePrice";
+import { getServicePrices, deleteServicePrice, getServicePricesByStructure } from "api/ServicePrice";
 import mainStore from "MainStore";
+import LayoutStore from "../../../layouts/MainLayout/store";
 
 class NewStore {
   data = [];
@@ -30,7 +31,7 @@ class NewStore {
   loadServicePrices = async () => {
     try {
       MainStore.changeLoader(true);
-      const response = await getServicePrices();
+      const response = MainStore.isHeadStructure && LayoutStore.head_of_structures[0]?.id > 0 ? await getServicePricesByStructure(LayoutStore.head_of_structures[0]?.id) : await getServicePrices() ;
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
         this.data = response.data;
       } else {

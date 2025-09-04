@@ -109,6 +109,34 @@ const pages = {
           type: "item",
           icon: icons.IconClipboardText,
           url: "/user/legal_registry_status"
+        },
+        {
+          id: "address_unit",
+          title: "Территориальные единицы",
+          type: "item",
+          icon: icons.IconClipboardText,
+          url: "/user/AddressUnit"
+        },
+        {
+          id: "address_unit_type",
+          title: "Тип территориальной единицы",
+          type: "item",
+          icon: icons.IconClipboardText,
+          url: "/user/AddressUnitType"
+        },
+        {
+          id: "street",
+          title: "Улица",
+          type: "item",
+          icon: icons.IconClipboardText,
+          url: "/user/Street"
+        },
+        {
+          id: "street_type",
+          title: "Тип улицы",
+          type: "item",
+          icon: icons.IconClipboardText,
+          url: "/user/StreetType"
         }
       ]
     },
@@ -133,13 +161,20 @@ const pages = {
           url: "/user/AppsFromCabinet"
         },
         {
+          id: "AppsFrorEO",
+          title: "Заявки Готовые для ЕО",
+          type: "item",
+          icon: icons.IconId,
+          url: "/user/AppsForEO"
+        },
+        {
           id: "AppNotification",
           title: "История уведомлений",
           type: "item",
           icon: icons.IconId,
           url: "/user/AppNotification"
         },
-        
+
         {
           id: "Report",
           title: "Отчет",
@@ -335,6 +370,13 @@ const pages = {
           type: 'item',
           icon: icons.IconBuildingBridge2,
           url: '/user/ArchiveObject',
+        },
+        {
+          id: 'ServicePrice',
+          title: 'Цены для услуг',
+          type: 'item',
+          icon: icons.IconUserSquareRounded,
+          url: '/user/ServicePrice',
         },
         {
           id: 'ArchitectureProcess',
@@ -611,7 +653,7 @@ const pages = {
           icon: icons.IconClipboardText,
           url: "/user/service_path"
         },
-                {
+        {
           id: "step_dependency",
           title: "Зависимость этапов услуги",
           type: "item",

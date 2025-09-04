@@ -45,7 +45,7 @@ namespace Infrastructure.Repositories
             {
                 var model = new application_stepModel
                 {
-                    
+
                     id = domain.id,
                     is_overdue = domain.is_overdue,
                     overdue_days = domain.overdue_days,
@@ -81,7 +81,7 @@ namespace Infrastructure.Repositories
             {
                 var model = new application_stepModel
                 {
-                    
+
                     id = domain.id,
                     is_overdue = domain.is_overdue,
                     overdue_days = domain.overdue_days,
@@ -163,7 +163,7 @@ namespace Infrastructure.Repositories
             }
         }
 
-        
+
         public async Task<List<application_step>> GetByapplication_id(int application_id)
         {
             try
@@ -181,7 +181,7 @@ order by ps.order_number";
                 throw new RepositoryException("Failed to get application_step", ex);
             }
         }
-        
+
         public async Task<List<application_step>> GetBystep_id(int step_id)
         {
             try
@@ -231,7 +231,7 @@ WHERE
     AND val.file_sign_id is null AND val.app_document_id is not null AND
     val.department_id = @structure_id
     AND val.position_id = @post_id
-
+    AND (apps.status IS NULL OR apps.status != 'completed')
 ";
                 if (isDeadline)
                 {
@@ -244,18 +244,17 @@ WHERE
                     sql += @"
     AND ((lower(app.number) like concat('%', @search, '%')) or (lower(cl.full_name) like concat('%', @search, '%')) or (lower(cl.pin) like concat('%', @search, '%')))
 ";
-
                 }
-
                 sql += @"
 ORDER BY
     app.deadline ASC, app.id, uad.id;
 ";
-                var models = await _dbConnection.QueryAsync<UnsignedDocumentsModel>(sql, new { 
-                    post_id, 
-                    structure_id, 
-                    search = search?.ToLower(), 
-                    is_deadline = isDeadline 
+                var models = await _dbConnection.QueryAsync<UnsignedDocumentsModel>(sql, new
+                {
+                    post_id,
+                    structure_id,
+                    search = search?.ToLower(),
+                    is_deadline = isDeadline
                 }, transaction: _dbTransaction);
                 return models.ToList();
             }
@@ -264,6 +263,5 @@ ORDER BY
                 throw new RepositoryException("Failed to get application_step", ex);
             }
         }
-        
     }
 }

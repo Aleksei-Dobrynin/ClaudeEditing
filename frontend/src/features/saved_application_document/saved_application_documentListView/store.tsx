@@ -1,7 +1,11 @@
 import { makeAutoObservable, runInAction } from "mobx";
 import i18n from "i18next";
 import MainStore from "MainStore";
-import { deletesaved_application_document, getSavedDocumentByApplication } from "api/saved_application_document";
+import {
+  deletesaved_application_document,
+  getsaved_application_documentsByApplication,
+  getSavedDocumentByApplication
+} from "api/saved_application_document";
 import { getsaved_application_documents } from "api/saved_application_document";
 import {
   getS_DocumentTemplates,
@@ -25,6 +29,8 @@ class NewStore {
   fileType = "";
   isOpenFileView = false;
   fileUrl = null;
+  printedDocuments = [];
+  isHistoryDialogOpen = false;
 
   S_DocumentTemplates = []
   Languages = []
@@ -171,6 +177,35 @@ class NewStore {
       () => MainStore.onCloseConfirm()
     );
   };
+
+  loadPrintedDocuments = async (templateId: number, languageId: number) => {
+    try {
+      MainStore.changeLoader(true);
+      const response = await getsaved_application_documentsByApplication(this.application_id);
+      if ((response.status === 200 || response.status === 201) && response.data) {
+        console.log(`templateId: ${templateId}, languageId: ${languageId}`);
+        runInAction(() => {
+          let fd = response.data.find(x=>x.id == templateId); 
+
+          this.printedDocuments = response.data.filter(doc =>
+            doc.template_id === fd.template_id &&
+            doc.language_id === languageId
+          );
+          this.isHistoryDialogOpen = true;
+        });
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      MainStore.changeLoader(false);
+    }
+  }
+
+  closeHistoryDialog = () => {
+    this.isHistoryDialogOpen = false;
+  }
 
   loadLanguages = async () => {
     try {

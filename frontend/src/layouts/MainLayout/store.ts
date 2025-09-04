@@ -52,8 +52,6 @@ class NewStore {
           this.my_structures = response.data.my_structures;
           this.post_ids = response.data.post_ids;
           MainStore.changeCurrentuserPin(response.data.pin);
-          MainStore.setCurrentEmployeeId(response.data.id);
-          MainStore.setCurrentOrgStructureId(response.data.my_structures[0]?.id);
         });
         if(!response.data?.release_read){
           ReleaseApproveSectionStore.changePanel(true)

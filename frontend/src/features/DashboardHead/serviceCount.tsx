@@ -53,7 +53,7 @@ const ApplicationsCategoryCountListView: FC<ApplicationsCategoryCountListViewPro
     hideActions={true}
     hideAddButton={true}
     data={store.ApplicationsCategoryCount}
-    customHeader={<><Grid container spacing={2}>
+    hustomHeader={<><Grid container spacing={2}>
       <Grid item xs={12} md={3}>
         <DateField
           value={store.category_count_date_start}

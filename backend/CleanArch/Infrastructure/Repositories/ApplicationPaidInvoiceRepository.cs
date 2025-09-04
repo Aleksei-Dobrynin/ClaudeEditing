@@ -114,7 +114,9 @@ namespace Infrastructure.Repositories
                     payment_identifier = domain.payment_identifier,
                     sum = domain.sum,
                     bank_identifier = domain.bank_identifier,
-                    application_id = domain.application_id
+                    application_id = domain.application_id,
+                    created_by = domain.created_by,
+                    created_at = domain.created_at
                 };
 
                 //await FillLogDataHelper.FillLogDataCreate(model, userId);
@@ -307,11 +309,6 @@ FROM application_paid_invoice api
     WHERE ap2.application_id = a.id";
                 ;
 
-                if (structures_ids != null && structures_ids.Length > 0)
-                {
-                    sql += " AND ap2.structure_id = ANY(@StructuresIds)";
-                }
-
                 sql += @") payments ON TRUE
          LEFT JOIN LATERAL (
     SELECT SUM(COALESCE(api2.sum, 0)) AS paid_sum
@@ -319,6 +316,16 @@ FROM application_paid_invoice api
     WHERE api2.application_id = a.id
     ) paid_invoices ON TRUE
 WHERE a.id IS NOT NULL ";
+                
+                if (structures_ids != null && structures_ids.Length > 0)
+                {
+                    sql += @" AND EXISTS (
+                SELECT 1 
+                FROM application_payment ap 
+                WHERE ap.application_id = a.id 
+                AND ap.structure_id = ANY(@StructuresIds)
+            )";
+                }
 
                 var parameters = new DynamicParameters();
 

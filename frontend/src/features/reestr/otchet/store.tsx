@@ -13,7 +13,7 @@ class NewStore {
   your_lico = [];
 
   year = 0;
-  month = 7;
+  month = 8;
   status = 1;
   structure_id = 0;
   rowClickedId = 0;

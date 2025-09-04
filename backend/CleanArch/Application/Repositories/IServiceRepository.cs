@@ -46,5 +46,6 @@ namespace Application.Repositories
         Task<object> GetApplicationsCategoryCountForMyStructure(DateTime date_start, DateTime date_end, int? district_id, bool? is_paid, string user_id, List<int> ids);
         Task<ResultDashboard> DashboardGetCountObjectsMyStructure(int district_id, string user_id);
         Task<ResultDashboard> DashboardGetCountUserApplications(DateTime date_start, DateTime date_end, string user_id);
+        Task<object> GetApplicationsCountForMyStructure(DateTime? date_start, DateTime? date_end, string user_id, List<int> ids);
     }
 }

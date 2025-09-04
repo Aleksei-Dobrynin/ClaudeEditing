@@ -32,5 +32,7 @@ namespace Domain.Entities
         public string payments_structure { get; set; }
         public decimal payments_sum { get; set; }
         public decimal paid_sum { get; set; }
+        public int reestr_id { get; set; }
+        public string reestr_name { get; set; }
     }
 }

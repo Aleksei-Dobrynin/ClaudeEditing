@@ -1,5 +1,4 @@
 import { API_URL } from "constants/config";
-
 import axios from "axios";
 import MainStore from "MainStore";
 
@@ -38,6 +37,38 @@ const SetupInterceptors = (http) => {
         console.log("Ошибка с response");
         console.log(error);
 
+        const { status, data } = error.response;
+
+        // НОВЫЙ ОБРАБОТЧИК: ServiceUnavailable (503) - недоступность внешних сервисов
+        if (status === 503) {
+          let message = "";
+          
+          if (data?.isTimeout) {
+            const serviceName = data?.serviceName || "Внешний сервис";
+            message = `${serviceName} не отвечает. Превышено время ожидания (10 секунд). Пожалуйста, попробуйте позже.`;
+          } else {
+            message = data?.message || "Внешний сервис временно недоступен. Пожалуйста, попробуйте позже.";
+          }
+          
+          MainStore.openErrorDialog(message);
+          return Promise.reject(error);
+        }
+        
+        // НОВЫЙ ОБРАБОТЧИК: Timeout (408)
+        if (status === 408) {
+          const message = data?.message || "Превышено время ожидания ответа от сервиса. Пожалуйста, попробуйте позже.";
+          MainStore.openErrorDialog(message);
+          return Promise.reject(error);
+        }
+        
+        // НОВЫЙ ОБРАБОТЧИК: Bad Gateway (502)
+        if (status === 502) {
+          const message = data?.message || "Не удалось подключиться к внешнему сервису. Проверьте подключение к интернету или попробуйте позже.";
+          MainStore.openErrorDialog(message);
+          return Promise.reject(error);
+        }
+
+        // Все остальное остается как было
         if (error?.response?.status === 401) {
           console.log("Ошибка 401");
 
@@ -45,7 +76,7 @@ const SetupInterceptors = (http) => {
           localStorage.removeItem("currentUser");
           window.location.href = "/login";
 
-          return Promise.reject(error); // Возврат промиса с ошибкой
+          return Promise.reject(error);
         } else if (error?.response?.status === 403) {
           // const message = JSON.parse(error.response?.data);
           const message = error.response?.data?.message;
@@ -71,7 +102,7 @@ const SetupInterceptors = (http) => {
           MainStore.openErrorDialog(
             message && message !== ""
               ? message
-              : "Не правильно отправяете данные, обратитесь к администратору!"
+              : "Не правильно отправлете данные, обратитесь к администратору!"
           );
           return Promise.reject(error);
         } else {
@@ -81,10 +112,10 @@ const SetupInterceptors = (http) => {
         console.log("Ошибка с request");
         console.log(error);
         console.log(error.request);
-        return Promise.reject(error); // Обработка ошибок с request
+        return Promise.reject(error);
       } else {
         console.log("Произошла ошибка настройки запроса:", error.message);
-        return Promise.reject(error); // Возврат промиса с ошибкой
+        return Promise.reject(error);
       }
     }
   );
@@ -148,6 +179,7 @@ const remove = (url: string, data: any, headers = {}) => {
       console.log(error.toJSON());
     });
 };
+
 const patch = (url: string, data: any, headers = {}) => {
   return http
     .patch(url, data, {

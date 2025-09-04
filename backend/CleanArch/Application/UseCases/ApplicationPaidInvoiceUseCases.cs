@@ -53,11 +53,14 @@ namespace Application.UseCases
         }
         public async Task<ApplicationPaidInvoice> Create(ApplicationPaidInvoice domain)
         {
+
             if (domain.mbank != true)
             {
                 var user_id = await unitOfWork.UserRepository.GetUserID();
                 domain.created_by = user_id;
                 domain.created_at = DateTime.Now;
+                domain.updated_by = user_id;
+                domain.updated_at = DateTime.Now;
             }
 
 
@@ -183,7 +186,21 @@ namespace Application.UseCases
 
         public async Task<List<PaidInvoiceInfo>> GetPaidInvoices(DateTime dateStart, DateTime dateEnd, string? number, int[]? structures_ids)
         {
-            return await unitOfWork.ApplicationPaidInvoiceRepository.GetPaidInvoices(dateStart, dateEnd, number, structures_ids);
+            var res = await unitOfWork.ApplicationPaidInvoiceRepository.GetPaidInvoices(dateStart, dateEnd, number, structures_ids);
+            
+            var reestrs = await unitOfWork.application_in_reestrRepository.GetByApplicationIds(res.Select(x => x.application_id).ToArray());
+
+            res.ForEach(app =>
+            {
+                var reestr = reestrs.FirstOrDefault(x => x.application_id == app.application_id);
+                if (reestr != null)
+                {
+                    app.reestr_id = reestr.reestr_id;
+                    app.reestr_name = reestr.reestr_name;
+                }
+            });
+            
+            return res;
         }
     }
 }

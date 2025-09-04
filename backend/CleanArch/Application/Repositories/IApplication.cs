@@ -16,7 +16,8 @@ namespace Application.Repositories
         Task<Domain.Entities.Application> GetOneByGuid(string guid);
         Task<Domain.Entities.Application> GetOneByNumber(string number);
         Task<PaginatedList<Domain.Entities.Application>> GetPaginated(PaginationFields model, bool onlyCount, bool skip);  
-        Task<PaginatedList<Domain.Entities.Application>> GetPaginated2(PaginationFields model, bool onlyCount);  
+        Task<PaginatedList<Domain.Entities.Application>> GetPaginated2(PaginationFields model, bool onlyCount);
+        Task<PaginatedList<Domain.Entities.Application>> GetByFilterFromEO(PaginationFields filter, bool onlyCount);
         Task<PaginatedList<Domain.Entities.Application>> GetPaginatedDashboardIssuedFromRegister(PaginationFields model, bool onlyCount);  
         Task<int> GetFileId(int id);
         Task<int> GetLastNumber();

@@ -499,6 +499,14 @@ namespace WebApi.Controllers
         }
         
         [HttpGet]
+        [Route("GetApplicationsCountForMyStructure")]
+        public async Task<IActionResult> GetApplicationsCountForMyStructure([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
+        {
+            var response = await _serviceUseCases.GetApplicationsCountForMyStructure(startDate, endDate);
+            return Ok(response);
+        }
+        
+        [HttpGet]
         [Route("GetMyStructure")]
         public async Task<IActionResult> GetMyStructure()
         {

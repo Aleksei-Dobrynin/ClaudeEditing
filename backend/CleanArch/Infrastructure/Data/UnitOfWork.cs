@@ -208,6 +208,10 @@ namespace Infrastructure.Data
         private IJournalPlaceholderRepository? _journalPlaceholderRepository;
         private IJournalTemplateTypeRepository? _journalTemplateTypeRepository;
         private IJournalApplicationRepository? _journalApplicationRepository;
+        private IAddressUnitTypeRepository? _addressUnitTypeRepository;
+        private IAddressUnitRepository? _addressUnitRepository;
+        private IStreetRepository? _streetRepository;
+        private IStreetTypeRepository? _streetTypeRepository;
 
         private ILogger<UnitOfWork> _logger;
 
@@ -1652,7 +1656,7 @@ namespace Infrastructure.Data
             {
                 if (_structure_tagRepository == null)
                 {
-                    _structure_tagRepository = new structure_tagRepository(_dbConnection);
+                    _structure_tagRepository = new structure_tagRepository(_dbConnection, _userRepository);
                     _structure_tagRepository.SetTransaction(_dbTransaction);
                 }
                 return _structure_tagRepository;
@@ -1824,7 +1828,7 @@ namespace Infrastructure.Data
             {
                 if (_archive_folderRepository == null)
                 {
-                    _archive_folderRepository = new archive_folderRepository(_dbConnection);
+                    _archive_folderRepository = new archive_folderRepository(_dbConnection, _userRepository);
                     _archive_folderRepository.SetTransaction(_dbTransaction);
                 }
                 return _archive_folderRepository;
@@ -2489,7 +2493,7 @@ namespace Infrastructure.Data
                 return _journalTemplateTypeRepository;
             }
         }
-        
+
         public IJournalApplicationRepository JournalApplicationRepository
         {
             get
@@ -2502,6 +2506,57 @@ namespace Infrastructure.Data
                 return _journalApplicationRepository;
             }
         }
+
+        public IAddressUnitTypeRepository AddressUnitTypeRepository
+        {
+            get
+            {
+                if (_addressUnitTypeRepository == null)
+                {
+                    _addressUnitTypeRepository = new AddressUnitTypeRepository(_dbConnection, _userRepository);
+                    _addressUnitTypeRepository.SetTransaction(_dbTransaction);
+                }
+                return _addressUnitTypeRepository;
+            }
+        }
+        public IAddressUnitRepository AddressUnitRepository
+        {
+            get
+            {
+                if (_addressUnitRepository == null)
+                {
+                    _addressUnitRepository = new AddressUnitRepository(_dbConnection, _userRepository);
+                    _addressUnitRepository.SetTransaction(_dbTransaction);
+                }
+                return _addressUnitRepository;
+            }
+        }
+
+        public IStreetTypeRepository StreetTypeRepository
+        {
+            get
+            {
+                if (_streetTypeRepository == null)
+                {
+                    _streetTypeRepository = new StreetTypeRepository(_dbConnection, _userRepository);
+                    _streetTypeRepository.SetTransaction(_dbTransaction);
+                }
+                return _streetTypeRepository;
+            }
+        }
+        public IStreetRepository StreetRepository
+        {
+            get
+            {
+                if (_streetRepository == null)
+                {
+                    _streetRepository = new StreetRepository(_dbConnection, _userRepository);
+                    _streetRepository.SetTransaction(_dbTransaction);
+                }
+                return _streetRepository;
+            }
+        }
+
 
 
         public void Commit()

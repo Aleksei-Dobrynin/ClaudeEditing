@@ -26,6 +26,7 @@ import AddIcon from "@mui/icons-material/Add";
 type ProjectsTableProps = {
   children?: React.ReactNode;
   isPopup?: boolean;
+  isReadOnly?: boolean;
 };
 
 const BaseView: FC<ProjectsTableProps> = observer((props) => {
@@ -73,6 +74,7 @@ const BaseView: FC<ProjectsTableProps> = observer((props) => {
                     onClick={() => {
                       store.changeDivideObjectPopup(true)
                     }}
+                    disabled={props.isReadOnly}
                   >
                     {`${translate("Разделить")}`}
                   </CustomButton>
@@ -95,7 +97,7 @@ const BaseView: FC<ProjectsTableProps> = observer((props) => {
               <CardContent>
                 <Grid container spacing={3}>
                   <Grid item md={9}>
-                    <MapContainerView />
+                    <MapContainerView  isReadOnly={props.isReadOnly}/>
                     {store.mapLayers[0]?.geometry?.coordinates[0] != null && store.mapLayers[0]?.geometry?.coordinates[1] != null &&
                       <a
                         style={{ textDecoration: "underline", color: "#5555b5", marginLeft: 10, fontWeight: 500 }}
@@ -135,6 +137,7 @@ const BaseView: FC<ProjectsTableProps> = observer((props) => {
                             store.handleChange(event)
                           }}
                           name="doc_number"
+                          disabled={props.isReadOnly}
                         />
                       </Grid>
                       <Grid item md={12} xs={12}>
@@ -146,6 +149,7 @@ const BaseView: FC<ProjectsTableProps> = observer((props) => {
                           value={store.address}
                           onChange={(event) => store.handleChange(event)}
                           name="address"
+                          disabled={props.isReadOnly}
                         />
                       </Grid>
                       <Grid item md={12} xs={12}>
@@ -157,6 +161,7 @@ const BaseView: FC<ProjectsTableProps> = observer((props) => {
                           value={store.description}
                           onChange={(event) => store.handleChange(event)}
                           name="description"
+                          disabled={props.isReadOnly}
                         />
                       </Grid>
                       {store.id > 0 ? <Grid item md={12} xs={12}>
@@ -170,6 +175,7 @@ const BaseView: FC<ProjectsTableProps> = observer((props) => {
                             store.handleChange(event)
                           }}
                           name="dp_outgoing_number"
+                          disabled={props.isReadOnly}
                         />
                       </Grid> : null}
 
@@ -178,6 +184,7 @@ const BaseView: FC<ProjectsTableProps> = observer((props) => {
                           <IconButton
                             onClick={() => store.newСustomerClicked()}
                             sx={{ position: "absolute", top: 0, right: 0 }}
+                            disabled={props.isReadOnly}
                           >
                             <AddIcon />
                           </IconButton>
@@ -195,6 +202,7 @@ const BaseView: FC<ProjectsTableProps> = observer((props) => {
                                           sx={{ maxHeight: 30 }}
                                           size="small"
                                           onClick={() => store.deleteCustomer(i)}
+                                          disabled={props.isReadOnly}
                                         >
                                           <ClearIcon fontSize="small" />
                                         </IconButton>
@@ -209,6 +217,7 @@ const BaseView: FC<ProjectsTableProps> = observer((props) => {
                                     value={cust.full_name}
                                     onChange={(event) => store.handleChangeCustomer(event, i)}
                                     name="full_name"
+                                    disabled={props.isReadOnly}
                                   />
                                 </Grid>
                                 <Grid item md={12} xs={12}>
@@ -220,6 +229,8 @@ const BaseView: FC<ProjectsTableProps> = observer((props) => {
                                     value={cust.description}
                                     onChange={(event) => store.handleChangeCustomer(event, i)}
                                     name="description"
+                                    disabled={props.isReadOnly}
+
                                   />
                                 </Grid>
                                 <Grid item md={12} xs={12}>
@@ -231,6 +242,8 @@ const BaseView: FC<ProjectsTableProps> = observer((props) => {
                                     value={cust.dp_outgoing_number}
                                     onChange={(event) => store.handleChangeCustomer(event, i)}
                                     name="dp_outgoing_number"
+                                    disabled={props.isReadOnly}
+
                                   />
                                 </Grid>
                               </Grid>

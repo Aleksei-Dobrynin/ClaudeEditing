@@ -261,29 +261,49 @@ from uploaded_application_document upl
                 throw new RepositoryException("Failed to get uploaded_application_document", ex);
             }
         }
-        
+
         public async Task<int> RejectDocument(int upl_id)
         {
-            var setUserQuery = $"SET LOCAL \"bga.current_user\" TO '{await _userRepository.GetUserID()}'";
-            _dbConnection.Execute(setUserQuery, transaction: _dbTransaction);
-            var sql = @"UPDATE public.""uploaded_application_document"" SET status_id = @status_id WHERE id = @task_id";
+            var userId = await _userRepository.GetUserID();
 
-            await _dbConnection.ExecuteAsync(sql, new { upl_id }, transaction: _dbTransaction);
+            var sql = @"UPDATE uploaded_application_document 
+                SET status_id = @status_id,
+                    updated_at = @updated_at,
+                    updated_by = @updated_by
+                WHERE id = @upl_id";
+
+            await _dbConnection.ExecuteAsync(sql, new
+            {
+                upl_id = upl_id,
+                status_id = 3, // ID статуса "rejected" - нужно уточнить правильный ID
+                updated_at = DateTime.Now,
+                updated_by = userId
+            }, transaction: _dbTransaction);
 
             return upl_id;
         }
 
         public async Task<int> SetDocumentStatus(int id, string status_code)
         {
-            var setUserQuery = $"SET LOCAL \"bga.current_user\" TO '{await _userRepository.GetUserID()}'";
-            _dbConnection.Execute(setUserQuery, transaction: _dbTransaction);
-            var sql = @"UPDATE uploaded_application_document SET status = @status_code WHERE id = @id";
+            var userId = await _userRepository.GetUserID();
 
-            await _dbConnection.ExecuteAsync(sql, new { id, status_code }, transaction: _dbTransaction);
+            var sql = @"UPDATE uploaded_application_document 
+                SET status = @status_code,
+                    updated_at = @updated_at,
+                    updated_by = @updated_by
+                WHERE id = @id";
+
+            await _dbConnection.ExecuteAsync(sql, new
+            {
+                id = id,
+                status_code = status_code,
+                updated_at = DateTime.Now,
+                updated_by = userId
+            }, transaction: _dbTransaction);
 
             return id;
         }
-        
+
         public async Task<UpdatedDocument> GetUpdatedDocumentById(int id)
         {
             var sql = @"
