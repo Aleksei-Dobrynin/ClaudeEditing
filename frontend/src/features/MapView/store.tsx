@@ -13,10 +13,10 @@ import { getTags } from "api/Tag/useGetTags";
 
 class NewStore {
 
-  map_date_start = dayjs().add(-1, 'month')
-  map_date_end = dayjs()
+  map_date_start = null;
+  map_date_end = null;
   map_service_ids = [];
-  map_status_id = 1;
+  map_status_id = 0;
   tag_ids = [];
 
   headStructure = false;
@@ -61,11 +61,6 @@ class NewStore {
 
   changeServices(ids: number[]) {
     this.map_service_ids = ids;
-    this.loadApplications();
-  }
-
-  changeTags(ids: number[]) {
-    this.tag_ids = ids;
     this.loadApplications();
   }
 

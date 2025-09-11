@@ -412,6 +412,13 @@ const ObjectFormView: FC<ProjectsTableProps> = observer((props) => {
                           store.SearchResults = [];
                           store.TundukResidentialAreas = [];
                           store.handleChange({ target: { value: false, name: "open" } }, i)
+                          store.handleChange({ target: { value: [], name: "DarekSearchList" } }, i);
+                          store.handleChange({ target: { value: "", name: "identifier" } }, i);
+                          store.handleChange({ target: { value: "", name: "address" } }, i);
+                          store.handleChange({ target: { value: "", name: "erroraddress" } }, i);
+                          store.handleChange({ target: { value: [], name: "geometry" } }, i);
+                          store.handleChange({ target: { value: null, name: "xcoordinate" } }, i);
+                          store.handleChange({ target: { value: null, name: "ycoordinate" } }, i);
                         }}>
                         Очистить
                       </CustomButton>

@@ -533,7 +533,7 @@ const ApplicationStepsBaseView: FC<ApplicationStepsBaseViewProps> = observer(({ 
                           onUploadFile={() => {
                             store.onUploadFile(doc.service_document_id ?? 0, doc.upl?.id, step.id);
                           }}
-                          hasAccess={store.hasAccess}
+                          hasAccess={hasAccessToStepToReturn(step.responsible_department_id)}
                           onOpenSigners={() => {
                             store.ecpListOpen = true;
                             store.loadGetSignByFileId(doc.upl?.file_id)

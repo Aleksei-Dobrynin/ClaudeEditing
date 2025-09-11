@@ -477,6 +477,13 @@ const pages = {
           icon: icons.IconId,
           url: "/user/DutyPlanLog"
         },
+        {
+          id: "SignDocuments",
+          title: "Подписанные документы",
+          type: "item",
+          icon: icons.IconId,
+          url: "/user/SignDocuments"
+        },
       ]
     },
     {

@@ -51,6 +51,7 @@ namespace Application.UseCases
             if (application.status_id == reviewStatus?.id && road != null)
             {
                 var res = await _applicationUseCases.ChangeStatus(application.id, preparationStatus.id);
+                application.status_id = preparationStatus.id;
             }
 
             try

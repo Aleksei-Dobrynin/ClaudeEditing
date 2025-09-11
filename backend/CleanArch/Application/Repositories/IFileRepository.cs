@@ -18,5 +18,7 @@ namespace Application.Repositories
         public Task<List<PaymentRecordMbank>> ReadPaymentMbankRecords(MemoryStream stream);
         Task<int> AddHistoryLog(FileHistoryLog dto);
         public string GetFullPath(string path);
+        Task<List<FileSign>> GetAllSignForUser(string id);
+        Task<List<FileSignInfo>> GetSignEmployeeListByFile(int id);
     }
 }

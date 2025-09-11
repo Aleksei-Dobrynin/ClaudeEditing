@@ -82,7 +82,7 @@ export const RoleMenu = {
   head_structure: [
     {
       group: "CustomPage",
-      rows: ["Application", "MyTasks", "MyApps", "OrgTasks", "CustomSubscribtion", "CustomerDiscount", "DashboardHeadDepartment", "TechCouncil", "ArchiveObject", "ServicePrice"],
+      rows: ["Application", "MyTasks", "MyApps", "OrgTasks", "CustomSubscribtion", "CustomerDiscount", "DashboardHeadDepartment", "TechCouncil", "ArchiveObject", "ServicePrice", "SignDocuments"],
     },
   ],
   registrar: [
@@ -94,7 +94,7 @@ export const RoleMenu = {
         "AppsFrorEO",
         "AppNotification",
         "CustomSubscribtion",
-
+        "SignDocuments"
       ],
     },
   ],
@@ -119,7 +119,7 @@ export const RoleMenu = {
   employee: [
     {
       group: "CustomPage",
-      rows: ["Application", "MyTasks", "MyApps", "OrgTasks", "CustomSubscribtion", "ArchiveLog", "ArchiveObject"],
+      rows: ["Application", "MyTasks", "MyApps", "OrgTasks", "CustomSubscribtion", "ArchiveLog", "ArchiveObject", "SignDocuments"],
     },
   ],
   accountant: [
@@ -153,7 +153,7 @@ export const RoleMenu = {
   financial_plan: [
     {
       group: "CustomPage",
-      rows: ["ApplicationFinPlan", "ReestrOtchet", "ReestrRealization", "ReestrTax", "Reestrs", "ReestrSvodnaya", "Report", "Income", "ArchiveObject"],
+      rows: ["ApplicationFinPlan", "ReestrOtchet", "ReestrRealization", "ReestrTax", "Reestrs", "ReestrSvodnaya", "Report", "Income", "ArchiveObject", "SignDocuments"],
     },
   ],
   duty_plan: [
@@ -169,6 +169,7 @@ export const RoleMenu = {
         "JournalApplication",
         "DocumentJournals",
         "Services",
+        "SignDocuments"
       ],
     },
     // {
@@ -216,6 +217,10 @@ export const RoleMenuHeader = {
       group: "CustomPage",
       rows: ["ArchiveObject"],
     },
+    {
+      group: "CustomPage",
+      rows: ["SignDocuments"],
+    },
   ],
   registrar: [
     {
@@ -225,6 +230,10 @@ export const RoleMenuHeader = {
     {
       group: "CustomPage",
       rows: ["ArchiveObject"],
+    },
+    {
+      group: "CustomPage",
+      rows: ["SignDocuments"],
     },
   ],
   clerk: [
@@ -279,6 +288,10 @@ export const RoleMenuHeader = {
     {
       group: "CustomPage",
       rows: ["AppFilter"],
+    },
+    {
+      group: "CustomPage",
+      rows: ["SignDocuments"],
     },
   ],
   lawyer: [

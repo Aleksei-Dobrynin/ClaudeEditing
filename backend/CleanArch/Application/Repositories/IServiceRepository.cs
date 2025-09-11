@@ -23,7 +23,9 @@ namespace Application.Repositories
         Task<ResultDashboard> DashboardGetCountTasks(DateTime date_start, DateTime date_end, int structure_id);
         Task<ResultDashboard> DashboardGetCountUserApplications(DateTime date_start, DateTime date_end);
         Task<List<ArchObjectLeaflet>> GetApplicationsWithCoords(DateTime date_start, DateTime date_end, int service_id, string status_code, int tag_id);
+        Task<List<ArchObjectLeaflet>> GetApplicationsWithCoords(DateTime date_start, DateTime date_end, int[] service_ids, string status_code, int[] tag_ids);
         Task<List<ArchObjectLeaflet>> GetApplicationsWithCoordsByStructures(DateTime date_start, DateTime date_end, int service_id, string status_code, int tag_id, List<int> structure_ids);
+        Task<List<ArchObjectLeaflet>> GetApplicationsWithCoordsByStructures(DateTime date_start, DateTime date_end, int[] service_ids, string status_code, int[] tag_ids, List<int> structure_ids);
         Task<ResultDashboard> DashboardGetCountObjects(int district_id);
         Task<ResultDashboard> GetApplicationCountHour(DateTime date_start, DateTime date_end);
         Task<ResultDashboard> GetApplicationCountHour(DateTime date_start, DateTime date_end, string user_id);

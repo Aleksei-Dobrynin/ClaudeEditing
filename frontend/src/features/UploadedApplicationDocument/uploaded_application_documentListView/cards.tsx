@@ -32,7 +32,6 @@ type DocumentCardProps = {
   hasAccess: boolean,
 }
 
-
 export const DocumentCard: FC<DocumentCardProps> = ({ document, t, onDocumentPreview, onOpenSigners, onOpenFileHistory, onSigned, onUploadFile, step_id, step, onAddSigner, hasAccess }) => {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
 
@@ -49,6 +48,11 @@ export const DocumentCard: FC<DocumentCardProps> = ({ document, t, onDocumentPre
     return <><span style={{ color: "green" }}>Файл загружен</span> • {document.upl?.file_name}</>;
   };
 
+  // Определяем, нужно ли показывать tooltip для кнопки замены файла
+  const shouldShowUploadTooltip = !hasAccess && document.upl?.file_id;
+  const uploadTooltipTitle = shouldShowUploadTooltip 
+    ? "только начальник и админ могут заменить документ" 
+    : document.upl?.id ? "Заменить файл" : "Загрузить файл";
 
   return (
     <Card>
@@ -114,7 +118,6 @@ export const DocumentCard: FC<DocumentCardProps> = ({ document, t, onDocumentPre
 
             {(document.upl?.file_id && store.checkFile(document.upl?.file_name)) && <Tooltip title={"Просмотр"}>
               <IconButton size="small" onClick={() => {
-                // store.OpenFileFile(document.upl?.file_id, document.upl?.file_name)
                 onDocumentPreview()
                 setShowMoreMenu(false);
               }}>
@@ -122,14 +125,19 @@ export const DocumentCard: FC<DocumentCardProps> = ({ document, t, onDocumentPre
               </IconButton>
             </Tooltip>}
 
-            <Tooltip title={document.upl?.id ? "Заменить файл" : "Загрузить файл"}>
-              <IconButton disabled={!hasAccess || step?.status !== "in_progress"} size="small" onClick={() => {
-                // store.uploadFile(document.service_document_id ?? 0, document.upl?.id, step_id, onSigned);
-                onUploadFile()
-                setShowMoreMenu(false);
-              }}>
-                <FileUploadIcon />
-              </IconButton>
+            <Tooltip title={uploadTooltipTitle}>
+              <span>
+                <IconButton 
+                  disabled={!hasAccess || step?.status !== "in_progress"} 
+                  size="small" 
+                  onClick={() => {
+                    onUploadFile()
+                    setShowMoreMenu(false);
+                  }}
+                >
+                  <FileUploadIcon />
+                </IconButton>
+              </span>
             </Tooltip>
 
             {document.upl?.file_id && <Tooltip title="Скачать файл">
@@ -152,8 +160,6 @@ export const DocumentCard: FC<DocumentCardProps> = ({ document, t, onDocumentPre
 
             {document.upl?.file_id && <Tooltip title="Список подписавших">
               <IconButton size="small" onClick={() => {
-                // store.ecpListOpen = true;
-                // store.loadGetSignByFileId(document.upl?.file_id);
                 onOpenSigners()
               }}>
                 <FormatListBulletedIcon />

@@ -3,6 +3,7 @@ import { observer } from "mobx-react";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import Dialog from "@mui/material/Dialog";
+import Link from '@mui/material/Link';
 import MuiDialogContent from "@mui/material/DialogContent";
 import CustomTextField from "components/TextField";
 import MaskedTextField from "components/MaskedTextField";
@@ -12,10 +13,13 @@ import { useTranslation } from "react-i18next";
 import { signFile, sendCode } from "api/FileSign";
 import i18n from "i18next";
 import { send } from "process";
+import { useNavigate } from 'react-router-dom';
+
 
 const DigitalSignDialog = observer(() => {
   const { t } = useTranslation();
   const translate = t;
+  const navigate = useNavigate();
 
   // Локальные состояния для управления формой
   const [pin, setPin] = useState("");
@@ -126,10 +130,20 @@ const DigitalSignDialog = observer(() => {
           label={translate("ИНН")}
           value={pin}
           mask={"00000000000000"}
+          disabled={true}
           onChange={handlePinChange}
           id='id_dialog_sign_pin'
           name='dialog_sign_pin'
         />
+
+        {pin == "" && (
+          <div style={{ margin: 15 }}>
+            У вас не заполнен ИНН в профиле, пройдите в <Link  onClick={() => {
+                  MainStore.digitalSign.onCloseNo();
+                  navigate('/user/account-settings')
+                }} >личный кабинет</Link> сотрудника и заполните свой ИНН
+          </div>
+        )}
 
         {isSend && (
           <>

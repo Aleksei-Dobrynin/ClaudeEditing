@@ -23,7 +23,9 @@ namespace Application.Repositories
         Task<Employee> GetEmployeeByToken(); 
         Task<Employee> UpdateInitials(EmployeeInitials domain);
         Task<List<Employee>> GetEmployeesByEmail(string email);
-        
+
+        Task<List<Employee>> GetEmployeesByApplicationStep(int applicationStepId);
+
     }
     
 }

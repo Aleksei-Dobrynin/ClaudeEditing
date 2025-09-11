@@ -130,6 +130,18 @@ namespace Application.UseCases
         {
             return await unitOfWork.ServiceRepository.GetApplicationsWithCoords(date_start, date_end, service_id, status_code, tag_id);
         }
+        
+        public async Task<List<ArchObjectLeaflet>> GetApplicationsWithCoords(DateTime date_start, DateTime date_end, int[] service_ids, string status_code, int[] tag_ids)
+        {
+            return await unitOfWork.ServiceRepository.GetApplicationsWithCoords(date_start, date_end, service_ids, status_code, tag_ids);
+        }
+        
+        public async Task<List<ArchObjectLeaflet>> GetApplicationsWithCoordsByHeadStructure(DateTime date_start, DateTime date_end, int[] service_ids, string status_code, int[] tag_ids)
+        {
+            var user_id = await unitOfWork.UserRepository.GetUserID();
+            var structure_ids = await unitOfWork.EmployeeInStructureRepository.GetInMyStructure(user_id);
+            return await unitOfWork.ServiceRepository.GetApplicationsWithCoordsByStructures(date_start, date_end, service_ids, status_code, tag_ids, structure_ids.Select(x => x.structure_id).Distinct().ToList());
+        }
         public async Task<List<ArchObjectLeaflet>> GetApplicationsWithCoordsByHeadStructure(DateTime date_start, DateTime date_end, int service_id, string status_code, int tag_id)
         {
             var user_id = await unitOfWork.UserRepository.GetUserID();

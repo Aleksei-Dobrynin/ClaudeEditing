@@ -82,6 +82,7 @@ namespace Application.UseCases
 
         public async Task<int> SignDocument(int id, int? uplId, string pin, string code)
         {
+            if (id == 0 && uplId == 0) return 1;
             var signs = await unitOfWork.FileRepository.GetSignByFileIds(new int[] { id });
             var userId = await _userRepository.GetUserID();
             var userGuid = await _userRepository.GetUserUID();
@@ -285,7 +286,19 @@ namespace Application.UseCases
             return res; //todo
         }
 
-
+        public async Task<List<FileSign>> GetAllSignByUser()
+        {
+            var user_id = await unitOfWork.UserRepository.GetUserUID();
+            var result = await unitOfWork.FileRepository.GetAllSignForUser(user_id);
+            return result;
+        }
+        
+        public async Task<List<FileSignInfo>> GetSignEmployeeListByFile(int id)
+        {
+            var result = await unitOfWork.FileRepository.GetSignEmployeeListByFile(id);
+            return result;
+        }
+        
         private string GetFileSHA256Hash(string filePath)
         {
             using var sha256 = SHA256.Create();

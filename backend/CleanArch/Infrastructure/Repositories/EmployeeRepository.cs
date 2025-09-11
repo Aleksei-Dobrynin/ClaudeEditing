@@ -401,6 +401,109 @@ where emp.id = @id";
                 throw new RepositoryException("Failed to update Employee", ex);
             }
         }
+
+        public async Task<List<Employee>> GetEmployeesByApplicationStep(int applicationStepId)
+        {
+            try
+            {
+                var sql = @"
+WITH 
+-- Сотрудники, подписавшие документы на этом этапе
+document_signers AS (
+    SELECT DISTINCT
+        e.id,
+        e.last_name,
+        e.first_name,
+        e.second_name,
+        e.email,
+        e.pin,
+        e.remote_id,
+        e.user_id,
+        e.telegram,
+        e.guid
+    FROM application_work_document awd
+    JOIN file f ON f.id = awd.file_id
+    JOIN file_sign fs ON fs.file_id = f.id
+    JOIN employee e ON e.id = fs.employee_id
+    WHERE awd.app_step_id = @ApplicationStepId
+        AND awd.is_active = true
+),
+-- Утвердители документов этого этапа
+document_approvers AS (
+    SELECT DISTINCT
+        e.id,
+        e.last_name,
+        e.first_name,
+        e.second_name,
+        e.email,
+        e.pin,
+        e.remote_id,
+        e.user_id,
+        e.telegram,
+        e.guid
+    FROM document_approval da
+    JOIN employee_in_structure eis ON 
+        eis.structure_id = da.department_id 
+        AND eis.post_id = da.position_id
+    JOIN employee e ON e.id = eis.employee_id
+    WHERE da.app_step_id = @ApplicationStepId
+        AND (eis.date_end IS NULL OR eis.date_end > CURRENT_DATE)
+),
+-- Начальник ответственного отдела
+department_head AS (
+    SELECT DISTINCT
+        e.id,
+        e.last_name,
+        e.first_name,
+        e.second_name,
+        e.email,
+        e.pin,
+        e.remote_id,
+        e.user_id,
+        e.telegram,
+        e.guid
+    FROM application_step apps
+    JOIN path_step ps ON ps.id = apps.step_id
+    JOIN employee_in_structure eis ON eis.structure_id = ps.responsible_org_id
+    JOIN structure_post sp ON sp.id = eis.post_id AND sp.code = 'head_structure'
+    JOIN employee e ON e.id = eis.employee_id
+    WHERE apps.id = @ApplicationStepId
+        AND (eis.date_end IS NULL OR eis.date_end > CURRENT_DATE)
+)
+-- Объединяем все результаты и убираем дубликаты
+SELECT DISTINCT
+    id,
+    last_name,
+    first_name,
+    second_name,
+    email,
+    pin,
+    remote_id,
+    user_id,
+    telegram,
+    guid
+FROM (
+    SELECT * FROM document_signers
+    UNION
+    SELECT * FROM document_approvers
+    UNION
+    SELECT * FROM department_head
+) all_employees
+ORDER BY last_name, first_name, second_name";
+
+                var models = await _dbConnection.QueryAsync<Employee>(
+                    sql,
+                    new { ApplicationStepId = applicationStepId },
+                    transaction: _dbTransaction
+                );
+
+                return models.ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException($"Failed to get employees for application step {applicationStepId}", ex);
+            }
+        }
     }
 }
 

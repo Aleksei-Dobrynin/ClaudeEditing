@@ -36,5 +36,15 @@
         public string? file_type_name { get; set; }
         public int? file_type_id { get; set; }
         public int? cabinet_file_id { get; set; }
+        public string? file_name { get; set; }
+        public string? application_number { get; set; }
+        public string? file_type { get; set; }
+    }
+    
+    public class FileSignInfo
+    {
+        public string? employee_fullname { get; set; }
+        public string? structure_fullname { get; set; }
+        public DateTime? timestamp { get; set; }
     }
 }

@@ -6,6 +6,9 @@
   "addedSuccessfully": "Успешно добавлено!",
   "editedSuccessfully": "Успешно Редактировано!",
   "error": {
+    "pinLength": "Длина должна быть 14 символов",
+    "emptyPin": "Пустой ИНН",
+    "pinOnlyNumbers": "Только цифры",
     "fileNotFoundInDatabase": "Файл в базе не найден",
     "MoreThenZeroError": "Должно быть больше 0",
     "PercentError": "Неправильное значение в процентах",

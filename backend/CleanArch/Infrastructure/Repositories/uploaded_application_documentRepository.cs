@@ -275,7 +275,7 @@ from uploaded_application_document upl
             await _dbConnection.ExecuteAsync(sql, new
             {
                 upl_id = upl_id,
-                status_id = 3, // ID статуса "rejected" - нужно уточнить правильный ID
+                status_id = 3, // ID пїЅпїЅпїЅпїЅпїЅпїЅпїЅ "rejected" - пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ ID
                 updated_at = DateTime.Now,
                 updated_by = userId
             }, transaction: _dbTransaction);
@@ -330,7 +330,12 @@ from uploaded_application_document upl
             try
             {
                 var sql = @"
-select doc.id, appdoc.name doc_name, appdoc.id app_doc_id, doc.is_required, typ.name type_name, typ.code type_code, upl.id upload_id, upl.status_id status_id, document_status.name status_name, doc.id service_document_id,
+select doc.id, appdoc.name doc_name, appdoc.id app_doc_id, doc.is_required, typ.name type_name, typ.code type_code, upl.id upload_id, upl.status_id status_id, 
+           case 
+        when file.id is not null 
+            then coalesce(document_status.name, 'РќРµ РІР°Р»РёРґРЅС‹Р№')
+        else document_status.name
+    end as status_name, doc.id service_document_id,
 	upl.name upload_name, upl.created_at, upl.file_id, file.name file_name, upl.created_by, appdoc.doc_is_outcome is_outcome, upl.document_number from service_document doc
 left join service on service.id = doc.service_id
 left join application app on app.service_id = service.id

@@ -70,6 +70,21 @@ namespace WebApi.Controllers
             return Ok(res);
         }
 
+        [HttpGet]
+        [Route("GetAllSignByUser")]
+        public async Task<IActionResult> GetAllSignByUser()
+        {
+            var res =await _fileUseCases.GetAllSignByUser();
+            return Ok(res);
+        }
+        
+        [HttpGet]
+        [Route("GetSignEmployeeListByFile")]
+        public async Task<IActionResult> GetSignEmployeeListByFile(int id)
+        {
+            var res =await _fileUseCases.GetSignEmployeeListByFile(id);
+            return Ok(res);
+        }
 
         [HttpGet]
         [Route("SendCode")]

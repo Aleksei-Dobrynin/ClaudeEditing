@@ -13,5 +13,6 @@ namespace Domain.Entities
         public string name_kg { get; set; }
         public string description { get; set; }
 		public string code { get; set; }
+		public string background_color { get; set; }
     }
 }

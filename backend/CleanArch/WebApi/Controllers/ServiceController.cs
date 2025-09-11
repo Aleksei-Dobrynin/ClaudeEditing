@@ -437,6 +437,58 @@ namespace WebApi.Controllers
             var response = await _serviceUseCases.GetApplicationsWithCoords(date_start, date_end, service_id, status_code, tag_id);
             return Ok(response);
         }
+        
+        [HttpGet]
+        [Route("GetApplicationsWithCoordsv2")]
+        public async Task<IActionResult> GetApplicationsWithCoordsv2(DateTime date_start, DateTime date_end, string? service_ids, string? status_code, string? tag_ids)
+        {
+            int[] serviceIds;
+            if (string.IsNullOrEmpty(service_ids))
+            {
+                serviceIds = [];
+            }
+            else
+            {
+                serviceIds = service_ids.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToArray();
+            }
+            int[] tagIds;
+            if (string.IsNullOrEmpty(tag_ids))
+            {
+                tagIds = [];
+            }
+            else
+            {
+                tagIds = tag_ids.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToArray();
+            }
+            var response = await _serviceUseCases.GetApplicationsWithCoords(date_start, date_end, serviceIds, status_code, tagIds);
+            return Ok(response);
+        }
+        
+        [HttpGet]
+        [Route("GetApplicationsWithCoordsByHeadStructurev2")]
+        public async Task<IActionResult> GetApplicationsWithCoordsByHeadStructurev2(DateTime date_start, DateTime date_end, string? service_ids, string? status_code, string? tag_ids)
+        {
+            int[] serviceIds;
+            if (string.IsNullOrEmpty(service_ids))
+            {
+                serviceIds = [];
+            }
+            else
+            {
+                serviceIds = service_ids.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToArray();
+            }
+            int[] tagIds;
+            if (string.IsNullOrEmpty(tag_ids))
+            {
+                tagIds = [];
+            }
+            else
+            {
+                tagIds = tag_ids.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToArray();
+            }
+            var response = await _serviceUseCases.GetApplicationsWithCoordsByHeadStructure(date_start, date_end, serviceIds, status_code, tagIds);
+            return Ok(response);
+        }
 
         [HttpGet]
         [Route("GetApplicationsWithCoordsByHeadStructure")]

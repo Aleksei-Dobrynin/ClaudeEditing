@@ -769,6 +769,7 @@ select
     app.number,
     c.full_name customer,
     string_agg(tag.name, ', ') tags,
+    string_agg(tag.background_color, ', ') tags_color,
     st.name status
 from
 application app
@@ -812,6 +813,162 @@ and exists (
 group by app.id, obj.id, s.id, st.id, c.id
 order by app.id desc";
                 var model = await _dbConnection.QueryAsync<ArchObjectLeaflet>(sql, new { date_end, date_start, service_id, status_code, tag_id }, transaction: _dbTransaction);
+                if (model == null)
+                {
+                    throw new RepositoryException($"Service not found.", null);
+                }
+
+                var res = model.ToList();
+                return res;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to get Service", ex);
+            }
+        }
+
+        public async Task<List<ArchObjectLeaflet>> GetApplicationsWithCoords(DateTime date_start, DateTime date_end, int[] service_ids, string status_code, int[] tag_ids)
+        {
+            try
+            {
+                var sql = @"
+select
+	app.id app_id,
+	obj.xcoordinate,
+	obj.ycoordinate,
+	s.name service_name,
+	obj.name,
+	obj.address,
+	obj.description,
+	app.registration_date,
+    app.work_description,
+    app.number,
+    c.full_name customer,
+    string_agg(tag.name, ', ') tags,
+    st.name status
+from
+application app
+left join arch_object obj on obj.id = app.arch_object_id
+left join service s on s.id = app.service_id
+left join application_status st on st.id = app.status_id
+left join customer c on c.id = app.customer_id
+left join arch_object_tag aot on aot.id_object = obj.id
+left join tag on tag.id = aot.id_tag
+
+where obj.xcoordinate is not null and obj.ycoordinate is not null
+and  app.registration_date > @date_start and app.registration_date < @date_end
+";
+
+                if (service_ids.Length > 0)
+                {
+                    sql += @"
+    AND s.id = ANY(@service_ids)";
+                }
+                if (status_code != "" && status_code != null)
+                {
+                    sql += @"
+and st.code = @status_code";
+                }
+                if (tag_ids.Length > 0)
+                {
+                    sql += @"
+and exists (
+      select 1
+      from arch_object_tag aot_sub
+      join tag t_sub on t_sub.id = aot_sub.id_tag
+      where aot_sub.id_object = obj.id
+        and t_sub.id = ANY(@tag_ids)
+  )
+
+";
+                }
+
+
+                sql += @"
+group by app.id, obj.id, s.id, st.id, c.id
+order by app.id desc";
+                var model = await _dbConnection.QueryAsync<ArchObjectLeaflet>(sql, new { date_end, date_start, service_ids, status_code, tag_ids }, transaction: _dbTransaction);
+                if (model == null)
+                {
+                    throw new RepositoryException($"Service not found.", null);
+                }
+
+                var res = model.ToList();
+                return res;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to get Service", ex);
+            }
+        }
+        
+        public async Task<List<ArchObjectLeaflet>> GetApplicationsWithCoordsByStructures(DateTime date_start, DateTime date_end,int[] service_ids, string status_code, int[] tag_ids, List<int> structure_ids)
+        {
+            try
+            {
+                var sql = @"
+select
+	app.id app_id,
+	obj.xcoordinate,
+	obj.ycoordinate,
+	s.name service_name,
+	obj.name,
+	obj.address,
+	obj.description,
+	app.registration_date,
+    app.work_description,
+    app.number,
+    c.full_name customer,
+    string_agg(tag.name, ', ') tags,
+    st.name status
+from
+application app
+left join arch_object obj on obj.id = app.arch_object_id
+left join service s on s.id = app.service_id
+left join application_status st on st.id = app.status_id
+left join customer c on c.id = app.customer_id
+left join arch_object_tag aot on aot.id_object = obj.id
+left join tag on tag.id = aot.id_tag
+left join application_task task on task.application_id = app.id
+
+where obj.xcoordinate is not null and obj.ycoordinate is not null
+and  app.registration_date > @date_start and app.registration_date < @date_end
+";
+
+                if (service_ids.Length > 0)
+                {
+                    sql += @"
+and s.id = ANY(@service_ids)";
+                }
+                if (status_code != "" && status_code != null)
+                {
+                    sql += @"
+and st.code = @status_code";
+                }
+                if (structure_ids.Count > 0)
+                {
+                    sql += @"
+and task.structure_id in (" + string.Join(", ", structure_ids) + ")"; ;
+                }
+                if (tag_ids.Length > 0)
+                {
+                    sql += @"
+and exists (
+      select 1
+      from arch_object_tag aot_sub
+      join tag t_sub on t_sub.id = aot_sub.id_tag
+      where aot_sub.id_object = obj.id
+        and t_sub.id = ANY(@tag_ids)
+  )
+
+";
+                }
+
+
+                sql += @"
+group by app.id, obj.id, s.id, st.id, c.id
+order by app.id desc";
+                var model = await _dbConnection.QueryAsync<ArchObjectLeaflet>(sql, new { date_end, date_start, service_ids, status_code, tag_ids }, transaction: _dbTransaction);
                 if (model == null)
                 {
                     throw new RepositoryException($"Service not found.", null);

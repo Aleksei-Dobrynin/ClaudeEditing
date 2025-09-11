@@ -38,6 +38,7 @@ namespace Domain.Entities
         public string customer { get; set; }
         public string number { get; set; }
         public string tags { get; set; }
+        public string tags_color { get; set; }
         public string status { get; set; }
         public DateTime registration_date { get; set; }
     }

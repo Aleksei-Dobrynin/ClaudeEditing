@@ -1456,46 +1456,31 @@ FROM application app
                             {
                                 sql += @$" AND (deadline::date < CURRENT_DATE and (st.code in ('review',
 'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready')))";
+'preparation')))";
                             }
                             else if (filter.deadline_day == -1)
                             {
                                 sql += @$" AND (deadline::date = CURRENT_DATE and (st.code in ('review',
 'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready')))";
+'preparation')))";
                             }
                             else if (filter.deadline_day == 7)
                             {
                                 sql += @$" and (deadline::DATE BETWEEN CURRENT_DATE + INTERVAL '4 days' AND CURRENT_DATE + INTERVAL '7 days' AND (st.code in ('review',
 'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready')))";
+'preparation')))";
                             }
                             else if (filter.deadline_day == 3)
                             {
                                 sql += @$" and (deadline::DATE BETWEEN CURRENT_DATE + INTERVAL '1 days' AND CURRENT_DATE + INTERVAL '3 days' AND (st.code in ('review',
 'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready')))";
+'preparation')))";
                             }
                             else if (filter.deadline_day == 1)
                             {
                                 sql += @$" and (deadline::DATE = CURRENT_DATE + INTERVAL '1 day' and  (st.code in ('review',
 'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready')))";
+'preparation')))";
                             }
                         }
                     }
@@ -1613,46 +1598,31 @@ AND (app.cashed_info->>'dp_created_at')::timestamp <= @dashboard_date_end";
                         {
                             sql += @$" AND (deadline::date < CURRENT_DATE and (st.code in ('review',
 'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready')))";
+'preparation')))";
                         }
                         else if (filter.deadline_day == -1)
                         {
                             sql += @$" AND (deadline::date = CURRENT_DATE and (st.code in ('review',
 'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready')))";
+'preparation')))";
                         }
                         else if (filter.deadline_day == 7)
                         {
                             sql += @$" and (deadline::DATE BETWEEN CURRENT_DATE + INTERVAL '4 days' AND CURRENT_DATE + INTERVAL '7 days' AND (st.code in ('review',
 'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready')))";
+'preparation')))";
                         }
                         else if (filter.deadline_day == 3)
                         {
                             sql += @$" and (deadline::DATE BETWEEN CURRENT_DATE + INTERVAL '1 days' AND CURRENT_DATE + INTERVAL '3 days' AND (st.code in ('review',
 'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready')))";
+'preparation')))";
                         }
                         else if (filter.deadline_day == 1)
                         {
                             sql += @$" and (deadline::DATE = CURRENT_DATE + INTERVAL '1 day' and  (st.code in ('review',
 'executor_assignment',
-'preparation',
-'return_to_eo',
-'ready_for_eo',
-'rejection_ready')))";
+'preparation')))";
                         }
                     }
 

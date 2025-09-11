@@ -60,6 +60,7 @@ export default function MaskedAutocomplete(props: SelectType) {
       options={maskedOptions}
       value={maskedOptions.find((item) => item.displayValue === props.value) ||
         (props.value ? { displayValue: props.value } : null)}
+      inputValue={props.value != null ? String(props.value) : ""}
       onChange={(event, newValue) => {
         if (newValue) {
           props.onChange(newValue);

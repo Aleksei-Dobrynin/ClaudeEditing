@@ -240,6 +240,8 @@ import StreetTypeListView from "features/StreetType/StreetTypeListView/index";
 import StreetTypeAddEditView from "features/StreetType/StreetTypeAddEditView/index"
 import StreetListView from "features/Street/StreetListView/index";
 import StreetAddEditView from "features/Street/StreetAddEditView/index";
+import MapView from "features/MapView";
+import SignDocumentsListView from "features/SignDocuments/SignDocumentsListView/index";
 
 import Reports from 'features/Dashboard_headDepartment/reports';
 import { JournalTemplateType } from "./constants/JournalTemplateType";
@@ -498,6 +500,8 @@ const router = createBrowserRouter([
               { path: 'JournalTemplateType', element: <JournalTemplateTypeListView /> },
               { path: 'JournalTemplateType/addedit', element: <JournalTemplateTypeAddEditView /> },
               { path: 'JournalApplication', element: <JournalApplicationListViewApp /> },
+              { path: 'MapView', element: <MapView /> },
+              { path: 'SignDocuments', element: <SignDocumentsListView /> },
             ]
           }]
       },

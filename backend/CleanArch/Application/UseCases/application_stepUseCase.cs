@@ -1,5 +1,6 @@
 using Application.Models;
 using Application.Repositories;
+using Application.Services;
 using Domain;
 using Domain.Entities;
 using FluentResults;
@@ -11,11 +12,14 @@ namespace Application.UseCases
     {
         private readonly IUnitOfWork unitOfWork;
         private readonly IAuthRepository _authRepository;
+        private readonly ISendNotification sendNotification;
 
-        public application_stepUseCases(IUnitOfWork unitOfWork, IAuthRepository authRepository)
+
+        public application_stepUseCases(IUnitOfWork unitOfWork, IAuthRepository authRepository, ISendNotification sendNotification)
         {
             this.unitOfWork = unitOfWork;
             this._authRepository = authRepository;
+            this.sendNotification = sendNotification;
         }
 
         private async Task LogStatusChange(int appStepId, string oldStatus, string newStatus, string comments = null)
@@ -225,6 +229,32 @@ namespace Application.UseCases
                 }
 
                 if (i == 20) break;
+            }
+
+
+            var employees = await unitOfWork.EmployeeRepository.GetEmployeesByApplicationStep(stepId);
+            if (employees.Count > 0)
+            {
+
+                var tasks = await unitOfWork.application_taskRepository.GetByapplication_id(result.application_id.Value);
+
+                var param = new Dictionary<string, string>();
+                param.Add("application_number", result.application_id.ToString());
+                param.Add("comment", comment);
+
+                if (tasks != null && tasks.Count > 0)
+                {
+                    param.Add("task_id", tasks.FirstOrDefault().id.ToString());
+                }
+                else
+                {
+                    param.Add("task_id", "0");
+                }
+
+                foreach (var item in employees)
+                {
+                    await sendNotification.SendNotification("task_reopened", item.id, param);
+                }
             }
 
             unitOfWork.Commit();

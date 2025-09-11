@@ -67,6 +67,7 @@ class NewStore {
     tunduk_address_unit_id: null,
     tunduk_street_id: null,
     app_ids: [],
+
   };
   checkResult: null | { valid: boolean; errors: Record<string, string> } = null;
   selectedApplicationId: number | null = null;

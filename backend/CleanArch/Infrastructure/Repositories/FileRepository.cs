@@ -154,6 +154,43 @@ namespace Infrastructure.Repositories
             }
         }
 
+        public async Task<List<FileSign>> GetAllSignForUser(string id)
+        {
+            try
+            {
+                var sql = @"select fs.id, fs.structure_fullname, fs.timestamp, fs.file_id, f.name as file_name, ad.name as file_type, a.number as application_number from file_sign fs
+                            left join employee e on fs.employee_id = e.id
+                            left join file f on fs.file_id = f.id
+                            left join uploaded_application_document uad on f.id = uad.file_id
+                            left join application_step step on step.id = uad.app_step_id
+                            left join application a on step.application_id = a.id
+                            left join service_document sd on uad.service_document_id = sd.id
+                            left join application_document ad on sd.application_document_id = ad.id
+                            where fs.file_id != 0 and step.id is not null and e.user_id = @id";
+                var result = await _dbConnection.QueryAsync<FileSign>(sql, new { id }, transaction: _dbTransaction);
+                return result.ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to get ApplicationDocumentType", ex);
+            }
+        }
+        
+        public async Task<List<FileSignInfo>> GetSignEmployeeListByFile(int id)
+        {
+            try
+            {
+                var sql = @"select fs.timestamp, fs.employee_fullname, fs.structure_fullname
+                            from file_sign fs
+                            where fs.file_id = @id;";
+                var result = await _dbConnection.QueryAsync<FileSignInfo>(sql, new { id }, transaction: _dbTransaction);
+                return result.ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to get ApplicationDocumentType", ex);
+            }
+        }
 
         public async Task<int> Add(Domain.Entities.File dto)
         {

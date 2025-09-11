@@ -54,6 +54,18 @@ export const getApplicationsWithCoordsByHeadStructure = (date_start: Dayjs, date
   return http.get(`/service/GetApplicationsWithCoordsByHeadStructure?date_start=${date_start}&date_end=${date_end}&service_id=${service_id}&tag_id=${tag_id}&status_code=${status_code}`);
 };
 
+export const getApplicationsWithCoordsv2 = (date_start: Dayjs, date_end: Dayjs, service_ids: number[], tag_ids: number[], status_code: string): Promise<any> => {
+  const serviceIdsParam = service_ids.join(",");
+  const tagsIdsParam = tag_ids.join(",");
+  return http.get(`/service/GetApplicationsWithCoordsv2?date_start=${date_start}&date_end=${date_end}&service_ids=${serviceIdsParam}&tag_ids=${tagsIdsParam}&status_code=${status_code}`);
+};
+
+export const getApplicationsWithCoordsByHeadStructurev2 = (date_start: Dayjs, date_end: Dayjs, service_ids: number[], tag_ids: number[], status_code: string): Promise<any> => {
+  const serviceIdsParam = service_ids.join(",");
+  const tagsIdsParam = tag_ids.join(",");
+  return http.get(`/service/GetApplicationsWithCoordsByHeadStructurev2?date_start=${date_start}&date_end=${date_end}&service_id=${serviceIdsParam}&tag_id=${tagsIdsParam}&status_code=${status_code}`);
+};
+
 export const getDashboardAppCount = (date_start: Dayjs, date_end: Dayjs, service_id: number, status_id: number): Promise<any> => {
   return http.get(`/service/DashboardGetAppCount?date_start=${date_start}&date_end=${date_end}&service_id=${service_id}&status_id=${status_id}`);
 };

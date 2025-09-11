@@ -3406,5 +3406,14 @@
     "name_kg": "Название (кырг.)",
     "description": "Описание",
     "description_kg": "Описание (кырг.)"
+  },
+  "SignDocumentsListView": {
+    "entityTitle": "Подписанные документы",
+    "structure_fullname": "Структура",
+    "file_name": "Название файла",
+    "file_type": "Тип файла",
+    "timestamp": "Дата подписи",
+    "application_number": "Номер заявки",
+    "signers": "Подписанты"
   }
 }
