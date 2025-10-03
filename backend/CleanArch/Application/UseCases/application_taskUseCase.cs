@@ -152,10 +152,15 @@ namespace Application.UseCases
                     var empInStr = await unitOfWork.EmployeeInStructureRepository.GetOneByID(eis_id);
                     var application = await unitOfWork.ApplicationRepository.GetOneByID(domain.application_id);
                     var service = await unitOfWork.ServiceRepository.GetOneByID(application.service_id);
-
+                    var customer = await unitOfWork.CustomerRepository.GetOneByID(application.customer_id);
+                    var archObjects = await unitOfWork.ArchObjectRepository.GetByAppIdApplication(application.id);
+                    var arch_adress = string.Join(", ", archObjects.Select(x => x.address));
+                    
                     var param = new Dictionary<string, string>();
                     param.Add("application_number", application.number);
                     param.Add("service_name", service.name);
+                    param.Add("customer_name", customer.full_name);
+                    param.Add("arch_adress", arch_adress);
                     param.Add("task_id", result.ToString());
                     await sendNotification.SendNotification("new_task", empInStr.employee_id, param);
                 }

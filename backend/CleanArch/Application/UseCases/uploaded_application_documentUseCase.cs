@@ -123,7 +123,7 @@ namespace Application.UseCases
                         var mark = new List<string> { "Дата создания: " + DateTime.Now.ToString("dd.MM.yyyy"), "QR-код для проверки ЭЦП", document.path };
 
                         var secured = _watermarkService.GenerateSecureLink("", document.path);
-                        var res = await _watermarkService.AddSignatureStampDirectlyToPdfAsync(document.body, mark, secured);
+                        var res = await _watermarkService.AddSignatureStampDirectlyToPdfAsync(document.body, mark, secured, serviceDoc?.application_document_id ?? 0);
                         document.body = res.Value;
                         document = unitOfWork.FileRepository.UpdateDocumentFilePath(document);
                     }
@@ -285,7 +285,7 @@ namespace Application.UseCases
                     {
                         var mark = new List<string> { "Дата создания: " + DateTime.Now.ToString("dd.MM.yyyy"), "QR-код для проверки ЭЦП", document.path };
                         var secured = _watermarkService.GenerateSecureLink("", document.path);
-                        var res = await _watermarkService.AddSignatureStampDirectlyToPdfAsync(document.body, mark, secured);
+                        var res = await _watermarkService.AddSignatureStampDirectlyToPdfAsync(document.body, mark, secured, serviceDoc?.application_document_id ?? 0);
                         document.body = res.Value;
                         document = unitOfWork.FileRepository.UpdateDocumentFilePath(document);
                     }
@@ -567,8 +567,15 @@ namespace Application.UseCases
 
                     if(doc.upl != null)
                     {
-                        var hasApprval = doc.approvals.FirstOrDefault(x => x.department_id == org_id && x.position_id == role_id);
-                        if(hasApprval != null)
+                        var userId = await unitOfWork.UserRepository.GetUserID();
+                        var signed = doc.approvals.FirstOrDefault(x => x.department_id == org_id && x.position_id == role_id && x.updated_by == userId);
+                        if (signed != null)
+                        {
+                            doc.can_assign = false;
+                            doc.assign_status = "already_signed";
+                        }
+                        var hasApprval = doc.approvals.FirstOrDefault(x => x.department_id == org_id && x.position_id == role_id && x.status == "waiting");
+                        if(hasApprval != null && signed == null)
                         {
                             if(hasApprval.signInfo != null)
                             {

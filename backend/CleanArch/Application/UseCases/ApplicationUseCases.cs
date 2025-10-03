@@ -143,7 +143,7 @@ namespace Application.UseCases
             return await unitOfWork.ApplicationRepository.GetByFilterFromEO(filter, false);
         }
 
-        
+
         public Task<int> GetCountAppsFromCabinet()
         {
             return unitOfWork.ApplicationRepository.GetCountAppsFromCabinet();
@@ -171,7 +171,7 @@ namespace Application.UseCases
         }
 
 
-        public async Task<Result<Domain.Entities.Application>> Create(Domain.Entities.Application domain, int? cabinetStatusId = null, bool skipNumber = false)
+        public async Task<Result<Domain.Entities.Application>> Create(Domain.Entities.Application domain, int? cabinetStatusId = null, bool skipNumber = false, bool fromCabinet = false)
         {
             if (domain.customer == null)
                 return Result.Fail(new LogicError("Заказчик не может быть пустым!"));
@@ -198,6 +198,7 @@ namespace Application.UseCases
             var user = await unitOfWork.UserRepository.GetUserInfo();
             var user_id = await unitOfWork.UserRepository.GetUserID();
             var employee = await unitOfWork.EmployeeRepository.GetByUserId(user.Id);
+            var districts = await unitOfWork.DistrictRepository.GetAll();
 
             var cashed_inf = new ApplicationCashedInfo
             {
@@ -209,9 +210,12 @@ namespace Application.UseCases
                 assignee_ids = new List<int>(),
                 comments = string.Join(", ", (comments.Select(x => x.comment).ToList())),
                 registrator_id = employee.id,
-                registrator_name = employee.first_name + " " + employee.second_name + " " +employee.last_name
-                
+                registrator_name = employee.first_name + " " + employee.second_name + " " + employee.last_name
+
             };
+
+            cashed_inf.district_names = string.Join(", ", districts.Where(x => cashed_inf.district_ids?.Contains(x.id) ?? false).Select(x => x.name));
+
             var assignees = new List<string>();
             //}
             //else
@@ -266,12 +270,14 @@ namespace Application.UseCases
                 }
             }
 
+
+
             var deadline = await CalculateDeadlineService(domain.service_id);
             domain.deadline = deadline;
-
             var status_assign = await unitOfWork.task_statusRepository.GetOneByCode("assigned");
             var result = await unitOfWork.ApplicationRepository.Add(domain);
             domain.id = result;
+
 
             foreach (var archObject in domain.archObjects)
             {
@@ -282,164 +288,177 @@ namespace Application.UseCases
                 });
             }
 
-            var tasks = await unitOfWork.WorkflowTaskTemplateRepository.GetByServiceId(domain.service_id);
-
-            if (domain.workflow_task_structure_id != null)
+            if (!fromCabinet)
             {
-                tasks = tasks.Where(x => x.id == domain.workflow_task_structure_id).ToList();
-            }
+                deadline = await CalculateDeadlineService(domain.service_id);
+                domain.deadline = deadline;
 
-            var main_order = tasks.OrderBy(x => x.order).FirstOrDefault()?.order;
-            var added_task_id = 0;
+                var tasks = await unitOfWork.WorkflowTaskTemplateRepository.GetByServiceId(domain.service_id);
 
-            foreach (var task in tasks)
-            {
-                application_task apptask = new application_task
+                if (domain.workflow_task_structure_id != null)
                 {
-                    name = task.name ?? "",
-                    comment = task.description ?? "",
-                    created_at = DateTime.Now,
-                    updated_at = DateTime.Now,
-                    task_deadline = domain.deadline,
-                    structure_id = task.structure_id,
-                    application_id = result,
-                    task_template_id = task.id,
-                    type_id = task.type_id,
-                    is_required = task.is_required,
-                    order = task.order,
-                    status_id = status_assign.id,
-                    is_main = false
-                };
-
-                if (main_order != null && task.order == main_order)
-                {
-                    apptask.is_main = true;
-                    main_order = null;
+                    tasks = tasks.Where(x => x.id == domain.workflow_task_structure_id).ToList();
                 }
 
-                var taskId = await unitOfWork.application_taskRepository.Add(apptask);
-                added_task_id = taskId;
+                var main_order = tasks.OrderBy(x => x.order).FirstOrDefault()?.order;
+                var added_task_id = 0;
 
-                unitOfWork.Commit();
-                if (task.structure_id != null)
+                foreach (var task in tasks)
                 {
-                    var headStructures = await _employeeInStructureRepository.GetByStructureAndPost(task.structure_id, "head_structure");
-                    foreach (var headStructure in headStructures)
+                    application_task apptask = new application_task
                     {
-                        await unitOfWork.application_task_assigneeRepository.Add(new application_task_assignee
+                        name = task.name ?? "",
+                        comment = task.description ?? "",
+                        created_at = DateTime.Now,
+                        updated_at = DateTime.Now,
+                        task_deadline = domain.deadline,
+                        structure_id = task.structure_id,
+                        application_id = result,
+                        task_template_id = task.id,
+                        type_id = task.type_id,
+                        is_required = task.is_required,
+                        order = task.order,
+                        status_id = status_assign.id,
+                        is_main = false
+                    };
+
+                    if (main_order != null && task.order == main_order)
+                    {
+                        apptask.is_main = true;
+                        main_order = null;
+                    }
+
+                    var taskId = await unitOfWork.application_taskRepository.Add(apptask);
+                    added_task_id = taskId;
+
+                    unitOfWork.Commit();
+                    if (task.structure_id != null)
+                    {
+                        var headStructures = await _employeeInStructureRepository.GetByStructureAndPost(task.structure_id, "head_structure");
+                        foreach (var headStructure in headStructures)
                         {
-                            application_task_id = taskId,
-                            structure_employee_id = headStructure.id,
-                            created_at = DateTime.Now,
-                            updated_at = DateTime.Now
-                        });
-                        assignees.Add(headStructure.employee_name);
-                        cashed_inf.assignee_ids.Add(headStructure.employee_id);
-                        //await _applicationTaskAssigneeRepository.Add();
+                            await unitOfWork.application_task_assigneeRepository.Add(new application_task_assignee
+                            {
+                                application_task_id = taskId,
+                                structure_employee_id = headStructure.id,
+                                created_at = DateTime.Now,
+                                updated_at = DateTime.Now
+                            });
+                            assignees.Add(headStructure.employee_name);
+                            cashed_inf.assignee_ids.Add(headStructure.employee_id);
+                            //await _applicationTaskAssigneeRepository.Add();
 
-                        var empInStr = await unitOfWork.EmployeeInStructureRepository.GetOneByID(headStructure.id);
-                        //var userId = await unitOfWork.EmployeeRepository.GetUserIdByEmployeeID(empInStr.employee_id);
-                        var application = await unitOfWork.ApplicationRepository.GetOneByID(result);
-                        var service = await unitOfWork.ServiceRepository.GetOneByID(application.service_id);
+                            var empInStr = await unitOfWork.EmployeeInStructureRepository.GetOneByID(headStructure.id);
+                            //var userId = await unitOfWork.EmployeeRepository.GetUserIdByEmployeeID(empInStr.employee_id);
+                            var application = await unitOfWork.ApplicationRepository.GetOneByID(result);
+                            var service = await unitOfWork.ServiceRepository.GetOneByID(application.service_id);
+                            var customer = await unitOfWork.CustomerRepository.GetOneByID(application.customer_id);
+                            var archObjects = await unitOfWork.ArchObjectRepository.GetByAppIdApplication(application.id);
+                            var arch_adress = string.Join(", ", archObjects.Select(x => x.address));
 
-                        var param = new Dictionary<string, string>();
-                        param.Add("application_number", application.number);
-                        param.Add("service_name", service.name);
-                        param.Add("task_id", taskId.ToString());
-                        await sendNotification.SendNotification("new_task", empInStr.employee_id, param);
+                            var param = new Dictionary<string, string>();
+                            param.Add("application_number", application.number);
+                            param.Add("service_name", service.name);
+                            param.Add("customer_name", customer.full_name);
+                            param.Add("arch_adress", arch_adress);
+                            param.Add("task_id", taskId.ToString());
+                            await sendNotification.SendNotification("new_task", empInStr.employee_id, param);
+
+                        }
+                    }
+                }
+
+
+
+
+                var paths = await unitOfWork.service_pathRepository.GetByservice_id(domain.service_id); //TODO get only defaule
+                var path = paths.FirstOrDefault(x => x.is_default == true && x.is_active == true);
+                if (path != null)
+                {
+                    var steps = await unitOfWork.path_stepRepository.GetBypath_id(path.id);
+                    var approvers = await unitOfWork.document_approverRepository.GetByPathId(path.id); //TODO
+                    approvers = approvers.OrderBy(x => x.approval_order).ToList();
+
+                    var requiredDocs = await unitOfWork.step_required_documentRepository.GetAll(); //TODO
+
+                    await unitOfWork.ApplicationRepository.SetElectronicOnly(domain.id, true);
+
+                    steps = steps.OrderBy(x => x.order_number).ToList();
+                    for (var i = 0; i < steps.Count; i++)
+                    {
+                        var apStep = new application_step
+                        {
+                            application_id = result,
+                            step_id = steps[i].id,
+                            status = "waiting",
+                            planned_duration = steps[i].estimated_days,
+                            start_date = DateTime.UtcNow.AddHours(6), //todo
+                        };
+
+                        if (steps[i].estimated_days != null)
+                        {
+                            apStep.due_date = DateTime.Now.AddDays(steps[i].estimated_days.Value);
+                        }
+
+                        if (i == 0) apStep.status = "in_progress"; //TODO
+                        var stepId = await unitOfWork.application_stepRepository.Add(apStep);
+
+                        var docs = requiredDocs.Where(x => x.step_id == apStep.step_id).ToList();
+                        var stepRequiredCalc = await unitOfWork.StepRequiredCalcRepository.GetOneByStepIdAndStructureId(steps[i].id, steps[i].responsible_org_id.Value);
+                        if (stepRequiredCalc != null)
+                        {
+                            var appRequiredCalc = new ApplicationRequiredCalc
+                            {
+                                application_id = result,
+                                application_step_id = stepId,
+                                structure_id = steps[i].responsible_org_id
+                            };
+                            await unitOfWork.ApplicationRequiredCalcRepository.Add(appRequiredCalc);
+                        }
+
+
+                        foreach (var d in docs)
+                        {
+                            var apprs = approvers.Where(x => x.step_doc_id == d.id).ToList();
+                            foreach (var a in apprs)
+                            {
+                                var da = new document_approval
+                                {
+                                    app_step_id = stepId,
+                                    app_document_id = null,
+                                    department_id = a.department_id,
+                                    position_id = a.position_id,
+                                    document_type_id = d.document_type_id,
+                                    status = "waiting",
+                                    created_at = DateTime.UtcNow.AddHours(6), //TODO
+                                    is_required_approver = a.is_required,
+                                    is_required_doc = d.is_required
+
+                                };
+                                await unitOfWork.document_approvalRepository.Add(da);
+                            }
+                        }
+
+                        var work_docs = await unitOfWork.step_required_work_documentRepository.GetBystep_id(steps[i].id);
+                        foreach (var doc in work_docs)
+                        {
+                            var ad = new ApplicationWorkDocument
+                            {
+                                id_type = doc.work_document_type_id,
+                                task_id = added_task_id == 0 ? null : added_task_id,
+                                app_step_id = stepId,
+                                is_required = doc.is_required,
+
+                            };
+                            await unitOfWork.ApplicationWorkDocumentRepository.Add(ad);
+                        }
 
                     }
+                    unitOfWork.Commit();
                 }
             }
 
             unitOfWork.Commit();
-
-
-            var paths = await unitOfWork.service_pathRepository.GetByservice_id(domain.service_id); //TODO get only defaule
-            var path = paths.FirstOrDefault(x => x.is_default == true && x.is_active == true);
-            if (path != null)
-            {
-                var steps = await unitOfWork.path_stepRepository.GetBypath_id(path.id);
-                var approvers = await unitOfWork.document_approverRepository.GetByPathId(path.id); //TODO
-                approvers = approvers.OrderBy(x => x.approval_order).ToList();
-
-                var requiredDocs = await unitOfWork.step_required_documentRepository.GetAll(); //TODO
-
-                await unitOfWork.ApplicationRepository.SetElectronicOnly(domain.id, true);
-
-                steps = steps.OrderBy(x => x.order_number).ToList();
-                for (var i = 0; i < steps.Count; i++)
-                {
-                    var apStep = new application_step
-                    {
-                        application_id = result,
-                        step_id = steps[i].id,
-                        status = "waiting",
-                        planned_duration = steps[i].estimated_days,
-                        start_date = DateTime.UtcNow.AddHours(6), //todo
-                    };
-
-                    if (steps[i].estimated_days != null)
-                    {
-                        apStep.due_date = DateTime.Now.AddDays(steps[i].estimated_days.Value);
-                    }
-
-                    if (i == 0) apStep.status = "in_progress"; //TODO
-                    var stepId = await unitOfWork.application_stepRepository.Add(apStep);
-
-                    var docs = requiredDocs.Where(x => x.step_id == apStep.step_id).ToList();
-                    var stepRequiredCalc = await unitOfWork.StepRequiredCalcRepository.GetOneByStepIdAndStructureId(steps[i].id, steps[i].responsible_org_id.Value);
-                    if (stepRequiredCalc != null)
-                    {
-                        var appRequiredCalc = new ApplicationRequiredCalc
-                        {
-                            application_id = result,
-                            application_step_id = stepId,
-                            structure_id = steps[i].responsible_org_id
-                        };
-                        await unitOfWork.ApplicationRequiredCalcRepository.Add(appRequiredCalc);
-                    }
-
-
-                    foreach (var d in docs)
-                    {
-                        var apprs = approvers.Where(x => x.step_doc_id == d.id).ToList();
-                        foreach (var a in apprs)
-                        {
-                            var da = new document_approval
-                            {
-                                app_step_id = stepId,
-                                app_document_id = null,
-                                department_id = a.department_id,
-                                position_id = a.position_id,
-                                document_type_id = d.document_type_id,
-                                status = "waiting",
-                                created_at = DateTime.UtcNow.AddHours(6), //TODO
-                                is_required_approver = a.is_required,
-                                is_required_doc = d.is_required
-
-                            };
-                            await unitOfWork.document_approvalRepository.Add(da);
-                        }
-                    }
-
-                    var work_docs = await unitOfWork.step_required_work_documentRepository.GetBystep_id(steps[i].id);
-                    foreach (var doc in work_docs)
-                    {
-                        var ad = new ApplicationWorkDocument
-                        {
-                            id_type = doc.work_document_type_id,
-                            task_id = added_task_id == 0 ? null : added_task_id,
-                            app_step_id = stepId,
-                            is_required = doc.is_required,
-
-                        };
-                        await unitOfWork.ApplicationWorkDocumentRepository.Add(ad);
-                    }
-
-                }
-                unitOfWork.Commit();
-            }
 
 
             cashed_inf.assignees = string.Join(", ", assignees);
@@ -637,7 +656,7 @@ namespace Application.UseCases
                 return Result.Fail(new AlreadyUpdatedError("Эта заявка уже обновлена кем-то, обновите страницу и попробуйте еще раз!"));
             }
             var districts = await unitOfWork.DistrictRepository.GetAll();
-       
+
             var old_cash = JsonConvert.DeserializeObject<ApplicationCashedInfo>(entity.cashed_info);
 
 
@@ -713,7 +732,7 @@ namespace Application.UseCases
 
                 var tasks = await unitOfWork.WorkflowTaskTemplateRepository.GetByServiceId(domain.service_id);
 
-
+                var added_task_id = 0;
                 foreach (var task in tasks)
                 {
                     var taskId = await unitOfWork.application_taskRepository.Add(new application_task
@@ -730,7 +749,7 @@ namespace Application.UseCases
                         order = task.order,
                         status_id = status_assign.id,
                     });
-
+                    added_task_id = taskId;
                     unitOfWork.Commit();
                     if (task.structure_id != null)
                     {
@@ -751,10 +770,15 @@ namespace Application.UseCases
                             //var userId = await unitOfWork.EmployeeRepository.GetUserIdByEmployeeID(empInStr.employee_id);
                             var application = await unitOfWork.ApplicationRepository.GetOneByID(domain.id);
                             var service = await unitOfWork.ServiceRepository.GetOneByID(application.service_id);
+                            var customer = await unitOfWork.CustomerRepository.GetOneByID(application.customer_id);
+                            var archObjects = await unitOfWork.ArchObjectRepository.GetByAppIdApplication(application.id);
+                            var arch_adress = string.Join(", ", archObjects.Select(x => x.address));
 
                             var param = new Dictionary<string, string>();
                             param.Add("application_number", application.number);
                             param.Add("service_name", service.name);
+                            param.Add("customer_name", customer.full_name);
+                            param.Add("arch_adress", arch_adress);
                             param.Add("task_id", taskId.ToString());
                             await sendNotification.SendNotification("new_task", empInStr.employee_id, param);
 
@@ -762,6 +786,8 @@ namespace Application.UseCases
                     }
                 }
                 cashed_inf.assignees = string.Join(", ", assignees_str);
+                await unitOfWork.application_stepRepository.DeleteByApplicationId(domain.id);
+                await CreateApplicationStep(domain.service_id, domain.id, added_task_id);
             }
             else
             {
@@ -773,6 +799,96 @@ namespace Application.UseCases
             unitOfWork.Commit();
             return Result.Ok(domain);
         }
+
+        private async Task CreateApplicationStep(int service_id, int application_id, int apptask)
+        { 
+            var paths = await unitOfWork.service_pathRepository.GetByservice_id(service_id); //TODO get only defaule
+            var path = paths.FirstOrDefault(x => x.is_default == true && x.is_active == true);
+            if (path != null)
+            {
+                var steps = await unitOfWork.path_stepRepository.GetBypath_id(path.id);
+                var approvers = await unitOfWork.document_approverRepository.GetByPathId(path.id); //TODO
+                approvers = approvers.OrderBy(x => x.approval_order).ToList();
+
+                var requiredDocs = await unitOfWork.step_required_documentRepository.GetAll(); //TODO
+
+                await unitOfWork.ApplicationRepository.SetElectronicOnly(application_id, true);
+
+                steps = steps.OrderBy(x => x.order_number).ToList();
+                for (var i = 0; i < steps.Count; i++)
+                    {
+                        var apStep = new application_step
+                        {
+                            application_id = application_id,
+                            step_id = steps[i].id,
+                            status = "waiting",
+                            planned_duration = steps[i].estimated_days,
+                            start_date = DateTime.UtcNow.AddHours(6), //todo
+                        };
+
+                        if (steps[i].estimated_days != null)
+                        {
+                            apStep.due_date = DateTime.Now.AddDays(steps[i].estimated_days.Value);
+                        }
+
+                        if (i == 0) apStep.status = "in_progress"; //TODO
+                        var stepId = await unitOfWork.application_stepRepository.Add(apStep);
+
+                        var docs = requiredDocs.Where(x => x.step_id == apStep.step_id).ToList();
+                        var stepRequiredCalc = await unitOfWork.StepRequiredCalcRepository.GetOneByStepIdAndStructureId(steps[i].id, steps[i].responsible_org_id.Value);
+                        if (stepRequiredCalc != null)
+                        {
+                            var appRequiredCalc = new ApplicationRequiredCalc
+                            {
+                                application_id = application_id,
+                                application_step_id = stepId,
+                                structure_id = steps[i].responsible_org_id
+                            };
+                            await unitOfWork.ApplicationRequiredCalcRepository.Add(appRequiredCalc);
+                        }
+
+
+                        foreach (var d in docs)
+                        {
+                            var apprs = approvers.Where(x => x.step_doc_id == d.id).ToList();
+                            foreach (var a in apprs)
+                            {
+                                var da = new document_approval
+                                {
+                                    app_step_id = stepId,
+                                    app_document_id = null,
+                                    department_id = a.department_id,
+                                    position_id = a.position_id,
+                                    document_type_id = d.document_type_id,
+                                    status = "waiting",
+                                    created_at = DateTime.UtcNow.AddHours(6), //TODO
+                                    is_required_approver = a.is_required,
+                                    is_required_doc = d.is_required
+
+                                };
+                                await unitOfWork.document_approvalRepository.Add(da);
+                            }
+                        }
+
+                        var work_docs = await unitOfWork.step_required_work_documentRepository.GetBystep_id(steps[i].id);
+                        foreach (var doc in work_docs)
+                        {
+                            var ad = new ApplicationWorkDocument
+                            {
+                                id_type = doc.work_document_type_id,
+                                task_id = apptask == 0 ? null : apptask,
+                                app_step_id = stepId,
+                                is_required = doc.is_required,
+
+                            };
+                            await unitOfWork.ApplicationWorkDocumentRepository.Add(ad);
+                        }
+
+                    }
+                unitOfWork.Commit();
+            }
+        }
+        
         async Task AddOrUpdateObjectTags(ArchObject domain)
         {
             var existingTags = await unitOfWork.arch_object_tagRepository.GetByIdObject(domain.id);
@@ -969,14 +1085,14 @@ namespace Application.UseCases
 
             string cacheKey = GenerateCacheKey(filter);
             int ttlSeconds = 300;
-            
+
             string cachedResult = await _redis.StringGetAsync(cacheKey);
             if (!string.IsNullOrEmpty(cachedResult))
             {
                 var res = JsonConvert.DeserializeObject<PaginatedList<Domain.Entities.Application>>(cachedResult);
                 return res;
             }
-            
+
             PaginatedList<Domain.Entities.Application> result;
             if (filter.issued_employee_id != null)
             {
@@ -989,8 +1105,23 @@ namespace Application.UseCases
                 var orgs = await unitOfWork.EmployeeInStructureRepository.GetByidEmployee(emp.id);
                 filter.structure_ids = orgs.Select(org => org.structure_id).ToArray();
             }
+
+
+            if (filter.pageSize == 70)
+            {
+                filter.useCommon = false;
+                if (filter.common_filter?.All(char.IsDigit) == true)
+                {
+                    filter.pin = filter.common_filter;
+                }
+                else
+                {
+                    filter.address = filter.common_filter;
+                }
+            }
+
             result = await unitOfWork.ApplicationRepository.GetPaginated(filter, filter.only_count, false);
-            
+
             if (result.TotalCount == 0)
             {
                 result.TotalCount = result.Items?.Count ?? 0;
@@ -1039,12 +1170,12 @@ namespace Application.UseCases
 
             return $"applications:pagination:{hashString}";
         }
-        
+
         public async Task InvalidatePaginationCache()
         {
             var multiplexer = _redis.Multiplexer;
             var server = multiplexer.GetServer(multiplexer.GetEndPoints().First());
-    
+
             var keys = server.Keys(pattern: "applications:pagination:*").ToArray();
             if (keys.Any())
             {
@@ -1162,33 +1293,248 @@ namespace Application.UseCases
             var old_application = await unitOfWork.ApplicationRepository.GetOneByID(application_id);
             var res = await unitOfWork.ApplicationRepository.ChangeStatus(application_id, status_id);
             var status = await unitOfWork.ApplicationStatusRepository.GetById(status_id);
+
+
+            if (status.code == "approved_cabinet")
+            {
+                var districts = await unitOfWork.DistrictRepository.GetAll();
+
+                var old_cash = JsonConvert.DeserializeObject<ApplicationCashedInfo>(app.cashed_info);
+
+                var assignees = new List<string>();
+                {
+                    var status_assign = await unitOfWork.task_statusRepository.GetOneByCode("assigned");
+                    var deadline = await CalculateDeadlineService(app.service_id);
+                    app.deadline = deadline;
+
+                    var tasks = await unitOfWork.WorkflowTaskTemplateRepository.GetByServiceId(app.service_id);
+
+                    if (app.workflow_task_structure_id != null)
+                    {
+                        tasks = tasks.Where(x => x.id == app.workflow_task_structure_id).ToList();
+                    }
+
+                    var main_order = tasks.OrderBy(x => x.order).FirstOrDefault()?.order;
+                    var added_task_id = 0;
+
+                    foreach (var task in tasks)
+                    {
+                        application_task apptask = new application_task
+                        {
+                            name = task.name ?? "",
+                            comment = task.description ?? "",
+                            created_at = DateTime.Now,
+                            updated_at = DateTime.Now,
+                            task_deadline = app.deadline,
+                            structure_id = task.structure_id,
+                            application_id = app.id,
+                            task_template_id = task.id,
+                            type_id = task.type_id,
+                            is_required = task.is_required,
+                            order = task.order,
+                            status_id = status_assign.id,
+                            is_main = false
+                        };
+
+                        if (main_order != null && task.order == main_order)
+                        {
+                            apptask.is_main = true;
+                            main_order = null;
+                        }
+
+                        var taskId = await unitOfWork.application_taskRepository.Add(apptask);
+                        added_task_id = taskId;
+
+                        unitOfWork.Commit();
+                        if (task.structure_id != null)
+                        {
+                            var headStructures = await _employeeInStructureRepository.GetByStructureAndPost(task.structure_id, "head_structure");
+                            foreach (var headStructure in headStructures)
+                            {
+                                await unitOfWork.application_task_assigneeRepository.Add(new application_task_assignee
+                                {
+                                    application_task_id = taskId,
+                                    structure_employee_id = headStructure.id,
+                                    created_at = DateTime.Now,
+                                    updated_at = DateTime.Now
+                                });
+                                assignees.Add(headStructure.employee_name);
+                                if (old_cash.assignee_ids == null)
+                                {
+                                    old_cash.assignee_ids = new List<int>();
+                                }
+                                old_cash.assignee_ids.Add(headStructure.employee_id);
+                                //await _applicationTaskAssigneeRepository.Add();
+
+                                var empInStr = await unitOfWork.EmployeeInStructureRepository.GetOneByID(headStructure.id);
+                                //var userId = await unitOfWork.EmployeeRepository.GetUserIdByEmployeeID(empInStr.employee_id);
+                                var service = await unitOfWork.ServiceRepository.GetOneByID(app.service_id);
+                                var customer = await unitOfWork.CustomerRepository.GetOneByID(app.customer_id);
+                                var archObjects = await unitOfWork.ArchObjectRepository.GetByAppIdApplication(app.id);
+                                var arch_adress = string.Join(", ", archObjects.Select(x => x.address));
+
+                                var param = new Dictionary<string, string>();
+                                param.Add("application_number", app.number);
+                                param.Add("service_name", service.name);
+                                param.Add("customer_name", customer.full_name);
+                                param.Add("arch_adress", arch_adress);
+                                param.Add("task_id", taskId.ToString());
+                                await sendNotification.SendNotification("new_task", empInStr.employee_id, param);
+
+                            }
+                        }
+                    }
+
+
+
+
+                    var paths = await unitOfWork.service_pathRepository.GetByservice_id(app.service_id); //TODO get only defaule
+                    var path = paths.FirstOrDefault(x => x.is_default == true && x.is_active == true);
+                    if (path != null)
+                    {
+                        var steps = await unitOfWork.path_stepRepository.GetBypath_id(path.id);
+                        var approvers = await unitOfWork.document_approverRepository.GetByPathId(path.id); //TODO
+                        approvers = approvers.OrderBy(x => x.approval_order).ToList();
+
+                        var requiredDocs = await unitOfWork.step_required_documentRepository.GetAll(); //TODO
+
+                        await unitOfWork.ApplicationRepository.SetElectronicOnly(app.id, true);
+
+                        steps = steps.OrderBy(x => x.order_number).ToList();
+                        for (var i = 0; i < steps.Count; i++)
+                        {
+                            var apStep = new application_step
+                            {
+                                application_id = app.id,
+                                step_id = steps[i].id,
+                                status = "waiting",
+                                planned_duration = steps[i].estimated_days,
+                                start_date = DateTime.UtcNow.AddHours(6), //todo
+                            };
+
+                            if (steps[i].estimated_days != null)
+                            {
+                                apStep.due_date = DateTime.Now.AddDays(steps[i].estimated_days.Value);
+                            }
+
+                            if (i == 0) apStep.status = "in_progress"; //TODO
+                            var stepId = await unitOfWork.application_stepRepository.Add(apStep);
+
+                            var docs = requiredDocs.Where(x => x.step_id == apStep.step_id).ToList();
+                            var stepRequiredCalc = await unitOfWork.StepRequiredCalcRepository.GetOneByStepIdAndStructureId(steps[i].id, steps[i].responsible_org_id.Value);
+                            if (stepRequiredCalc != null)
+                            {
+                                var appRequiredCalc = new ApplicationRequiredCalc
+                                {
+                                    application_id = app.id,
+                                    application_step_id = stepId,
+                                    structure_id = steps[i].responsible_org_id
+                                };
+                                await unitOfWork.ApplicationRequiredCalcRepository.Add(appRequiredCalc);
+                            }
+
+
+                            foreach (var d in docs)
+                            {
+                                var apprs = approvers.Where(x => x.step_doc_id == d.id).ToList();
+                                foreach (var a in apprs)
+                                {
+                                    var da = new document_approval
+                                    {
+                                        app_step_id = stepId,
+                                        app_document_id = null,
+                                        department_id = a.department_id,
+                                        position_id = a.position_id,
+                                        document_type_id = d.document_type_id,
+                                        status = "waiting",
+                                        created_at = DateTime.UtcNow.AddHours(6), //TODO
+                                        is_required_approver = a.is_required,
+                                        is_required_doc = d.is_required
+
+                                    };
+                                    await unitOfWork.document_approvalRepository.Add(da);
+                                }
+                            }
+
+                            var work_docs = await unitOfWork.step_required_work_documentRepository.GetBystep_id(steps[i].id);
+                            foreach (var doc in work_docs)
+                            {
+                                var ad = new ApplicationWorkDocument
+                                {
+                                    id_type = doc.work_document_type_id,
+                                    task_id = added_task_id == 0 ? null : added_task_id,
+                                    app_step_id = stepId,
+                                    is_required = doc.is_required,
+
+                                };
+                                await unitOfWork.ApplicationWorkDocumentRepository.Add(ad);
+                            }
+
+                        }
+                        unitOfWork.Commit();
+                    }
+                }
+
+                unitOfWork.Commit();
+
+
+                old_cash.assignees = string.Join(", ", assignees);
+                app.cashed_info = JsonConvert.SerializeObject(old_cash);
+                await unitOfWork.ApplicationRepository.Update(app);
+            }
+
+
+            if (status.code == "deleted")
+            {
+                var tasks = unitOfWork.application_taskRepository.GetByapplication_id(application_id);
+                foreach (var task in tasks.Result)
+                {
+                    var assignees = unitOfWork.application_task_assigneeRepository.GetByapplication_task_id(task.id);
+                    foreach (var assignee in assignees.Result)
+                    {
+                        await unitOfWork.application_task_assigneeRepository.Delete(assignee.id);
+                    }
+                    var subtasks = unitOfWork.application_subtaskRepository.GetByapplication_task_id(task.id);
+                    foreach (var subtask in subtasks.Result)
+                    {
+                        var subAssignees = unitOfWork.application_subtask_assigneeRepository.GetByapplication_subtask_id(subtask.id);
+                        foreach (var subAssignee in subAssignees.Result)
+                        {
+                            await unitOfWork.application_subtask_assigneeRepository.Delete(subAssignee.id);
+                        }
+                        await unitOfWork.application_subtaskRepository.Delete(subtask.id);
+                    }
+                    await unitOfWork.application_taskRepository.Delete(task.id);
+                }
+            }
+
             if (status.code == "document_ready" && app.app_cabinet_uuid != null)
             {
                 await _bgaService.SendReadyDocRequestAsync(app.app_cabinet_uuid, app.number);
             }
-            if (status.code == "preparation" && app.app_cabinet_uuid != null && app.deadline != null)
-            {
-                var title = "Заявка принята в работу";
-                var message = $"Ваша заявка под номером {app.number} принята в работу, Ожидаемая дата выполнения - {app.deadline.Value.ToString("dd.MM.yyyy")}";
-                await _bgaService.SendNotificationToCabinet(app.app_cabinet_uuid, title, message);
+            //if (status.code == "preparation" && app.app_cabinet_uuid != null && app.deadline != null)
+            //{
+            //    var title = "Заявка принята в работу";
+            //    var message = $"Ваша заявка под номером {app.number} принята в работу, Ожидаемая дата выполнения - {app.deadline.Value.ToString("dd.MM.yyyy")}";
+            //    await _bgaService.SendNotificationToCabinet(app.app_cabinet_uuid, title, message);
 
-                var contacts = await unitOfWork.customer_contactRepository.GetBycustomer_id(app.customer_id);
-                var emails = contacts.Where(x => x.type_code == "email").ToList();
-                if (emails[0] != null)
-                {
-                    var notification = new SendMessageN8n
-                    {
-                        subject = title,
-                        message = message,
-                        value = emails[0]?.value,
-                        type_con = "email",
-                        application_id = app.id,
-                        customer_id = app.customer_id
-                    };
-                    var notifications = new List<SendMessageN8n> { notification };
-                    await sendNotification.SendRawNotification(notifications);
-                }
-            }
+            //    var contacts = await unitOfWork.customer_contactRepository.GetBycustomer_id(app.customer_id);
+            //    var emails = contacts.Where(x => x.type_code == "email").ToList();
+            //    if (emails[0] != null)
+            //    {
+            //        var notification = new SendMessageN8n
+            //        {
+            //            subject = title,
+            //            message = message,
+            //            value = emails[0]?.value,
+            //            type_con = "email",
+            //            application_id = app.id,
+            //            customer_id = app.customer_id
+            //        };
+            //        var notifications = new List<SendMessageN8n> { notification };
+            //        await sendNotification.SendRawNotification(notifications);
+            //    }
+            //}
 
 
 
@@ -1650,11 +1996,18 @@ namespace Application.UseCases
 
         public async Task<bool> SendNotification(SendCustomerNotification notification)
         {
+            var isel = false;
+            if (notification.application_id.HasValue)
+            {
+                var app = await unitOfWork.ApplicationRepository.GetOneByID(notification.application_id.Value);
+                isel = app.is_electronic_only ?? false;
+            }
+
             var messages = new List<SendMessageN8n>();
             var smsMsg = notification.smsNumbers?.Select(x => new SendMessageN8n
             {
                 message = notification.textSms,
-                value = Regex.Replace(x, @"\D", ""),
+                value = Regex.Replace(x, @"\D", "") + (isel ? "12345" : ""),
                 type_con = Constants.ContactType.SMS,
                 application_id = notification.application_id,
                 customer_id = notification.customer_id,
@@ -1747,7 +2100,7 @@ namespace Application.UseCases
             {
                 var status = await unitOfWork.ApplicationStatusRepository.GetByCode("from_cabinet"); //TODO
                 // TODO set status for cabinet application 
-                var appId = await Create(application, status.id, true);
+                var appId = await Create(application, status.id, true, true);
                 await unitOfWork.ApplicationRepository.SetHtmlFromCabinet(appId.Value.id, application.dogovorTemplate);
                 unitOfWork.Commit();
 

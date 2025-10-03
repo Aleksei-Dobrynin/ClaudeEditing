@@ -243,7 +243,7 @@ namespace Application.UseCases
                     var application = await unitOfWork.ApplicationRepository.GetOneByID(task.application_id);
 
                     var encryptedLink = _watermarkService.GenerateSecureLink(application.customer_pin, document.path);
-                    var res = await _watermarkService.AddSignatureStampDirectlyToPdfAsync(document.body, mark, encryptedLink);
+                    var res = await _watermarkService.AddSignatureStampDirectlyToPdfAsync(document.body, mark, encryptedLink, 0);
                     document.body = res.Value;
                     document = unitOfWork.FileRepository.UpdateDocumentFilePath(document);
                 }

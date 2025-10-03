@@ -6,7 +6,7 @@ import { getService } from "api/Service/useGetService";
 import { createService } from "api/Service/useCreateService";
 import { updateService } from "api/Service/useUpdateService";
 import { getWorkflows } from "../../../api/Workflow/useGetWorkflows";
-import dayjs from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
 import { getLawDocuments } from "../../../api/LawDocument";
 import { getStructures } from "api/Structure/useGetStructures";
 
@@ -113,8 +113,8 @@ class NewStore {
           price: this.price,
           workflow_id: this.workflow_id,
           is_active: this.is_active,
-          date_start: this.date_start,
-          date_end: this.date_end,
+          date_start: MainStore.formatDate(this.date_start),
+          date_end: MainStore.formatDate(this.date_end),
           law_document_id: this.law_document_id,
           structure_id: this.structure_id
         };

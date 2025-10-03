@@ -23,6 +23,8 @@ import Alert from '@mui/material/Alert';
 import DownloadIcon from "@mui/icons-material/Download";
 import DiscountFormView from './discountForm'
 import MainStore from "MainStore";
+import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
+import FileViewer from "../../../components/FileViewer";
 
 
 type application_paymentProps = {
@@ -138,6 +140,11 @@ const FastInputapplication_paymentView: FC<application_paymentProps> = observer(
       >
         Калькуляция
       </Box>
+      <FileViewer
+        isOpen={store.isOpenFileView}
+        onClose={() => { store.isOpenFileView = false }}
+        fileUrl={store.fileUrl}
+        fileType={store.fileType} />
       <Card component={Paper} elevation={5} sx={{ mt: 2 }}>
         <CardContent>
           <Box id="application_payment_TitleName" sx={{ m: 1 }}>
@@ -195,6 +202,11 @@ const FastInputapplication_paymentView: FC<application_paymentProps> = observer(
                   <Grid item display={"flex"} justifyContent={"center"} xs={1}>
                     {storeList.isEdit === false && (
                       <>
+                        {storeList.data.find(ap => ap.id === entity.id)?.file_id && <Tooltip title={translate("view")}>
+                          <IconButton size='small' onClick={() => store.OpenFileFile(storeList.data.find(ap => ap.id === entity.id)?.file_id, storeList.data.find(ap => ap.id === entity.id)?.file_name)}>
+                            <RemoveRedEyeIcon />
+                          </IconButton>
+                        </Tooltip>}
                         {storeList.data.find(ap => ap.id === entity.id)?.file_id && <Tooltip title={translate("downloadFile")}>
                           <IconButton size="small" onClick={() => store.downloadFile(storeList.data.find(ap => ap.id === entity.id)?.file_id, storeList.data.find(ap => ap.id === entity.id)?.file_name)}>
                             <DownloadIcon />

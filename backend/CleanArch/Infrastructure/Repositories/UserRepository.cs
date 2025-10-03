@@ -55,6 +55,11 @@ namespace Infrastructure.Repositories
             try
             {
                 var userInfo = await _authRepository.GetUserInfo();
+                if (userInfo == null)
+                {
+                    throw new RepositoryException($"User not found.", null);
+                }
+
                 var sql = @"SELECT id FROM ""User"" WHERE ""userId""=@UId";
                 var model = await _dbConnection.QuerySingleOrDefaultAsync<int>(sql, new { UId = userInfo.Id },
                     transaction: _dbTransaction);

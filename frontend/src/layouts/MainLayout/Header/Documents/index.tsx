@@ -217,6 +217,14 @@ const DocumentNotificationsView: FC<DocumentNotificationsViewProps> = observer((
         {t('label:DocumentNotificationsView.customer')}: {application.full_name}
       </Typography>
 
+      <Typography variant="body2" sx={{ mb: 1 }}>
+        {t('label:DocumentNotificationsView.work_description')}: {application.app_work_description}
+      </Typography>
+
+      <Typography variant="body2" sx={{ mb: 1 }}>
+        {t('label:DocumentNotificationsView.address')}: {application.arch_object_address}
+      </Typography>
+
       {/* Список документов */}
       <Paper variant="outlined" sx={{ mt: 1, mb: 2, overflow: 'hidden', borderRadius: 1 }}>
         <List dense disablePadding>

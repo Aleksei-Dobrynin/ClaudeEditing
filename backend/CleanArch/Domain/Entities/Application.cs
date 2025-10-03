@@ -164,7 +164,7 @@ namespace Domain.Entities
         public int? tunduk_district_id { get; set; }
         public int? tunduk_address_unit_id { get; set; }
         public int? tunduk_street_id { get; set; }
-
+        public bool? for_signature { get; set; }
     }
 
     public class PaidAmmount

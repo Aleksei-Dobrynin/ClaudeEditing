@@ -2678,5 +2678,49 @@
     "name_kg": "Аталышы (кырг.)",
     "description": "Сүрөттөмөсү",
     "description_kg": "Сүрөттөмөсү (кырг.)"
+  },
+  "EventTypeListView": {
+    "entityTitle": "Окуялардын түрлөрү",
+    "name": "Аталышы",
+    "description": "Сүрөттөмө",
+    "code": "Коду",
+    "name_kg": "Аталышы (КГ)",
+    "description_kg": "Сүрөттөмө (КГ)"
+  },
+  "EventTypeAddEditView": {
+    "entityTitle": "Окуянын түрү",
+    "name": "Аталышы",
+    "description": "Сүрөттөмө",
+    "code": "Коду",
+    "name_kg": "Аталышы (Кыргызча)",
+    "description_kg": "Сүрөттөмө (Кыргызча)",
+    "save": "Сактоо",
+    "cancel": "Жокко чыгаруу"
+  },
+  "ArchiveObjectsEventsListView": {
+    "entityTitle": "Архивдик объекттердин окуялары",
+    "description": "Сүрөттөмө",
+    "employee": "Кызматкер",
+    "head_structure": "Башкы түзүм",
+    "archive_object": "Архивдик объект",
+    "event_type": "Окуянын түрү",
+    "event_date": "Окуянын датасы",
+    "structure": "Түзүм",
+    "application": "Арыз",
+    "created_at": "Түзүлгөн датасы",
+    "updated_at": "Жаңыртылган датасы"
+  },
+  "ArchiveObjectsEventsAddEditView": {
+    "entityTitle": "Архивдик объекттин окуясы",
+    "description": "Сүрөттөмө",
+    "employee_id": "Кызматкер",
+    "head_structure_id": "Башкы түзүм",
+    "archive_object_id": "Архивдик объект",
+    "event_type_id": "Окуянын түрү",
+    "event_date": "Окуянын датасы",
+    "structure_id": "Түзүм",
+    "application_id": "Арыз",
+    "save": "Сактоо",
+    "cancel": "Жокко чыгаруу"
   }
 }

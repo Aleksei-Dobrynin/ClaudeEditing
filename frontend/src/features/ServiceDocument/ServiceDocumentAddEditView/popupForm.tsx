@@ -28,7 +28,7 @@ const PopupForm: FC<PopupFormProps> = observer((props) => {
   }, [props.openPanel])
 
   return (
-    <Dialog open={props.openPanel} onClose={props.onBtnCancelClick}>
+    <Dialog open={props.openPanel} onClose={props.onBtnCancelClick} maxWidth='xl'>
       <DialogTitle>{translate('label:ServiceDocumentAddEditView.entityTitle')}</DialogTitle>
       <DialogContent>
         <ServiceDocumentAddEditBaseView

@@ -1,4 +1,4 @@
-import { makeAutoObservable, runInAction, toJS } from "mobx";
+import { makeAutoObservable, observable, runInAction, action, toJS } from "mobx";
 import i18n from "i18next";
 import MainStore from "MainStore";
 import { getApplicationPagination, getApplicationPaginationFinPlan } from "api/Application/useGetApplications";
@@ -21,8 +21,15 @@ import { getCheckApplicationBeforeRegistering, setApplicationToReestr } from "..
 import { getDocumentJournalss } from "../../../api/DocumentJournals";
 import { getApplicationDocument, getApplicationTemplates } from "../../../api/S_DocumentTemplate";
 import printJS from "print-js";
-
 import { TUNDUK_TO_REGULAR_DISTRICT_MAP, getRegularDistrictId } from "constants/constant";
+import {
+  getEmployeeSavedFilters,
+  createEmployeeSavedFilter,
+  updateEmployeeSavedFilter,
+  deleteEmployeeSavedFilter,
+  markEmployeeSavedFilterAsUsed
+} from "../../../api/EmployeeSavedFilters/useEmployeeSavedFilters";
+
 type N8nValidationResult = {
   valid: boolean;
   errors: Record<string, string>;
@@ -42,6 +49,16 @@ class NewStore {
   messageError = "";
   openError = false;
   selectedIds = [];
+
+  // Saved filters functionality
+  savedFilters = [];
+  openSaveFilterDialog = false;
+  newFilterName = "";
+  openLoadFilterDialog = false;
+  selectedSavedFilterId = null;
+
+  // Добавляем таймер для дебаунса localStorage
+  localStorageDebounceTimer = null;
 
   // Добавляем новые поля для Tunduk адресов
   TundukDistricts = [];
@@ -64,8 +81,8 @@ class NewStore {
     customerName: "",
     date_start: null,
     date_end: null,
-    service_ids: [],
-    status_ids: [],
+    service_ids: [], // Убедимся, что это пустой массив
+    status_ids: [], // Убедимся, что это пустой массив
     address: "",
     number: "",
     district_id: null,
@@ -77,7 +94,7 @@ class NewStore {
     employee_id: 0,
     common_filter: "",
     useCommon: true,
-    structure_ids: [],
+    structure_ids: [], // Убедимся, что это пустой массив
     incoming_numbers: "",
     outgoing_numbers: "",
     only_count: false,
@@ -86,11 +103,12 @@ class NewStore {
     total_sum_to: null,
     total_payed_from: null,
     total_payed_to: null,
-    app_ids: [],
+    app_ids: [], // Убедимся, что это пустой массив
     // Новые поля для фильтрации
     tunduk_district_id: null,
     tunduk_address_unit_id: null,
     tunduk_street_id: null,
+    for_signature: false
   };
 
   checkResult: null | { valid: boolean; errors: Record<string, string> } = null;
@@ -119,21 +137,279 @@ class NewStore {
   openReestrSelectPanel = false;
 
   constructor() {
-    makeAutoObservable(this);
+    makeAutoObservable(this, {
+      filter: observable.deep,
+      changeStatus: action,
+      changeService: action, // 👈 теперь все вложенные поля filter — observable
+      // остальные поля можно оставить — makeAutoObservable их и так обработает
+    });
+
   }
 
-  // ===== НОВЫЕ МЕТОДЫ ДЛЯ TUNDUK АДРЕСОВ =====
+  // Оптимизированный метод для сохранения в localStorage с дебаунсом
+  setFilterToLocalStorageDebounced = () => {
+    if (this.localStorageDebounceTimer) {
+      clearTimeout(this.localStorageDebounceTimer);
+    }
+
+    this.localStorageDebounceTimer = setTimeout(() => {
+      const filterData = {
+        filter: this.filter,
+        is_allFilter: this.is_allFilter
+      };
+      window.localStorage.setItem("filter_application", JSON.stringify(filterData));
+    }, 500); // Задержка 500мс перед сохранением
+  };
+
+  // Немедленное сохранение (для критичных изменений)
+  setFilterToLocalStorageImmediate = () => {
+    if (this.localStorageDebounceTimer) {
+      clearTimeout(this.localStorageDebounceTimer);
+      this.localStorageDebounceTimer = null;
+    }
+
+    const filterData = {
+      filter: this.filter,
+      is_allFilter: this.is_allFilter
+    };
+    window.localStorage.setItem("filter_application", JSON.stringify(filterData));
+  };
+
+  // Старый метод для обратной совместимости
+  setFilterToLocalStorage = () => {
+    this.setFilterToLocalStorageDebounced();
+  };
+
+  // ===== SAVED FILTERS METHODS =====
+
+  loadSavedFilters = async () => {
+    try {
+      const response = await getEmployeeSavedFilters();
+      if ((response.status === 201 || response.status === 200) && response?.data !== null) {
+        runInAction(() => {
+          this.savedFilters = response.data.sort((a, b) => {
+            if (b.usage_count !== a.usage_count) {
+              return (b.usage_count || 0) - (a.usage_count || 0);
+            }
+            if (a.last_used_at && b.last_used_at) {
+              return new Date(b.last_used_at).getTime() - new Date(a.last_used_at).getTime();
+            }
+            return 0;
+          });
+        });
+      }
+    } catch (err) {
+      console.error("Error loading saved filters:", err);
+    }
+  };
+
+  openSaveFilterDialogHandler = () => {
+    this.openSaveFilterDialog = true;
+    this.newFilterName = "";
+  };
+
+  closeSaveFilterDialog = () => {
+    this.openSaveFilterDialog = false;
+    this.newFilterName = "";
+  };
+
+  saveCurrentFilter = async () => {
+    try {
+      if (!this.newFilterName.trim()) {
+        MainStore.setSnackbar("Введите название фильтра", "warning");
+        return;
+      }
+
+      MainStore.changeLoader(true);
+
+      const filterData = {
+        filter_name: this.newFilterName,
+        is_active: true,
+        is_default: false,
+        page_size: this.filter.pageSize,
+        page_number: this.filter.pageNumber,
+        sort_by: this.filter.sort_by,
+        sort_type: this.filter.sort_type,
+        pin: this.filter.pin || "",
+        customer_name: this.filter.customerName || "",
+        common_filter: this.filter.common_filter || "",
+        address: this.filter.address || "",
+        number: this.filter.number || "",
+        incoming_numbers: this.filter.incoming_numbers || "",
+        outgoing_numbers: this.filter.outgoing_numbers || "",
+        date_start: this.filter.date_start,
+        date_end: this.filter.date_end,
+        service_ids: this.filter.service_ids?.join(",") || "",
+        status_ids: this.filter.status_ids?.join(",") || "",
+        structure_ids: this.filter.structure_ids?.join(",") || "",
+        app_ids: this.filter.app_ids?.join(",") || "",
+        district_id: this.filter.district_id,
+        tag_id: this.filter.tag_id,
+        filter_employee_id: this.filter.employee_id,
+        journals_id: this.filter.journals_id,
+        tunduk_district_id: this.filter.tunduk_district_id,
+        tunduk_address_unit_id: this.filter.tunduk_address_unit_id,
+        tunduk_street_id: this.filter.tunduk_street_id,
+        deadline_day: this.filter.deadline_day,
+        total_sum_from: this.filter.total_sum_from,
+        total_sum_to: this.filter.total_sum_to,
+        total_payed_from: this.filter.total_payed_from,
+        total_payed_to: this.filter.total_payed_to,
+        is_expired: this.filter.isExpired,
+        is_my_org_application: this.filter.isMyOrgApplication,
+        without_assigned_employee: this.filter.withoutAssignedEmployee,
+        use_common: this.filter.useCommon,
+        only_count: this.filter.only_count,
+        is_journal: this.isJournal,
+        is_paid: this.filter.is_paid,
+        last_used_at: new Date().toISOString(),
+        usage_count: 0
+      };
+
+      const response = await createEmployeeSavedFilter(filterData);
+
+      if ((response.status === 201 || response.status === 200)) {
+        MainStore.setSnackbar("Фильтр успешно сохранен", "success");
+        this.closeSaveFilterDialog();
+        await this.loadSavedFilters();
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      MainStore.changeLoader(false);
+    }
+  };
+
+  loadSavedFilter = async (filterId: number) => {
+    try {
+      MainStore.changeLoader(true);
+
+      await markEmployeeSavedFilterAsUsed(filterId);
+
+      const savedFilter = this.savedFilters.find(f => f.id === filterId);
+      if (!savedFilter) {
+        throw new Error("Filter not found");
+      }
+
+      runInAction(() => {
+        // Безопасное преобразование строк в массивы чисел
+        const parseIds = (idsString: string | null | undefined): number[] => {
+          if (!idsString) return [];
+          try {
+            return idsString.split(",")
+              .map(id => parseInt(id.trim()))
+              .filter(id => !isNaN(id));
+          } catch {
+            return [];
+          }
+        };
+
+        this.filter = {
+          ...this.filter,
+          pageSize: savedFilter.page_size || 100,
+          pageNumber: savedFilter.page_number || 0,
+          sort_by: savedFilter.sort_by,
+          sort_type: savedFilter.sort_type,
+          pin: savedFilter.pin || "",
+          customerName: savedFilter.customer_name || "",
+          common_filter: savedFilter.common_filter || "",
+          address: savedFilter.address || "",
+          number: savedFilter.number || "",
+          incoming_numbers: savedFilter.incoming_numbers || "",
+          outgoing_numbers: savedFilter.outgoing_numbers || "",
+          date_start: savedFilter.date_start,
+          date_end: savedFilter.date_end,
+          service_ids: parseIds(savedFilter.service_ids),
+          status_ids: parseIds(savedFilter.status_ids),
+          structure_ids: parseIds(savedFilter.structure_ids),
+          app_ids: parseIds(savedFilter.app_ids),
+          district_id: savedFilter.district_id,
+          tag_id: savedFilter.tag_id,
+          employee_id: savedFilter.filter_employee_id,
+          journals_id: savedFilter.journals_id,
+          tunduk_district_id: savedFilter.tunduk_district_id,
+          tunduk_address_unit_id: savedFilter.tunduk_address_unit_id,
+          tunduk_street_id: savedFilter.tunduk_street_id,
+          deadline_day: savedFilter.deadline_day || 0,
+          total_sum_from: savedFilter.total_sum_from,
+          total_sum_to: savedFilter.total_sum_to,
+          total_payed_from: savedFilter.total_payed_from,
+          total_payed_to: savedFilter.total_payed_to,
+          isExpired: savedFilter.is_expired || false,
+          isMyOrgApplication: savedFilter.is_my_org_application || false,
+          withoutAssignedEmployee: savedFilter.without_assigned_employee || false,
+          useCommon: savedFilter.use_common !== false,
+          only_count: savedFilter.only_count || false,
+          is_paid: savedFilter.is_paid
+        };
+
+        this.is_allFilter = !this.filter.useCommon;
+
+        if (this.filter.tunduk_district_id) {
+          this.loadTundukResidentialAreas(this.filter.tunduk_district_id);
+        }
+      });
+
+      this.openLoadFilterDialog = false;
+      this.selectedSavedFilterId = filterId;
+
+      await this.loadApplications();
+
+      MainStore.setSnackbar(`Фильтр "${savedFilter.filter_name}" применен`, "success");
+
+      await this.loadSavedFilters();
+    } catch (err) {
+      MainStore.setSnackbar("Ошибка при загрузке фильтра", "error");
+    } finally {
+      MainStore.changeLoader(false);
+    }
+  };
+
+  deleteSavedFilter = async (filterId: number) => {
+    MainStore.openErrorConfirm(
+      "Вы уверены что хотите удалить этот фильтр?",
+      i18n.t("delete"),
+      i18n.t("no"),
+      async () => {
+        try {
+          MainStore.changeLoader(true);
+          const response = await deleteEmployeeSavedFilter(filterId);
+          if (response.status === 201 || response.status === 200) {
+            await this.loadSavedFilters();
+            MainStore.setSnackbar("Фильтр успешно удален", "success");
+          } else {
+            throw new Error();
+          }
+        } catch (err) {
+          MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+        } finally {
+          MainStore.changeLoader(false);
+          MainStore.onCloseConfirm();
+        }
+      },
+      () => MainStore.onCloseConfirm()
+    );
+  };
+
+  openLoadFilterDialogHandler = () => {
+    this.openLoadFilterDialog = true;
+  };
+
+  closeLoadFilterDialog = () => {
+    this.openLoadFilterDialog = false;
+  };
+
+  // ===== МЕТОДЫ ДЛЯ TUNDUK АДРЕСОВ =====
 
   changeTundukDistrict = async (districtId: number) => {
     runInAction(() => {
       this.filter.tunduk_district_id = districtId;
       this.filter.tunduk_address_unit_id = null;
       this.filter.tunduk_street_id = null;
-
-      // АВТОМАТИЧЕСКИ УСТАНАВЛИВАЕМ ОБЫЧНЫЙ РАЙОН
       this.filter.district_id = getRegularDistrictId(districtId);
 
-      // Сбрасываем состояние поиска улиц
       this.streetSearchState = {
         inputValue: '',
         selectedStreet: null,
@@ -143,18 +419,16 @@ class NewStore {
       };
     });
 
-    // Загружаем микрорайоны для выбранного района
     if (districtId) {
       await this.loadTundukResidentialAreas(districtId);
     } else {
       this.TundukResidentialAreas = [];
-      // Если район не выбран, ставим "Не определено"
       runInAction(() => {
         this.filter.district_id = 6;
       });
     }
 
-    this.setFilterToLocalStorage();
+    this.setFilterToLocalStorageDebounced();
   };
 
   changeTundukAddressUnit = (addressUnitId: number) => {
@@ -162,7 +436,6 @@ class NewStore {
       this.filter.tunduk_address_unit_id = addressUnitId;
       this.filter.tunduk_street_id = null;
 
-      // Сбрасываем состояние поиска улиц
       this.streetSearchState = {
         inputValue: '',
         selectedStreet: null,
@@ -172,44 +445,38 @@ class NewStore {
       };
     });
 
-    this.setFilterToLocalStorage();
+    this.setFilterToLocalStorageDebounced();
   };
 
   changeTundukStreet = (streetId: number, streetData?: any) => {
     runInAction(() => {
       this.filter.tunduk_street_id = streetId;
 
-      // Если передана информация об улице, автоматически устанавливаем район
       if (streetData && streetData.address_unit_id) {
         this.autoSetDistrictFromStreet(streetData);
       }
     });
 
-    this.setFilterToLocalStorage();
+    this.setFilterToLocalStorageDebounced();
   };
 
   autoSetDistrictFromStreet = async (streetData: any) => {
     if (!streetData.address_unit_id) return;
 
-    // Проверяем, является ли address_unit_id микрорайоном
     const residentialArea = this.TundukResidentialAreas.find(
       area => area.id === streetData.address_unit_id
     );
 
     if (residentialArea) {
-      // Это микрорайон
       runInAction(() => {
         this.filter.tunduk_address_unit_id = residentialArea.id;
 
-        // Устанавливаем родительский район
         if (residentialArea.parent_id) {
           this.filter.tunduk_district_id = residentialArea.parent_id;
-          // АВТОМАТИЧЕСКИ УСТАНАВЛИВАЕМ ОБЫЧНЫЙ РАЙОН
           this.filter.district_id = getRegularDistrictId(residentialArea.parent_id);
         }
       });
     } else {
-      // Проверяем, является ли это районом
       const district = this.TundukDistricts.find(
         d => d.id === streetData.address_unit_id
       );
@@ -218,7 +485,6 @@ class NewStore {
         runInAction(() => {
           this.filter.tunduk_district_id = district.id;
           this.filter.tunduk_address_unit_id = null;
-          // АВТОМАТИЧЕСКИ УСТАНАВЛИВАЕМ ОБЫЧНЫЙ РАЙОН
           this.filter.district_id = getRegularDistrictId(district.id);
         });
       }
@@ -239,7 +505,6 @@ class NewStore {
     });
 
     try {
-      // Определяем ID для фильтрации
       let filterAteId = 0;
       if (this.filter.tunduk_address_unit_id) {
         filterAteId = this.filter.tunduk_address_unit_id;
@@ -269,12 +534,10 @@ class NewStore {
       this.streetSearchState.inputValue = inputValue;
     });
 
-    // Отменяем предыдущий таймер
     if (this.streetSearchTimer) {
       clearTimeout(this.streetSearchTimer);
     }
 
-    // Устанавливаем новый таймер для debounce
     this.streetSearchTimer = setTimeout(() => {
       this.searchTundukStreets(inputValue);
     }, 300);
@@ -316,7 +579,7 @@ class NewStore {
     }
   };
 
-  // ===== КОНЕЦ НОВЫХ МЕТОДОВ =====
+  // ===== ОСНОВНЫЕ МЕТОДЫ =====
 
   onEditClicked(id: number) {
     // существующий код
@@ -360,62 +623,65 @@ class NewStore {
     this.selectedIds = this.data.filter(x => x.select_application).map(x => x.id);
   }
 
-  clearFilter() {
-    this.filter = {
-      pageSize: 100,
-      pageNumber: 0,
-      sort_by: null,
-      sort_type: null,
-      pin: "",
-      customerName: "",
-      date_start: null,
-      date_end: null,
-      service_ids: [],
-      status_ids: [],
-      address: "",
-      district_id: 0,
-      journals_id: 0,
-      deadline_day: 0,
-      number: "",
-      tag_id: 0,
-      isExpired: false,
-      isMyOrgApplication: false,
-      withoutAssignedEmployee: false,
-      employee_id: 0,
-      useCommon: true,
-      common_filter: "",
-      structure_ids: [],
-      incoming_numbers: "",
-      outgoing_numbers: "",
-      employee_arch_id: null,
-      dashboard_date_start: null,
-      dashboard_date_end: null,
-      issued_employee_id: null,
-      only_count: false,
-      is_paid: null,
-      total_sum_from: null,
-      total_sum_to: null,
-      total_payed_from: null,
-      total_payed_to: null,
-      // Очищаем новые поля
-      tunduk_district_id: null,
-      tunduk_address_unit_id: null,
-      tunduk_street_id: null,
-    };
+  clearFilter = () => {
+    if (this.localStorageDebounceTimer) {
+      clearTimeout(this.localStorageDebounceTimer);
+      this.localStorageDebounceTimer = null;
+    }
 
-    // Сбрасываем состояние поиска улиц
-    this.streetSearchState = {
-      inputValue: '',
-      selectedStreet: null,
-      isOpen: false,
-      searchResults: [],
-      isLoading: false
-    };
+    runInAction(() => {
+      this.filter = {
+        pageSize: 100,
+        pageNumber: 0,
+        sort_by: null,
+        sort_type: null,
+        pin: "",
+        customerName: "",
+        date_start: null,
+        date_end: null,
+        service_ids: [], // Пустой массив
+        status_ids: [],  // Пустой массив
+        address: "",
+        number: "",
+        district_id: null,
+        deadline_day: 0,
+        tag_id: null,
+        isExpired: false,
+        isMyOrgApplication: false,
+        withoutAssignedEmployee: false,
+        employee_id: 0,
+        common_filter: "",
+        useCommon: true,
+        structure_ids: [],
+        incoming_numbers: "",
+        outgoing_numbers: "",
+        only_count: false,
+        is_paid: null,
+        total_sum_from: null,
+        total_sum_to: null,
+        total_payed_from: null,
+        total_payed_to: null,
+        app_ids: [],
+        tunduk_district_id: null,
+        tunduk_address_unit_id: null,
+        tunduk_street_id: null,
+      for_signature: false
+      };
 
-    this.TundukResidentialAreas = [];
-    this.is_allFilter = false;
-    this.setFilterToLocalStorage();
-  }
+      this.streetSearchState = {
+        inputValue: '',
+        selectedStreet: null,
+        isOpen: false,
+        searchResults: [],
+        isLoading: false
+      };
+
+      this.TundukResidentialAreas = [];
+      this.is_allFilter = false;
+    });
+
+    this.setFilterToLocalStorageImmediate();
+  };
 
   doLoad(isFinPlan: boolean, isJournal?: boolean) {
     if (isJournal == null) {
@@ -436,203 +702,243 @@ class NewStore {
     this.loadEmployees();
     this.loadDocumentJournalss();
     this.loadApplicationTemplate();
-    this.loadTundukDistricts(); // Загружаем районы Tunduk
+    this.loadTundukDistricts();
+    this.loadSavedFilters();
   }
 
-  changeAllFilter(event) {
-    this.is_allFilter = event.target.value;
-    if (this.filter) {
-      this.filter.useCommon = !this.is_allFilter;
-    }
-    this.setFilterToLocalStorage();
-  }
+  changeAllFilter = (event) => {
+    runInAction(() => {
+      this.is_allFilter = event.target.value;
+      if (this.filter) {
+        this.filter.useCommon = !this.is_allFilter;
+      }
+    });
+    this.setFilterToLocalStorageImmediate();
+  };
 
-  changeService(ids: number[]) {
-    this.filter.service_ids = ids;
-    this.setFilterToLocalStorage();
-  }
+  changeService = (ids: number[]) => {
+    runInAction(() => {
+      // Создаем новый массив, а не модифицируем существующий
+      this.filter.service_ids = [...ids];
+      this.setFilterToLocalStorage();
+    });
+  };
 
-  changeStatus(ids: number[]) {
-    this.filter.status_ids = ids;
-    this.setFilterToLocalStorage();
-  }
+  changeStatus = (ids: number[]) => {
+    runInAction(() => {
+      // Создаем новый массив, а не модифицируем существующий
+      this.filter.status_ids = [...ids];
+      this.setFilterToLocalStorage();
+    });
+  };
 
-  changeDateStart(date: Dayjs) {
-    if (date != null) {
-      this.filter.date_start = date.startOf('day').format('YYYY-MM-DDTHH:mm:ss');
-    } else {
-      this.filter.date_start = null
-    }
-    this.setFilterToLocalStorage();
-  }
+  changeDateStart = (date: Dayjs) => {
+    runInAction(() => {
+      if (date != null) {
+        this.filter.date_start = date.startOf('day').format('YYYY-MM-DDTHH:mm:ss');
+      } else {
+        this.filter.date_start = null;
+      }
+    });
+    this.setFilterToLocalStorageDebounced();
+  };
 
-  changeDateEnd(date: Dayjs) {
-    if (date != null) {
-      this.filter.date_end = date.endOf('day').format('YYYY-MM-DDTHH:mm:ss');
-    } else {
-      this.filter.date_end = null
-    }
-    this.setFilterToLocalStorage();
-  }
+  changeDateEnd = (date: Dayjs) => {
+    runInAction(() => {
+      if (date != null) {
+        this.filter.date_end = date.endOf('day').format('YYYY-MM-DDTHH:mm:ss');
+      } else {
+        this.filter.date_end = null;
+      }
+    });
+    this.setFilterToLocalStorageDebounced();
+  };
 
   changePin = (pin: string) => {
-    this.filter.pin = pin;
-    this.setFilterToLocalStorage();
+    runInAction(() => {
+      this.filter.pin = pin;
+    });
+    this.setFilterToLocalStorageDebounced();
   };
 
   changeJournalId = (journals_id: number) => {
-    this.filter.journals_id = journals_id;
+    runInAction(() => {
+      this.filter.journals_id = journals_id;
+    });
   };
 
   changeCustomerName = (customerName: string) => {
-    this.filter.customerName = customerName;
-    this.setFilterToLocalStorage();
+    runInAction(() => {
+      this.filter.customerName = customerName;
+    });
+    this.setFilterToLocalStorageDebounced();
   };
 
   changeAddress = (address: string) => {
-    this.filter.address = address;
-    this.setFilterToLocalStorage();
+    runInAction(() => {
+      this.filter.address = address;
+    });
+    this.setFilterToLocalStorageDebounced();
   };
 
   changeCommonFilter = (common_filter: string) => {
-    this.filter.common_filter = common_filter;
-    this.setFilterToLocalStorage();
+    runInAction(() => {
+      this.filter.common_filter = common_filter;
+    });
+    this.setFilterToLocalStorageDebounced();
   };
 
   changeNumber = (number: string) => {
-    this.filter.number = number;
-    this.setFilterToLocalStorage();
+    runInAction(() => {
+      this.filter.number = number;
+    });
+    this.setFilterToLocalStorageDebounced();
   };
 
   changeDistrict = (id: number) => {
-    this.filter.district_id = id;
-    this.setFilterToLocalStorage();
+    runInAction(() => {
+      this.filter.district_id = id;
+    });
+    this.setFilterToLocalStorageDebounced();
   };
 
   changeDeadlineDay = (id: number) => {
-    this.filter.deadline_day = id;
-    this.setFilterToLocalStorage();
+    runInAction(() => {
+      this.filter.deadline_day = id;
+    });
+    this.setFilterToLocalStorageDebounced();
   };
 
   changeTotalSumFrom = (value: string) => {
-    this.filter.total_sum_from = value ? parseFloat(value) : null;
-    this.setFilterToLocalStorage();
+    runInAction(() => {
+      this.filter.total_sum_from = value ? parseFloat(value) : null;
+    });
+    this.setFilterToLocalStorageDebounced();
   };
 
   changeTotalSumTo = (value: string) => {
-    this.filter.total_sum_to = value ? parseFloat(value) : null;
-    this.setFilterToLocalStorage();
+    runInAction(() => {
+      this.filter.total_sum_to = value ? parseFloat(value) : null;
+    });
+    this.setFilterToLocalStorageDebounced();
   };
 
   changeTotalPayedFrom = (value: string) => {
-    this.filter.total_payed_from = value ? parseFloat(value) : null;
-    this.setFilterToLocalStorage();
+    runInAction(() => {
+      this.filter.total_payed_from = value ? parseFloat(value) : null;
+    });
+    this.setFilterToLocalStorageDebounced();
   };
 
   changeTotalPayedTo = (value: string) => {
-    this.filter.total_payed_to = value ? parseFloat(value) : null;
-    this.setFilterToLocalStorage();
+    runInAction(() => {
+      this.filter.total_payed_to = value ? parseFloat(value) : null;
+    });
+    this.setFilterToLocalStorageDebounced();
   };
 
   handleCheckboxChangeWithLoad = (fieldName: string, value: boolean, customHandler?: () => void) => {
     const prevValue = this.filter[fieldName];
 
-    if (customHandler) {
-      customHandler();
-    } else {
-      this.filter[fieldName] = value;
-    }
+    runInAction(() => {
+      if (customHandler) {
+        customHandler();
+      } else {
+        this.filter[fieldName] = value;
+      }
+    });
 
     if (prevValue === true && value === false) {
       this.loadApplications();
     }
 
     if (fieldName !== 'is_paid') {
-      this.setFilterToLocalStorage();
+      this.setFilterToLocalStorageDebounced();
     }
   };
 
   changeIsPaid = (isPaid: boolean, autoLoad: boolean = false) => {
-    const prevIsPaid = this.filter.is_paid === isPaid;
+    runInAction(() => {
+      const prevIsPaid = this.filter.is_paid === isPaid;
 
-    if (this.filter.is_paid == isPaid) {
-      this.filter.is_paid = null;
-      this.loadApplications();
-    } else {
-      this.filter.is_paid = isPaid;
-    }
+      if (this.filter.is_paid == isPaid) {
+        this.filter.is_paid = null;
+        this.loadApplications();
+      } else {
+        this.filter.is_paid = isPaid;
+      }
+    });
   };
 
   changeTag = (id: number) => {
-    this.filter.tag_id = id;
-    this.setFilterToLocalStorage();
+    runInAction(() => {
+      this.filter.tag_id = id;
+    });
+    this.setFilterToLocalStorageDebounced();
   };
 
   changeEmployee = (id: number) => {
-    this.filter.employee_id = id;
-    this.setFilterToLocalStorage();
+    runInAction(() => {
+      this.filter.employee_id = id;
+    });
+    this.setFilterToLocalStorageDebounced();
   };
 
   changeIncomingNumbers = (incoming_numbers: string) => {
-    this.filter.incoming_numbers = incoming_numbers;
-    this.setFilterToLocalStorage();
+    runInAction(() => {
+      this.filter.incoming_numbers = incoming_numbers;
+    });
+    this.setFilterToLocalStorageDebounced();
   };
 
   changeOutgoingNumbers = (outgoing_numbers: string) => {
-    this.filter.outgoing_numbers = outgoing_numbers;
-    this.setFilterToLocalStorage();
+    runInAction(() => {
+      this.filter.outgoing_numbers = outgoing_numbers;
+    });
+    this.setFilterToLocalStorageDebounced();
   };
 
-  setFilterToLocalStorage() {
-    const filterData = {
-      filter: this.filter,
-      is_allFilter: this.is_allFilter
-    };
-    window.localStorage.setItem("filter_application", JSON.stringify(filterData));
-  }
-  getValuesFromLocalStorage() {
+  getValuesFromLocalStorage = () => {
     const filterData = window.localStorage.getItem("filter_application");
     if (filterData) {
-      const data = JSON.parse(filterData);
+      try {
+        const data = JSON.parse(filterData);
 
-      if (data.filter) {
-        let filt = data.filter;
+        let filt = data.filter || data;
+
+        // Преобразование дат
         if (filt.date_start !== null) {
           filt.date_start = dayjs(filt.date_start);
         }
         if (filt.date_end !== null) {
           filt.date_end = dayjs(filt.date_end);
         }
-        if (filt.status_ids === null) {
-          filt.status_ids = []
-        }
+
+        // Гарантируем что массивы всегда инициализированы
+        filt.status_ids = Array.isArray(filt.status_ids) ? filt.status_ids : [];
+        filt.service_ids = Array.isArray(filt.service_ids) ? filt.service_ids : [];
+        filt.structure_ids = Array.isArray(filt.structure_ids) ? filt.structure_ids : [];
+        filt.app_ids = Array.isArray(filt.app_ids) ? filt.app_ids : [];
+
         this.filter = filt;
         this.is_allFilter = data.is_allFilter || false;
-      } else {
-        let filt = data;
-        if (filt.date_start !== null) {
-          filt.date_start = dayjs(filt.date_start);
-        }
-        if (filt.date_end !== null) {
-          filt.date_end = dayjs(filt.date_end);
-        }
-        if (filt.status_ids === null) {
-          filt.status_ids = []
-        }
-        this.is_allFilter = !(filt.useCommon ?? true);
-        this.filter = filt;
-      }
 
-      // СИНХРОНИЗИРУЕМ ОБЫЧНЫЙ РАЙОН С TUNDUK РАЙОНОМ
-      if (this.filter.tunduk_district_id) {
-        this.filter.district_id = getRegularDistrictId(this.filter.tunduk_district_id);
-        this.loadTundukResidentialAreas(this.filter.tunduk_district_id);
-      } else {
-        this.filter.district_id = 6; // "Не определено"
+        if (this.filter.tunduk_district_id) {
+          this.filter.district_id = getRegularDistrictId(this.filter.tunduk_district_id);
+          this.loadTundukResidentialAreas(this.filter.tunduk_district_id);
+        } else {
+          this.filter.district_id = 6;
+        }
+      } catch (error) {
+        console.error('Error parsing filter data from localStorage:', error);
+        // В случае ошибки парсинга, инициализируем с пустыми массивами
+        this.filter.status_ids = [];
+        this.filter.service_ids = [];
+        this.filter.structure_ids = [];
+        this.filter.app_ids = [];
       }
     }
-  }
-
+  };
   loadServices = async () => {
     try {
       MainStore.changeLoader(true);

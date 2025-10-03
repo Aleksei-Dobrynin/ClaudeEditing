@@ -38,7 +38,7 @@ import Application_taskListView from "features/application_task/application_task
 import { toJS } from "mobx";
 import HistoryTableListView from "features/HistoryTable/HistoryTableListView";
 import Saved_application_documentListView from "features/saved_application_document/saved_application_documentListView";
-import ContragentListView from "features/Contragent/ContragentTypeListView";
+import ContragentListView from "features/Contragent/ContragentListView";
 import Contragent_interactionListView from "features/contragent_interaction/contragent_interactionListView";
 import ApplicationWorkDocumentListView from "../../ApplicationWorkDocument/ApplicationWorkDocumentListView";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
@@ -296,8 +296,8 @@ const ApplicationAddEditView: FC<ApplicationProps> = observer((props) => {
         {store.is_electronic_only && (
           <Box
             sx={{
-              backgroundColor: "#ffeb3b",
-              color: "#d32f2f",
+              backgroundColor: "#f97300",
+              color: "#040404",
               padding: "8px 16px",
               borderRadius: "8px",
               fontWeight: "bold",

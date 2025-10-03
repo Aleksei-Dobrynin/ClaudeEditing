@@ -5,7 +5,7 @@ import { observer } from "mobx-react"
 import { Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import CustomButton from 'components/Button';
-import ContragentInteractionFastInputView from 'features/contragent_interaction_doc/contragent_interaction_docAddEditView/fastInput';
+// import ContragentInteractionFastInputView from 'features/contragent_interaction_doc/contragent_interaction_docAddEditView/fastInput';
 
 type PopupFormProps = {
   openPanel: boolean;
@@ -36,9 +36,9 @@ const contragent_interactionPopupForm: FC<PopupFormProps> = observer((props) => 
           isPopup={true}
         >
         </Contragent_interactionAddEditBaseView>
-        {store.id > 0 && <ContragentInteractionFastInputView
+        {/* {store.id > 0 && <ContragentInteractionFastInputView
           idMain={store.id}
-        />}
+        />} */}
       </DialogContent>
       <DialogActions>
         <DialogActions>

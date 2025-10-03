@@ -17,6 +17,8 @@ import {
   GeoJSON
 } from "react-leaflet";
 import L, { LatLngExpression, LatLngBounds, Renderer, LatLngTuple } from "leaflet";
+import dayjs, { Dayjs } from "dayjs";
+import { Card } from "@mui/material";
 
 const { BaseLayer, Overlay } = LayersControl;
 
@@ -62,6 +64,40 @@ const ArchMap: FC<ArchiveObjectListViewProps> = observer((props) => {
 
   const wmsUrl = "http://map.darek.kg/qgis/qgis_mapserv.fcgi.exe?map=C:/OSGeo4W64/projects/ГИСАР/ГИСАР.qgz";
 
+  useEffect(() => {
+    if (!isMapReady || !mapRef.current) return;
+
+    const dispose = reaction(
+      () => ({ id: store.focus_id }),
+      ({ id }) => {
+        if (!id) return;
+
+        const map = mapRef.current as any;
+        const item = store.data?.find((x: any) => x.id === id);
+        if (!item || !map) {
+          store.clearMapFocus();
+          return;
+        }
+
+        const geometries = getGeometry(item);
+        const center = getObjectCenter(geometries);
+
+        if (center) {
+          map.setView(center, Math.max(17, map.getZoom() ?? 17));
+          if (true) {
+            handleObjectClick(item, center);
+          } else {
+            closePopup();
+          }
+        }
+        store.clearMapFocus();
+      },
+      { fireImmediately: true }
+    );
+
+    return () => dispose();
+  }, [isMapReady]);
+
   const wmsBaseParams = {
     SERVICE: "WMS",
     REQUEST: "GetMap",
@@ -81,7 +117,7 @@ const ArchMap: FC<ArchiveObjectListViewProps> = observer((props) => {
     try {
       const layerData = JSON.parse(item.layer);
       if (!layerData || !Array.isArray(layerData) || layerData.length === 0) return null;
-      
+
       // Возвращаем все геометрии из объекта вместо только первой
       return layerData.map(layer => layer?.geometry).filter(geom => geom);
     } catch (e) {
@@ -93,25 +129,25 @@ const ArchMap: FC<ArchiveObjectListViewProps> = observer((props) => {
   // Функция для извлечения центра объекта (для попапа)
   const getObjectCenter = useCallback((geometries) => {
     if (!geometries || !Array.isArray(geometries) || geometries.length === 0) return null;
-    
+
     // Используем первую геометрию для определения центра
     const geometry = geometries[0];
     if (!geometry) return null;
-    
+
     let center: LatLngTuple | null = null;
-    
+
     switch (geometry.type) {
       case "Point":
         // Для точки: координаты [long, lat] -> [lat, long]
         center = [geometry.coordinates[1], geometry.coordinates[0]];
         break;
-      
+
       case "LineString":
         // Для линии: берем середину
         const middle = Math.floor(geometry.coordinates.length / 2);
         center = [geometry.coordinates[middle][1], geometry.coordinates[middle][0]];
         break;
-        
+
       case "Polygon":
         // Для полигона: используем первую точку или центроид
         if (geometry.coordinates[0].length > 2) {
@@ -126,43 +162,43 @@ const ArchMap: FC<ArchiveObjectListViewProps> = observer((props) => {
           center = [geometry.coordinates[0][0][1], geometry.coordinates[0][0][0]];
         }
         break;
-        
+
       default:
         return null;
     }
-    
+
     return center;
   }, []);
 
   // Функция для проверки, находится ли объект в видимой области карты
   const isObjectInBounds = useCallback((geometries: any[], bounds: LatLngBounds | null): boolean => {
     if (!bounds || !geometries || !Array.isArray(geometries) || geometries.length === 0) return false;
-    
+
     // Объект находится в границах, если хотя бы одна из его геометрий находится в границах
     return geometries.some(geometry => {
       if (!geometry) return false;
-      
+
       try {
         switch (geometry.type) {
           case "Point": {
             const latLng = L.latLng(geometry.coordinates[1], geometry.coordinates[0]);
             return bounds.contains(latLng);
           }
-            
+
           case "LineString":
             // Для линии проверяем, находится ли хотя бы одна точка в границах
             return geometry.coordinates.some(coord => {
               const latLng = L.latLng(coord[1], coord[0]);
               return bounds.contains(latLng);
             });
-            
+
           case "Polygon":
             // Для полигона проверяем, находится ли хотя бы одна точка в границах
             return geometry.coordinates[0].some(coord => {
               const latLng = L.latLng(coord[1], coord[0]);
               return bounds.contains(latLng);
             });
-            
+
           default:
             return false;
         }
@@ -172,6 +208,12 @@ const ArchMap: FC<ArchiveObjectListViewProps> = observer((props) => {
       }
     });
   }, []);
+
+  const formatDate = (date: Dayjs | null | undefined) => {
+    if (!date) return null;
+    if (!dayjs(date).isValid()) return null;
+    return dayjs(date).format("YYYY-MM-DD HH:mm");
+  }
 
   // Обработчик клика по объекту
   const handleObjectClick = useCallback((item, position) => {
@@ -183,14 +225,35 @@ const ArchMap: FC<ArchiveObjectListViewProps> = observer((props) => {
       <div>
         <p><strong>{translate("label:ArchiveObjectListView.doc_number")}:</strong> {item.doc_number}</p>
         <p><strong>{translate("label:ArchiveObjectListView.address")}:</strong> {item.address}</p>
-        {store.customers
+        {(() => {
+          const names = item.customer_name ? item.customer_name.split(",").map(s => s.trim()) : [];
+          const numbers = item.customer_number ? item.customer_number.split(",").map(s => s.trim()) : [];
+          return (
+            <div>
+              {names.map((name, i) => (
+                <Card
+                  key={i}
+                  variant="outlined"
+                  sx={{ mt: 0.5, p: 0.5 }}
+                >
+                  <strong>{translate("label:ArchiveObjectListView.customer")} {i + 1}:</strong> {name}<br/>
+                  <strong>{translate("label:ArchiveObjectListView.customer_number")}:</strong> {numbers[i]}
+                </Card>
+              ))}
+            </div>
+          );
+        })()}
+        <p><strong>{translate("label:ArchiveObjectListView.description")}:</strong> {item.description}</p>
+        <p><strong>{translate("label:ArchiveObjectListView.created_at")}:</strong> {formatDate(item.created_at)}</p>
+        <p><strong>{translate("label:ArchiveObjectListView.updated_at")}:</strong> {formatDate(item.updated_at)}</p>
+        {/* {store.customers
           .filter((x) => x.obj_id === item.id)
           .map((x) => (
             <p key={x.id}>
               <strong>{translate("label:ArchiveObjectListView.customer")}:</strong> {x.full_name}
             </p>
           ))
-        }
+        } */}
       </div>
     );
 
@@ -213,7 +276,7 @@ const ArchMap: FC<ArchiveObjectListViewProps> = observer((props) => {
       if (!isMapReady) {
         setMapReady(true);
         mapRef.current = map;
-        
+
         // Инициализируем начальные значения только при первом рендере
         setVisibleBounds(map.getBounds());
         setCurrentZoom(map.getZoom());
@@ -224,13 +287,13 @@ const ArchMap: FC<ArchiveObjectListViewProps> = observer((props) => {
         // Проверяем, изменились ли границы существенно, перед обновлением состояния
         const newBounds = map.getBounds();
         const newZoom = map.getZoom();
-        
+
         if (newZoom !== currentZoom) {
           setCurrentZoom(newZoom);
         }
-        
-        if (!visibleBounds || 
-            !newBounds.equals(visibleBounds, 0.001)) { // Сравниваем с погрешностью
+
+        if (!visibleBounds ||
+          !newBounds.equals(visibleBounds, 0.001)) { // Сравниваем с погрешностью
           setVisibleBounds(newBounds);
         }
       };
@@ -292,10 +355,10 @@ const ArchMap: FC<ArchiveObjectListViewProps> = observer((props) => {
     try {
       const geometries = getGeometry(item);
       if (!geometries || geometries.length === 0) return null;
-      
+
       const isSelected = selectedObjectId === item.id;
       const objectCenter = getObjectCenter(geometries);
-      
+
       // Общий обработчик событий для всех типов объектов
       const eventHandlers = {
         click: (e) => {
@@ -303,13 +366,13 @@ const ArchMap: FC<ArchiveObjectListViewProps> = observer((props) => {
           handleObjectClick(item, e.latlng || objectCenter);
         }
       };
-      
+
       // Вместо обработки только одной геометрии, рендерим все геометрии объекта
       return (
         <React.Fragment key={item.id}>
           {geometries.map((geometry, idx) => {
             if (!geometry) return null;
-            
+
             // Рендерим каждую геометрию в зависимости от её типа и текущего масштаба
             switch (geometry.type) {
               case "Point":
@@ -318,7 +381,7 @@ const ArchMap: FC<ArchiveObjectListViewProps> = observer((props) => {
                   // При большом масштабе используем кастомную иконку
                   const iconText = getIconText(item);
                   const customIcon = createCustomIcon(iconText);
-                  
+
                   return (
                     <Marker
                       key={`${item.id}-point-${idx}`}
@@ -336,7 +399,7 @@ const ArchMap: FC<ArchiveObjectListViewProps> = observer((props) => {
                       radius={isSelected ? 10 : 8}
                       pathOptions={{
                         fillOpacity: 0.8,
-                        fillColor: "#000",
+                        fillColor: item?.tag_description ? item?.tag_description : "#000",
                         color: isSelected ? '#000' : '#fff',
                         weight: isSelected ? 2 : 1,
                         opacity: 1,
@@ -346,11 +409,11 @@ const ArchMap: FC<ArchiveObjectListViewProps> = observer((props) => {
                     />
                   );
                 }
-                
+
               case "LineString": {
                 // Для линий - просто рендерим всегда
                 // Конвертируем координаты из [lon, lat] в [lat, lon] для Leaflet
-                const lineCoords: LatLngTuple[] = geometry.coordinates.map(coord => 
+                const lineCoords: LatLngTuple[] = geometry.coordinates.map(coord =>
                   [coord[1], coord[0]] as LatLngTuple
                 );
 
@@ -360,11 +423,11 @@ const ArchMap: FC<ArchiveObjectListViewProps> = observer((props) => {
                   weight: isSelected ? 6 : 5,
                   opacity: 0.8,
                 };
-                
+
                 return (
                   <Polyline
                     key={`${item.id}-line-${idx}`}
-                    color="#000000"
+                    color={item?.tag_description ? item?.tag_description : "#000000"}
                     weight={5}
                     positions={lineCoords}
                     pathOptions={lineStyle}
@@ -372,7 +435,7 @@ const ArchMap: FC<ArchiveObjectListViewProps> = observer((props) => {
                   />
                 );
               }
-                
+
               case "Polygon": {
                 // For polygons - properly handle coordinate structure
                 try {
@@ -381,21 +444,21 @@ const ArchMap: FC<ArchiveObjectListViewProps> = observer((props) => {
                   if (!geometry.coordinates || !Array.isArray(geometry.coordinates)) {
                     return null;
                   }
-                  
+
                   // Handle all rings of the polygon (first is outer, rest are holes)
                   const polygonRings = geometry.coordinates.map(ring => {
                     // Each ring needs to be converted from [lon, lat] to [lat, lon]
                     return ring.map(coord => [coord[1], coord[0]] as LatLngTuple);
                   });
-                  
+
                   // Styles for polygons
                   const polygonStyle = {
                     color: isSelected ? '#ff0000' : '#000',
                     weight: isSelected ? 3 : 2,
-                    fillColor: '#000',
+                    fillColor: item?.tag_description ? item?.tag_description : '#000',
                     fillOpacity: 0.5,
                   };
-                  
+
                   return (
                     <Polygon
                       key={`${item.id}-poly-${idx}`}
@@ -409,7 +472,7 @@ const ArchMap: FC<ArchiveObjectListViewProps> = observer((props) => {
                   return null;
                 }
               }
-                
+
               default:
                 // Для других, более сложных типов используем GeoJSON
                 const geoJsonData = {
@@ -417,7 +480,7 @@ const ArchMap: FC<ArchiveObjectListViewProps> = observer((props) => {
                   geometry: geometry,
                   properties: { id: item.id }
                 };
-                
+
                 return null
             }
           })}
@@ -436,7 +499,7 @@ const ArchMap: FC<ArchiveObjectListViewProps> = observer((props) => {
         {store?.data && <span>Всего объектов: {store.data.length}&nbsp;&nbsp;</span>}
         {visibleObjects?.length > 0 && <span>Видимых объектов: {visibleObjects.length}</span>}
       </div>
-      
+
       <MapContainer
         center={[42.87, 74.60] as LatLngExpression}
         zoom={11}

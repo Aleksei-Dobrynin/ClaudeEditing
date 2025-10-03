@@ -8,6 +8,8 @@ import ApplicationDetails from './info';
 import FastInputapplication_paymentView from "features/ApplicationPayment/application_paymentAddEditView/fastInput";
 import FastInputapplication_paid_invoiceView from "features/ApplicationPaidInvoice/application_paid_invoiceApplication/fastInput";
 import Saved_application_documentListView from "features/saved_application_document/saved_application_documentListView";
+import Outgoing_Uploaded_application_documentListGridView
+  from "../../UploadedApplicationDocument/uploaded_application_documentListView/index_outgoing_grid";
 
 type PopupFormProps = {
   openPanel: boolean;
@@ -35,6 +37,7 @@ const PopupForm: FC<PopupFormProps> = observer((props) => {
         <Container maxWidth='xl' >
         {store.id !== 0 && <FastInputapplication_paymentView idMain={store.id} statusCode={store.status_code} />}
         {store.id !== 0 && <FastInputapplication_paid_invoiceView idMain={store.id} />}
+        {store.id !== 0 && <Outgoing_Uploaded_application_documentListGridView idMain={store.id} />}
         </Container>
         {store.id !== 0 && <Saved_application_documentListView idMain={store.id} />}
 

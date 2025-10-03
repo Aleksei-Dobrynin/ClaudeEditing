@@ -268,6 +268,9 @@ const ApplicationInfoCards: FC<ApplicationInfoCardsProps> = observer((props) => 
                     {/*  }*/}
                     {/*/>*/}
 
+                    
+                    <InfoRow label="Описание работ" value={store.Application?.work_description || "-"} />
+
                     {/* Район */}
                     <InfoRow
                       label="Район"

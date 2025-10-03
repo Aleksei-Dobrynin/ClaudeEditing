@@ -3,16 +3,16 @@ import i18n from "i18next";
 import MainStore from "MainStore";
 import { deletecontragent_interaction_doc } from "api/contragent_interaction_doc";
 import { getcontragent_interaction_docsByinteraction_id } from "api/contragent_interaction_doc";
-import { downloadFile } from "api/File";
+import { downloadFile, getSignByFileId } from "api/File";
 
-class NewStore {
+class ContragentInteractionDocListStore {
   data = [];
+  signData = [];
   openPanel = false;
+  ecpListOpen = false;
   currentId = 0;
   idMain = 0;
-  isEdit = false;
   timeoutId = null;
-
 
   constructor() {
     makeAutoObservable(this);
@@ -28,16 +28,27 @@ class NewStore {
     this.currentId = 0;
   }
 
-  setFastInputIsEdit = (value: boolean) => {
-    this.isEdit = value;
-  };
+  signDocument(fileId: number) {
+    MainStore.digitalSign.fileId = fileId;
+    MainStore.digitalSign.uplId = 0;
+    MainStore.openDigitalSign(
+      fileId,
+      async () => {
+        MainStore.onCloseDigitalSign();
+        await this.loadcontragent_interaction_docs();
+      },
+      () => MainStore.onCloseDigitalSign(),
+    );
+  }
 
-  async loadcontragent_interaction_docs() {
+  async loadGetSignByFileId(id: number) {
     try {
       MainStore.changeLoader(true);
-      const response = await getcontragent_interaction_docsByinteraction_id(this.idMain);
+      const response = await getSignByFileId(id);
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
-        this.data = response.data;
+        runInAction(() => {
+          this.signData = response.data;
+        });
       } else {
         throw new Error();
       }
@@ -46,29 +57,49 @@ class NewStore {
     } finally {
       MainStore.changeLoader(false);
     }
-  };
+  }
+
+  async loadcontragent_interaction_docs() {
+    try {
+      MainStore.changeLoader(true);
+      const response = await getcontragent_interaction_docsByinteraction_id(this.idMain);
+      
+      if ((response.status === 201 || response.status === 200) && response?.data !== null) {
+        runInAction(() => {
+          this.data = response.data;
+        });
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      MainStore.changeLoader(false);
+    }
+  }
 
   async loadcontragent_interaction_docsByinteraction_id(id: number, interval = 5000) {
     const poll = async () => {
       try {
-        // MainStore.changeLoader(true);
         const response = await getcontragent_interaction_docsByinteraction_id(id);
+        
         if ((response.status === 201 || response.status === 200) && response?.data !== null) {
-          this.data = response.data;
+          runInAction(() => {
+            this.data = response.data;
+          });
         } else {
           throw new Error();
         }
       } catch (err) {
         MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
-      } finally {
-        // MainStore.changeLoader(false);
       }
+      
       this.timeoutId = setTimeout(poll, interval);
     };
 
     this.clearPollingTimeout();
     poll();
-  };
+  }
 
   clearPollingTimeout() {
     if (this.timeoutId) {
@@ -77,18 +108,23 @@ class NewStore {
     }
   }
 
-  async downloadFile(idFile: number, fileName) {
+  async downloadFile(idFile: number, fileName: string) {
     try {
       MainStore.changeLoader(true);
       const response = await downloadFile(idFile);
+      
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
         const byteCharacters = atob(response.data.fileContents);
         const byteNumbers = new Array(byteCharacters.length);
+        
         for (let i = 0; i < byteCharacters.length; i++) {
           byteNumbers[i] = byteCharacters.charCodeAt(i);
         }
+        
         const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: response.data.contentType || "application/octet-stream" });
+        const blob = new Blob([byteArray], { 
+          type: response.data.contentType || "application/octet-stream" 
+        });
 
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -117,8 +153,9 @@ class NewStore {
         try {
           MainStore.changeLoader(true);
           const response = await deletecontragent_interaction_doc(id);
+          
           if (response.status === 201 || response.status === 200) {
-            this.loadcontragent_interaction_docs();
+            await this.loadcontragent_interaction_docs();
             MainStore.setSnackbar(i18n.t("message:snackbar.successSave"));
           } else {
             throw new Error();
@@ -132,17 +169,19 @@ class NewStore {
       },
       () => MainStore.onCloseConfirm()
     );
-  };
+  }
 
   clearStore() {
     runInAction(() => {
       this.data = [];
+      this.signData = [];
       this.currentId = 0;
       this.openPanel = false;
+      this.ecpListOpen = false;
       this.idMain = 0;
-      this.isEdit = false;
+      this.clearPollingTimeout();
     });
-  };
+  }
 }
 
-export default new NewStore();
+export default new ContragentInteractionDocListStore();

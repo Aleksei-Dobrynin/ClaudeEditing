@@ -181,7 +181,7 @@ export const DocumentCard: FC<DocumentCardProps> = ({ document, t, onDocumentPre
           onClick={() => store.signApplicationPayment(document.upl?.file_id, document.upl?.id, () => {
             onSigned()
           })}
-          disabled={!document.can_assign || step?.status !== "in_progress"}
+          // disabled={step?.status !== "in_progress"} //TODO
         >
           Подписать ЭЦП
         </PrimaryButton>

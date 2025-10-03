@@ -62,8 +62,8 @@ class NewStore {
         MainStore.changeLoader(true);
         var data = {
           id: this.id,
-          date_start: this.date_start,
-          date_end: this.date_end,
+          date_start: MainStore.formatDate(this.date_start),
+          date_end: MainStore.formatDate(this.date_end),
           is_active: this.is_active,
           service_id: this.service_id,
           journal_id: this.journal_id,

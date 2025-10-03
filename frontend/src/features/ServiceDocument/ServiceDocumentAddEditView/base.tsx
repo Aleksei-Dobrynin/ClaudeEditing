@@ -11,8 +11,8 @@ import {
   Button,
   makeStyles,
   FormControlLabel,
-  Container,
-} from '@mui/material';
+  Container, Box
+} from "@mui/material";
 import { useTranslation } from 'react-i18next';
 import store from "./store"
 import { observer } from "mobx-react"
@@ -39,7 +39,7 @@ const BaseView: FC<ProjectsTableProps> = observer((props) => {
 
         <form id="ServiceDocumentForm" autoComplete='off'>
           <Paper elevation={7}  >
-            <Card>
+            <Card sx={{ width: 700 }}>
               <CardHeader title={
                 <span id="ServiceDocument_TitleName">
                   {translate('label:ServiceDocumentAddEditView.entityTitle')}
@@ -55,28 +55,10 @@ const BaseView: FC<ProjectsTableProps> = observer((props) => {
                       data={store.ApplicationDocuments}
                       name="application_document_id"
                       label={translate('label:ServiceDocumentAddEditView.application_document_id')}
-                      // getOptionLabel={(employee) =>
-                      //   employee
-                      //     ? `${employee.last_name || ""} ${employee.first_name || ""} ${employee.second_name || ""}`
-                      //     : ""
-                      // }
-                      fieldNameDisplay={(e) => `${e.name} ${e.doc_is_outcome = true ? 
+                      fieldNameDisplay={(e) => `${e.name} ${e.doc_is_outcome == true ? 
                         translate('label:ServiceDocumentAddEditView.outcome') :
                         translate('label:ServiceDocumentAddEditView.income') }`}
                       id="application_document_id"
-                    />
-                  </Grid>
-                  <Grid item md={12} xs={12}>
-                    <MuiLookUp
-                      maxWidth={450}
-                      value={store.application_document_id}
-                      onChange={(event) => store.handleChange(event)}
-                      name="application_document_id"
-                      data={store.ApplicationDocuments}
-                      id='id_f_application_document_id'
-                      label={translate('label:ServiceDocumentAddEditView.application_document_id')}
-                      helperText={store.errorapplication_document_id}
-                      error={!!store.errorapplication_document_id}
                     />
                   </Grid>
                   <Grid item md={12} xs={12}>

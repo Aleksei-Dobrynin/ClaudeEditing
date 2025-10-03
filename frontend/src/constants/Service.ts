@@ -11,7 +11,7 @@ export type Service = {
   law_document_id: number;
   price: number;
   is_active: boolean;
-  date_start: Dayjs;
-  date_end: Dayjs;
+  date_start?: string;
+  date_end?: string;
   structure_id: number;
 };

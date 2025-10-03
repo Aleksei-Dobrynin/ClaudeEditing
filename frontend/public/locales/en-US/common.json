@@ -58,6 +58,9 @@
   "Accept": "Принять",
   "Reject": "Отклонить",
   "Add_new": "Добавить новую",
-  "export_to_excel": "Сохранить в Excel"
-
+  "export_to_excel": "Сохранить в Excel",
+  "exit": "Выход",
+  "confirmExit": "Подтверждение выхода",
+  "confirmExitMessage": "Вы действитеьлно хотите прекратить создание новой заявки?",
+  "currentStep": "Текущий шаг"
 }

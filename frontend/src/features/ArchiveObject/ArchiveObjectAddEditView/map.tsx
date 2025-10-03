@@ -48,7 +48,7 @@ const MapContainerView: FC<MapContainerViewProps> = observer((props) => {
   const featureGroupRef = useRef<L.FeatureGroup | null>(null);
   const [isMapReady, setMapReady] = useState(false);
   const mapRef = useRef(null);
-  const wmsUrl = 'http://map.darek.kg/qgis/qgis_mapserv.fcgi.exe?map=C:/OSGeo4W64/projects/ГИСНА/ГИСНА.qgz';
+  const wmsUrl = 'http://map.darek.kg/qgis/qgis_mapserv.fcgi.exe?map=C:/OSGeo4W64/projects/ГИСАР/ГИСАР.qgz';
 
   // Состояния для маркеров из map_example.tsx
   const [visibleBounds, setVisibleBounds] = useState<LatLngBounds | null>(null);

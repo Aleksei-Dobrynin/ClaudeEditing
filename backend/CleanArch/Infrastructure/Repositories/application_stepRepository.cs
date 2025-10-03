@@ -195,16 +195,18 @@ order by ps.order_number";
                 throw new RepositoryException("Failed to get application_step", ex);
             }
         }
-        public async Task<List<UnsignedDocumentsModel>> GetUnsignedDocuments(int post_id, int structure_id, string search, bool isDeadline)
+        public async Task<List<UnsignedDocumentsModel>> GetUnsignedDocuments(List<int> post_ids, List<int> structure_ids, string search, bool isDeadline, string user_id)
         {
             try
             {
                 var sql = @"
-select
+select distinct
     uad.id AS uploaded_document_id,
     ad.name AS document_name,
     app.id app_id,
     app.number app_number,
+    app.work_description app_work_description,
+    string_agg(DISTINCT obj.address, '; ') as arch_object_address,
     cl.full_name,
     cl.pin,
     srv.name service_name,
@@ -217,20 +219,21 @@ from document_approval val
     left join application_document ad on ad.id = val.document_type_id
 left join application_step apps on apps.id = val.app_step_id
 left join application app on apps.application_id = app.id
+LEFT JOIN application_object ao on ao.application_id = app.id
+LEFT JOIN arch_object obj on ao.arch_object_id = obj.id
 left join service srv on srv.id = app.service_id
 left join customer cl on cl.id = app.customer_id
-LEFT JOIN LATERAL (
-    SELECT at.*
-    FROM application_task at
-    WHERE at.application_id = app.id
-    ORDER BY at.created_at ASC -- или at.id ASC
-    LIMIT 1
-) atask ON true
+LEFT JOIN application_task atask ON atask.application_id = app.id
+left join application_task_assignee ata on ata.application_task_id = atask.id
+left join employee_in_structure eis on eis.id = ata.structure_employee_id
+left join employee e on e.id = eis.employee_id
+
 WHERE
 1=1
+    and e.user_id = @user_id
     AND val.file_sign_id is null AND val.app_document_id is not null AND
-    val.department_id = @structure_id
-    AND val.position_id = @post_id
+    val.department_id = ANY(@structure_ids)
+    AND val.position_id = ANY(@post_ids)
     AND (apps.status IS NULL OR apps.status != 'completed')
 ";
                 if (isDeadline)
@@ -246,13 +249,16 @@ WHERE
 ";
                 }
                 sql += @"
+GROUP BY 
+    uad.id, ad.id, app.id, cl.id, srv.id, val.id, atask.id
 ORDER BY
     app.deadline ASC, app.id, uad.id;
 ";
                 var models = await _dbConnection.QueryAsync<UnsignedDocumentsModel>(sql, new
                 {
-                    post_id,
-                    structure_id,
+                    user_id,
+                    post_ids,
+                    structure_ids,
                     search = search?.ToLower(),
                     is_deadline = isDeadline
                 }, transaction: _dbTransaction);
@@ -261,6 +267,20 @@ ORDER BY
             catch (Exception ex)
             {
                 throw new RepositoryException("Failed to get application_step", ex);
+            }
+        }
+        
+        public async Task DeleteByApplicationId(int application_id)
+        {
+            try
+            {
+                var model = new { id = application_id };
+                var sql = @"DELETE FROM application_step WHERE application_id = @id";
+                var affected = await _dbConnection.ExecuteAsync(sql, model, transaction: _dbTransaction);
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to update application_step", ex);
             }
         }
     }

@@ -11,9 +11,11 @@ import {
 } from "../../../api/District/useGetDistricts";
 import { getTags } from "api/Tag/useGetTags";
 import { getDarek, getSearchDarek } from "../../../api/SearchMap/useGetDarek";
-import { ArchObjectValues } from "constants/ArchObject";
+import { ArchObject, ArchObjectValues } from "constants/ArchObject";
 import { getArchObjectsByAppId } from "api/ArchObject/useGetArchObjects";
 import PopupApplicationStore from "../PopupAplicationListView/store";
+import axios from "axios";
+import { API_KEY_2GIS } from "../../../constants/config";
 import { TUNDUK_TO_REGULAR_DISTRICT_MAP, getRegularDistrictId } from "constants/constant";
 
 class NewStore {
@@ -59,6 +61,9 @@ class NewStore {
       this.point = [];
       this.arch_objects = [];
       this.app_id = 0;
+      this.tundukStreetStates = new Map();
+      this.TundukStreetsSearchCache = new Map(); // Кэш результатов поиска
+      this.searchTimers = new Map(); // Таймеры для debounce
     });
   }
 
@@ -72,6 +77,82 @@ class NewStore {
     this.arch_objects[index][event.target.name] = event.target.value;
     validate(event, index);
   }
+
+  debounceTimeoutRef: NodeJS.Timeout | null = null;
+
+  updateObject<K extends keyof ArchObjectValues>(objectId: number, field: K, value: ArchObjectValues[K]) {
+    const object = this.arch_objects.find((obj) => obj.id === objectId);
+    if (object) {
+      object[field] = value;
+
+      if (field === 'address') {
+        if (this.debounceTimeoutRef) {
+          clearTimeout(this.debounceTimeoutRef);
+        }
+        this.debounceTimeoutRef = setTimeout(() => {
+          this.searchBuildings(value as string);
+        }, 500);
+      }
+    }
+  }
+
+  activeObjectId: number | null = null;
+
+  setActiveObjectId(id: number | null) {
+    this.activeObjectId = id;
+  }
+
+  searchResults: any[] = [];
+  isListOpen = false;
+
+  setSearchResults = (results: any[]) => {
+    this.searchResults = results;
+  };
+
+  setIsListOpen = (val: boolean) => {
+    this.isListOpen = val;
+  };
+
+  handleItemClick = (objectId: number, result: any) => {
+    this.setIsListOpen(false);
+
+    const object = this.arch_objects.find(obj => obj.id === objectId);
+    if (!object) return;
+
+    const districtName = result.adm_div?.find((d: any) => d.type === "district")?.name;
+    const district = this.Districts.find(d => d.name === districtName);
+    const districtId = district?.id ?? null;
+
+    object.district_id = Number(districtId);
+    object.address = result.address_name;
+    object.ycoordinate = result.point?.lon;
+    object.xcoordinate = result.point?.lat;
+  };
+
+  searchBuildings = async (query: string) => {
+    if (!query) {
+      this.setSearchResults([]);
+      return;
+    }
+
+    try {
+      const response = await axios.get('https://catalog.api.2gis.com/3.0/items', {
+        params: {
+          q: query,
+          point: '74.60,42.87',
+          radius: 10000,
+          key: API_KEY_2GIS,
+          fields: 'items.point,items.address_name,items.adm_div',
+        },
+      });
+
+      const results = response.data.result.items.filter(i => i.address_name != null) || [];
+      this.setSearchResults(results);
+      this.setIsListOpen(true);
+    } catch (error) {
+      console.error(i18n.t("object.error.searchError"), error);
+    }
+  };
 
   handleChangeField(event) {
     this[event.target.name] = event.target.value;
@@ -93,6 +174,8 @@ class NewStore {
       let event: { target: { name: string; value: any } } = { target: { name: "address", value: x.address } };
       canSave = validate(event, i) && canSave;
       event = { target: { name: "district_id", value: x.district_id } };
+      canSave = validate(event, i) && canSave;
+      event = { target: { name: "tags", value: this.tags } };
       canSave = validate(event, i) && canSave;
       x.tags = this.tags;
       x.description = this.description;
@@ -624,7 +707,14 @@ class NewStore {
           this.arch_objects[index].xcoordinate = this.arch_objects[index].geometry[0][0];
           this.arch_objects[index].ycoordinate = this.arch_objects[index].geometry[0][1];
         }
+        const [street = "", house = "", apartment = ""] =
+          (response.data.address ?? "")
+            .split(",")
+            .map(part => part.trim());
         this.arch_objects[index].address = response.data.address;
+        this.arch_objects[index].street = street;
+        this.arch_objects[index].house = house;
+        this.arch_objects[index].apartment = apartment;
         this.arch_objects[index].addressInfo = response.data.info;
         this.geometry = this.arch_objects[index].geometry
         // this.geometry = JSON.parse(response.data.geometry);
@@ -691,6 +781,17 @@ class NewStore {
 
           this.tags = response.data[0]?.tags
           this.description = response.data[0]?.description
+
+          this.arch_objects.forEach((arch, index) => {
+            const [street = "", house = "", apartment = ""] =
+              (arch.address ?? "")
+                .split(",")
+                .map(part => part.trim());
+
+            this.arch_objects[index].street = street;
+            this.arch_objects[index].house = house;
+            this.arch_objects[index].apartment = apartment;
+          });
 
           this.counts = await Promise.all(this.arch_objects.map(async (arch, i) =>
             await PopupApplicationStore.loadApplications(arch.address, () => this.handleChangeLoading(i))))
@@ -775,9 +876,11 @@ class NewStore {
   }
 
   async doLoad(app_id: number) {
+    this.clearStore();
     await this.loadDictionaries();
     if (app_id == null || app_id == 0) {
       const defaultDistrictId = this.Districts.find(item => item.code === 'not defined')?.id || 6;
+
 
       this.arch_objects = [{
         id: (this.arch_objects.length + 1) * -1,
@@ -806,7 +909,8 @@ class NewStore {
         tunduk_building_id: null,
         tunduk_building_num: '',
         tunduk_flat_num: '',
-        tunduk_uch_num: ''
+        tunduk_uch_num: '',
+        random_key: (Math.random() + 1).toString(36).substring(5)
       }]
       return;
     }

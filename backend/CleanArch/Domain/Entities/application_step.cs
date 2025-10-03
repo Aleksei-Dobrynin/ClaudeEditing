@@ -58,6 +58,8 @@ namespace Domain.Entities
         public string document_name { get; set; }
         public int app_id { get; set; }
         public string app_number { get; set; }
+        public string app_work_description { get; set; }
+        public string arch_object_address { get; set; }
         public string full_name { get; set; }
         public string service_name { get; set; }
         public int? service_days { get; set; }
@@ -71,6 +73,8 @@ namespace Domain.Entities
     {
         public int app_id { get; set; }
         public string app_number { get; set; }
+        public string app_work_description { get; set; }
+        public string arch_object_address { get; set; }
         public string full_name { get; set; }
         public string pin { get; set; }
         public string service_name { get; set; }

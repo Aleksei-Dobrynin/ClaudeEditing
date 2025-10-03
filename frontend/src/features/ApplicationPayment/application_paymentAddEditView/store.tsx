@@ -32,7 +32,9 @@ class NewStore {
   sum_wo_discount = 0;
   reason = "";
   is_percentage = false;
-
+  isOpenFileView = false;
+  fileType = '';
+  fileUrl = null;
 
   errors: { [key: string]: string } = {};
 
@@ -215,6 +217,41 @@ class NewStore {
       MainStore.changeLoader(false);
     }
   };
+
+  async OpenFileFile(idFile: number, fileName) {
+    try {
+      MainStore.changeLoader(true);
+      const response = await downloadFile(idFile);
+      if ((response.status === 201 || response.status === 200) && response?.data !== null) {
+        const byteCharacters = atob(response.data.fileContents);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        let mimeType = 'application/pdf';
+        this.fileType = 'pdf';
+        if (fileName.endsWith('.png')) {
+          mimeType = 'image/png';
+          this.fileType = 'png';
+        }
+        if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) {
+          mimeType = 'image/jpeg';
+          this.fileType = 'jpg';
+        }
+        const blob = new Blob([byteArray], { type: mimeType });
+        this.fileUrl = URL.createObjectURL(blob);
+        this.isOpenFileView = true;
+        return
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      MainStore.changeLoader(false);
+    }
+  }
 
   async downloadFile(idFile: number, fileName) {
     try {

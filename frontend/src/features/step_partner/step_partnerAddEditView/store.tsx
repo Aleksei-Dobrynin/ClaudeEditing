@@ -11,7 +11,7 @@ import { updatestep_partner } from "api/step_partner";
 
 import { getpath_steps } from "api/path_step";
     
-import { getContragents } from "api/Contragent/useGetContragents";
+import { getContragents } from "api/Contragent";
     
 
 class NewStore {

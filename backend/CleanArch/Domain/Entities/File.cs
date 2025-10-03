@@ -47,4 +47,11 @@
         public string? structure_fullname { get; set; }
         public DateTime? timestamp { get; set; }
     }
+    
+    public class FilesSignInfo
+    {
+        public int service_document_id { get; set; }
+        public int? file_id { get; set; }
+        public int? employee_id { get; set; }
+    }
 }

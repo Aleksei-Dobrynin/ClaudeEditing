@@ -2,9 +2,16 @@ import i18n from "i18n";
 import * as yup from "yup";
 
 export const schema = yup.object().shape({
-
-  interaction_id: yup.number().notOneOf([0], "Required field").required("Required field"),
-  fileName: yup.string().required(i18n.t("message:error.fieldRequired")),
+  interaction_id: yup
+    .number()
+    .notOneOf([0], i18n.t("message:error.fieldRequired"))
+    .required(i18n.t("message:error.fieldRequired")),
+  fileName: yup
+    .string()
+    .required(i18n.t("message:error.fieldRequired")),
+  message: yup
+    .string()
+    .nullable(),
 });
 
 export const validateField = async (name: string, value: any) => {
@@ -24,7 +31,7 @@ export const validate = async (data: any) => {
     await schema.validate(data, { abortEarly: false });
     return { isValid: true, errors: {} };
   } catch (validationErrors) {
-    let errors: any = {};
+    const errors: any = {};
     validationErrors.inner.forEach((error: any) => {
       errors[error.path] = error.message;
     });

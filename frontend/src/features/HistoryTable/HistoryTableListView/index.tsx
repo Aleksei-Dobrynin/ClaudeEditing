@@ -125,6 +125,30 @@ const HistoryTableListView: FC<HistoryTableListViewProps> = observer((props) => 
       const jsonObject = JSON.parse(jsonString);
       const entries = Object.entries(jsonObject);
 
+      const renderValue = (value: any) => {
+        if (value === null || value === undefined) return "-";
+
+        if (typeof value === "boolean") {
+          return value ? translate("yes") : translate("no");
+        }
+
+        if (typeof value === "string" && (value === "true" || value === "false")) {
+          return value === "true" ? translate("yes") : translate("no");
+        }
+
+        if (typeof value === "string") {
+          if (/^\d{4}-\d{2}-\d{2}T/.test(value)) {
+            return dayjs(value).format("YYYY-MM-DD");
+          }
+          if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d+)?$/.test(value)) {
+            return dayjs(value).format("YYYY-MM-DD HH:mm");
+          }
+          return value;
+        }
+
+        return String(value);
+      };
+
       return (
         <Box>
           {entries.map(([key, value], index) => (
@@ -137,7 +161,7 @@ const HistoryTableListView: FC<HistoryTableListViewProps> = observer((props) => 
                 mb: 0.5
               }}
             >
-              <strong>{translate(`label:${table}ListView.${key}`)}:</strong> {value ? String(value) : "-"}
+              <strong>{translate(`label:${table}ListView.${key}`)}:</strong> {value ? renderValue(value) : "-"}
             </Typography>
           ))}
         </Box>

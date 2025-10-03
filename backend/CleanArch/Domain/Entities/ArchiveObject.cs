@@ -16,6 +16,8 @@ namespace Domain.Entities
         public double? longitude { get; set; }
         public string? layer { get; set; }
         public string? description { get; set; }
+        public string? tag_description { get; set; }
+        public string? tag_name{ get; set; }
         public DateTime? date_setplan { get; set; }
         public int? quantity_folder { get; set; }
         public int? status_dutyplan_object_id { get; set; }
@@ -27,6 +29,7 @@ namespace Domain.Entities
         public string? archive_folders { get; set; }
         public string? customer_name { get; set; }
         public string? customer_pin { get; set; }
+        public string? customer_number{ get; set; }
         public int? parent_id { get; set; }
         public List<customers_for_archive_object> customers_for_archive_object { get; set; }
         public List<ArchiveObject> divided_objects { get; set; }
@@ -41,6 +44,10 @@ namespace Domain.Entities
         public string? sort_by { get; set; }
         public string? sort_type { get; set; }
         public int status_id { get; set; }
+        public DateTime? created_at_from { get; set; }
+        public DateTime? created_at_to { get; set; }
+        public DateTime? updated_at_from { get; set; }
+        public DateTime? updated_at_to { get; set; }
     }
     public class CombineArchiveObjects
     {

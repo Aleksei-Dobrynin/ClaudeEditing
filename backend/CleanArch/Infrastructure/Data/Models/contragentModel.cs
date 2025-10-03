@@ -10,9 +10,12 @@ namespace Infrastructure.Data.Models
     public class contragentModel : BaseLogDomain
     {
         public int id { get; set; }
-		public string name { get; set; }
-		public string address { get; set; }
-		public string contacts { get; set; }
-		public string user_id { get; set; }
+        public string name { get; set; }
+        public string address { get; set; }
+        public string contacts { get; set; }
+        public string user_id { get; set; }
+        public DateTime? date_start { get; set; }
+        public DateTime? date_end { get; set; }
+        public string code { get; set; }
     }
 }

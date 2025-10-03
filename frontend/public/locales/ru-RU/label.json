@@ -706,7 +706,11 @@
     "filterByTundukResidentialArea": "Жилмассив (адм. единица)",
     "filterByTundukStreet": "Улица",
     "select_application": "Выбор",
-    "print_template": "Печать шаблона"
+    "print_template": "Печать шаблона",
+    "assigned_employees_names": "Исполнители",
+    "districts_names_extracted": "Районы",
+    "registrator_name": "Регистратор",
+    "for_signature": "Для подписания"
   },
   "ApplicationAddEditView": {
     "entityTitle": "Заявка",
@@ -752,7 +756,15 @@
     "notify_history_date_message": "Дата",
     "notify_history_none": "Нет истории уведомлений",
     "customer_sendDocument": "Отправить документа на почту",
-    "only_electronic": "Только электронная выдача"
+    "only_electronic": "Только электронная выдача",
+    "steps_objects": "Объекты",
+    "steps_applicant": "Заявитель",
+    "steps_documents": "Документы",
+    "steps_review": "Шаблоны документов",
+    "editApplication": "Редактирование заявки",
+    "newApplication": "Регистрация новой заявки",
+    "add_favorite": "Добавить в избранное",
+    "delete_favorite": "Удалить из избранного"
   },
   "DistrictListView": {
     "District": "Район",
@@ -788,6 +800,9 @@
   "ArchObjectAddEditView": {
     "entityTitle": "Архитектурный объект",
     "address": "Адрес",
+    "street": "Улица",
+    "house": "Дом",
+    "apartment": "Квартира",
     "name": "Название",
     "identifier": "ЕНИ",
     "district_id": "Район",
@@ -1295,7 +1310,9 @@
     "language_id": "Язык",
     "download": "Скачать",
     "body": "Документ",
-    "created_at": "Дата"
+    "created_at": "Дата",
+    "history": "История документов",
+    "created_by": "Создан"
   },
   "releaseAddEditView": {
     "entityTitle": "Релиз",
@@ -1361,36 +1378,39 @@
     "updated_at": "Обновлен в",
     "created_by": "Создан"
   },
-  "contragent_interaction_docAddEditView": {
-    "entityTitle": "Документы",
-    "file_id": "Файл",
-    "interaction_id": "Взаимодействие с контрагентом"
-  },
   "contragent_interaction_docListView": {
-    "entityTitle": "Документы",
+    "entityTitle": "Документы взаимодействия",
+    "file_name": "Имя файла",
     "file_id": "Файл",
-    "interaction_id": "Взаимодействие с контрагентом",
-    "user_message": "Пользователь",
-    "type_message": "Введите сообщение",
-    "upload_file": "Загрузить файл",
-    "clear_file": "Убрать файл",
-    "send": "Отправить",
-    "with_contragent": "Рабочий чат",
-    "with_customer": "Уведомления заказчику"
+    "message": "Сообщение",
+    "actions": "Действия",
+    "existingDocuments": "Существующие документы"
   },
-  "contragentAddEditView": {
+  "contragent_interaction_docAddEditView": {
+    "entityTitle": "Документ взаимодействия с контрагентом",
+    "message": "Сообщение",
+    "addNewDocument": "Добавить новый документ"
+  },
+  "ContragentAddEditView": {
     "entityTitle": "Контрагент",
     "name": "Название",
+    "code": "Код",
     "address": "Адрес",
     "contacts": "Контакты",
-    "user_id": "Пользователь"
+    "user_id": "ID пользователя",
+    "date_start": "Дата начала",
+    "date_end": "Дата окончания",
+    "organization": "Смежная организация"
   },
-  "contragentListView": {
-    "entityTitle": "Контрагент",
+  "ContragentListView": {
+    "entityTitle": "Контрагенты",
     "name": "Название",
+    "code": "Код",
     "address": "Адрес",
     "contacts": "Контакты",
-    "user_id": "Пользователь"
+    "user_id": "ID пользователя",
+    "date_start": "Дата начала",
+    "date_end": "Дата окончания"
   },
   "contragent_interactionAddEditView": {
     "entityTitle": "Взаимодействие с контрагентом",
@@ -1529,7 +1549,11 @@
     "radioThreeTitle": "Входящие",
     "entityTitleTwo": "Исходящие документы",
     "entityTitleThree": "Входящие документы",
-    "addFromTemplate": "Добавить из Word"
+    "addFromTemplate": "Добавить из Word",
+    "deactivated_at": "Время деактивации",
+    "deactivated_by": "Кем деактивировано",
+    "reason_deactivated": "Причина деактивации",
+    "is_required": "Обязательный"
   },
   "ApplicationWorkDocumentAddEditView": {
     "entityTitle": "Рабочий документ",
@@ -1816,6 +1840,9 @@
     "latitude": "Широта",
     "longitude": "Долгота",
     "customer": "Заказчик",
+    "created_at": "Дата создания",
+    "updated_at": "Последнее обновление",
+    "customer_number": "Исходящий номер",
     "searchdoc_number": "Поиск по номеру документа",
     "search": "Поиск",
     "description": "Описание",
@@ -2947,7 +2974,9 @@
     "statusApproved": "Подписано",
     "statusRejected": "Отклонено",
     "statusPending": "Ожидает подписи",
-    "statusOverdue": "Просрочено"
+    "statusOverdue": "Просрочено",
+    "address": "Адрес",
+    "work_description": "Описание выполняемых работ"
   },
   "FileDownloadLogListView": {
     "entityTitle": "Журнал скачивания файлов",
@@ -3412,8 +3441,55 @@
     "structure_fullname": "Структура",
     "file_name": "Название файла",
     "file_type": "Тип файла",
+    "search": "Поиск",
     "timestamp": "Дата подписи",
     "application_number": "Номер заявки",
-    "signers": "Подписанты"
+    "signers": "Подписанты",
+    "date_start": "Период с",
+    "date_end": "Период по"
+  },
+  "EventTypeListView": {
+    "entityTitle": "Типы событий",
+    "name": "Наименование",
+    "description": "Описание",
+    "code": "Код",
+    "name_kg": "Наименование (КГ)",
+    "description_kg": "Описание (КГ)"
+  },
+  "EventTypeAddEditView": {
+    "entityTitle": "Тип события",
+    "name": "Наименование",
+    "description": "Описание",
+    "code": "Код",
+    "name_kg": "Наименование (Кыргызча)",
+    "description_kg": "Описание (Кыргызча)",
+    "save": "Сохранить",
+    "cancel": "Отмена"
+  },
+  "ArchiveObjectsEventsListView": {
+    "entityTitle": "События архивных объектов",
+    "description": "Описание",
+    "employee": "Сотрудник",
+    "head_structure": "Головная структура",
+    "archive_object": "Архивный объект",
+    "event_type": "Тип события",
+    "event_date": "Дата события",
+    "structure": "Структура",
+    "application": "Заявление",
+    "created_at": "Дата создания",
+    "updated_at": "Дата обновления"
+  },
+  "ArchiveObjectsEventsAddEditView": {
+    "entityTitle": "Событие архивного объекта",
+    "description": "Описание",
+    "employee_id": "Сотрудник",
+    "head_structure_id": "Начальник отдела",
+    "archive_object_id": "Архивный объект",
+    "event_type_id": "Тип события",
+    "event_date": "Дата события",
+    "structure_id": "Структура",
+    "application_id": "Заявление",
+    "save": "Сохранить",
+    "cancel": "Отмена"
   }
 }

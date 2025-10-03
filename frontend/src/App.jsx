@@ -231,6 +231,7 @@ import JournalTemplateTypeAddEditView from 'features/JournalTemplateType/Journal
 import JournalTemplateTypeListView from 'features/JournalTemplateType/JournalTemplateTypeListView';
 import JournalApplicationListView from 'features/JournalApplication/JournalApplicationListView';
 import JournalApplicationListViewApp from 'features/JournalApplication/JournalApplicationListViewApp';
+import ApplicationStepper from 'features/Application/ApplicationStepper';
 import AddressUnitTypeListView from "features/AddressUnitType/AddressUnitTypeListView/index";
 import AddressUnitTypeAddEditView from "features/AddressUnitType/AddressUnitTypeAddEditView/index"
 import AddressUnitListView from "features/AddressUnit/AddressUnitListView/index";
@@ -242,6 +243,14 @@ import StreetListView from "features/Street/StreetListView/index";
 import StreetAddEditView from "features/Street/StreetAddEditView/index";
 import MapView from "features/MapView";
 import SignDocumentsListView from "features/SignDocuments/SignDocumentsListView/index";
+import EventTypeListView from "features/EventType/EventTypeListView/index"
+import EventTypeAddEditView from "features/HrmsEventType/HrmsEventTypeAddEditView";
+
+import ArchiveObjectsEventsListView from "features/ArchiveObjectsEvents/ArchiveObjectsEventsListView";
+import ArchiveObjectsEventsAddEditView from "features/ArchiveObjectsEvents/ArchiveObjectsEventsAddEditView";
+
+import ContragentAddEditView from "features/Contragent/ContragentAddEditView";
+import ContragentListView from "features/Contragent/ContragentListView";
 
 import Reports from 'features/Dashboard_headDepartment/reports';
 import { JournalTemplateType } from "./constants/JournalTemplateType";
@@ -312,7 +321,8 @@ const router = createBrowserRouter([
               { path: "ApplicationFinPlan", element: <ApplicationListView finPlan /> },
               { path: "Application/addedit", element: <ApplicationAddEditView /> },
               // { path: "ApplicationStatusHistory/", element: <ApplicationStatusHistoryListView /> },
-
+              { path: "Contragent", element: <ContragentListView /> },
+              { path: "Contragent/addedit", element: <ContragentAddEditView /> },
 
               { path: "StructuresPayment", element: <ApplicationPaymentListView /> },
               // { path: "ApplicationPayment/addedit", element: <ApplicationPaymentAddEditView /> },
@@ -382,7 +392,7 @@ const router = createBrowserRouter([
               { path: "TelegramAdmin/addedit", element: <TelegramAdminAddEditView /> },
               { path: "ArchiveObject", element: <ArchiveObjectListVew /> },
               { path: "ArchiveObject/addedit", element: <ArchiveObjectAddEditView /> },
-              { path: "ArchiveObject/view", element: <ArchiveObjectAddEditView isReadOnly={true}/> },
+              { path: "ArchiveObject/view", element: <ArchiveObjectAddEditView isReadOnly={false} /> },
               { path: "ArchitectureProcess", element: <ArchitectureProcess /> },
               { path: "ArchitectureProcessToArchive", element: <ArchitectureProcess toArchive={true} /> },
               { path: "ArchitectureProcess/addedit", element: <ArchiveObjectFromAppEdit /> },
@@ -500,8 +510,15 @@ const router = createBrowserRouter([
               { path: 'JournalTemplateType', element: <JournalTemplateTypeListView /> },
               { path: 'JournalTemplateType/addedit', element: <JournalTemplateTypeAddEditView /> },
               { path: 'JournalApplication', element: <JournalApplicationListViewApp /> },
+              { path: 'ApplicationStepper', element: <ApplicationStepper /> },
               { path: 'MapView', element: <MapView /> },
               { path: 'SignDocuments', element: <SignDocumentsListView /> },
+
+              { path: 'EventType', element: <EventTypeListView /> },
+              { path: 'EventType/addedit', element: <EventTypeAddEditView /> },
+              { path: 'ArchiveObjectsEvents', element: <ArchiveObjectsEventsListView /> },
+              { path: 'ArchiveObjectsEvents/addedit', element: <ArchiveObjectsEventsAddEditView /> },
+
             ]
           }]
       },

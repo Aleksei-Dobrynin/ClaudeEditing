@@ -18,6 +18,7 @@ namespace Domain.Entities
 		public DateTime? created_at { get; set; }
 		public DateTime? updated_at { get; set; }
 		public int? created_by { get; set; }
+		public string? created_by_name { get; set; }
 		public string? updated_by_name { get; set; }
 		public int? updated_by { get; set; }
 		public int? file_id { get; set; }

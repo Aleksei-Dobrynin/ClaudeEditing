@@ -20,7 +20,7 @@ import { getCustomer } from "api/Customer/useGetCustomer";
 import { Application } from "constants/Application";
 import { Customer } from "constants/Customer";
 import { CustomersForArchiveObject } from "constants/CustomersForArchiveObject";
-import {getByCustomersIdArchiveObject} from "api/CustomersForArchiveObject/CustomersForArchiveObject"
+import { getByCustomersIdArchiveObject } from "api/CustomersForArchiveObject/CustomersForArchiveObject"
 
 
 interface DivisionHistory {
@@ -68,7 +68,7 @@ class NewStore {
     description: '',
     dp_outgoing_number: ''
   }];
-  
+
   description = "";
   latitude = 0;
   mapDutyPlanObject: DutyPlan[] = [];
@@ -105,7 +105,7 @@ class NewStore {
   addressInfo = [];
   identifier = "";
   darek_eni = "";
-
+  isReadOnly = false;
   divideObjectOpenPanel = false;
   // Новые поля для истории разделения
   dividedObjects: DivisionHistory[] = []; // Объекты, на которые был разделен текущий
@@ -151,6 +151,7 @@ class NewStore {
       this.Application = null;
       this.dividedObjects = [];
       this.parentObject = null;
+      this.isReadOnly = false;
     });
   }
 
@@ -201,9 +202,9 @@ class NewStore {
   }
 
   handleChangeCustomer(event, index: number) {
-      this.customers_for_archive_object[index][event.target.name] = event.target.value;
-      validate(event);
-    }
+    this.customers_for_archive_object[index][event.target.name] = event.target.value;
+    validate(event);
+  }
   handlePointChange = (newPoint: any[]) => {
     this.point = newPoint;
   };
@@ -225,7 +226,7 @@ class NewStore {
       this.mapLayers.push({ address, type: type, point: layer });
     }
   }
-  
+
   // Удалена фильтрация по type="Point" согласно требованию
   addLayerOne(layer: any) {
     this.mapLayers.push(layer);
@@ -241,9 +242,9 @@ class NewStore {
       try {
         if (layer.geometry?.type === updatedLayer.geometry?.type) {
           // Простая проверка для Point
-          if (layer.geometry?.type === "Point" && 
-              Math.abs(layer.geometry.coordinates[0] - updatedLayer.geometry.coordinates[0]) < 0.0001 &&
-              Math.abs(layer.geometry.coordinates[1] - updatedLayer.geometry.coordinates[1]) < 0.0001) {
+          if (layer.geometry?.type === "Point" &&
+            Math.abs(layer.geometry.coordinates[0] - updatedLayer.geometry.coordinates[0]) < 0.0001 &&
+            Math.abs(layer.geometry.coordinates[1] - updatedLayer.geometry.coordinates[1]) < 0.0001) {
             return true;
           }
           // Для других типов можно добавить более сложную логику
@@ -323,7 +324,7 @@ class NewStore {
     canSave = validate(event) && canSave;
     event = { target: { name: "address", value: this.address } };
     canSave = validate(event) && canSave;
-    
+
     // Больше не проверяем наличие точки, можно добавлять любой GeoJSON объект
     if (this.mapLayers.length === 0) {
       return MainStore.openErrorDialog("Нужно добавить хотя бы один объект на карту!");
@@ -498,7 +499,7 @@ class NewStore {
           this.archirecture_process_id = response.data.archirecture_process_id;
           this.archirecture_process_status_code = response.data.archirecture_process_status_code;
           this.archirecture_process_status_id = response.data.archirecture_process_status_id;
-          
+
           this.dividedObjects = response.data.divided_objects || [];
           this.parentObject = response.data.parent_object || null;
 
@@ -519,7 +520,7 @@ class NewStore {
       MainStore.changeLoader(false);
     }
   };
-  
+
   // Загрузка истории разделения объекта
   loadDivisionHistory = async (objectId: number) => {
     try {
@@ -598,7 +599,7 @@ class NewStore {
     }
   };
 
- 
+
   async doLoad(id: number) {
     this.loadApplicationRoads();
     this.loadArchitectureStatuses();

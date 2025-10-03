@@ -1,10 +1,11 @@
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
+import React from 'react';
 
 
 type CheckboxProps = {
   value: boolean;
-  label?: string;
+  label?: string | React.ReactNode;
   name: string;
   size?: any;
   onChange: (e) => void;

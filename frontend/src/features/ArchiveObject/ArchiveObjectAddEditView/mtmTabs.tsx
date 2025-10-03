@@ -7,9 +7,13 @@ import { Paper } from '@mui/material';
 import store from './store';
 import { useTranslation } from 'react-i18next';
 import ArchiveObjectFileListView from '../../ArchiveObjectFile/ArchiveObjectFileListView';
-import Archive_folderListView from 'features/archive_folder/archive_folderListView';
+import ArchiveObjectsEventsListView from 'features/ArchiveObjectsEvents/ArchiveObjectsEventsListView';
 
-const S_QueryMtmTabs = observer(() => {
+interface S_QueryMtmTabsProps {
+  isReadOnly?: boolean;
+}
+
+const S_QueryMtmTabs = observer(({ isReadOnly }: S_QueryMtmTabsProps) => {
   const [value, setValue] = React.useState(0);
   const { t } = useTranslation();
   const translate = t;
@@ -22,23 +26,37 @@ const S_QueryMtmTabs = observer(() => {
     <Box component={Paper} elevation={5}>
       <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
         <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
-          <Tab data-testid={"ArchiveObjectFile_tab_title"} label={translate("label:ArchiveObjectFileAddEditView.entityTitle")} {...a11yProps(0)} />
-          <Tab data-testid={"ArchiveObjectFile_tab_title"} label={translate("label:archive_folderAddEditView.entityTitle")} {...a11yProps(1)} />
+          <Tab 
+            data-testid={"ArchiveObjectFile_tab_title"} 
+            label={translate("label:ArchiveObjectFileAddEditView.entityTitle")} 
+            {...a11yProps(0)} 
+          />
+          <Tab 
+            data-testid={"ArchiveObjectsEvents_tab_title"} 
+            label={translate("label:ArchiveObjectsEventsListView.entityTitle")} 
+            {...a11yProps(1)} 
+          />
         </Tabs>
       </Box>
       
       <CustomTabPanel value={value} index={0}>
-        <ArchiveObjectFileListView idArchiveObject={store.id} idFolder={0}/>
+        <ArchiveObjectFileListView 
+          idArchiveObject={store.id} 
+          idFolder={0} 
+          isReadOnly={isReadOnly}
+        />
       </CustomTabPanel>
+
       <CustomTabPanel value={value} index={1}>
-        <Archive_folderListView idArchiveObject={store.id} is_popup={true} />
+        <ArchiveObjectsEventsListView 
+          idArchiveObject={store.id} 
+          isEmbedded={true} 
+          isReadOnly={isReadOnly} 
+        />
       </CustomTabPanel>
-            
     </Box>
   );
-
 })
-
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -68,6 +86,5 @@ function a11yProps(index: number) {
     'aria-controls': `simple-tabpanel-${index}`,
   };
 }
-
 
 export default S_QueryMtmTabs

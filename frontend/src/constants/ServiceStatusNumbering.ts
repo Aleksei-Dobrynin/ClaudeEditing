@@ -2,8 +2,8 @@ import { Dayjs } from "dayjs";
 
 export type ServiceStatusNumbering = {
     id: number;
-    date_start: Dayjs;
-    date_end: Dayjs;
+    date_start: string;
+    date_end: string;
     is_active: boolean;
     service_id: number;
     journal_id: number;

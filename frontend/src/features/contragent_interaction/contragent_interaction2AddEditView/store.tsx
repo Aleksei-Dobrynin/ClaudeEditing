@@ -11,7 +11,7 @@ import { updatecontragent_interaction } from "api/contragent_interaction";
 
 import { getapplication_tasks, getapplication_tasksByapplication_id } from "api/application_task";
 
-import { getContragents } from "api/Contragent/useGetContragents";
+import { getContragents } from "api/Contragent";
 
 
 

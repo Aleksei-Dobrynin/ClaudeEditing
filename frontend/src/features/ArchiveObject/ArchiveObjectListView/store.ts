@@ -29,10 +29,15 @@ class NewStore {
     sort_by: null,
     sort_type: null,
     status_id: 0,
+    created_at_from: null,
+    created_at_to: null,
+    updated_at_from: null,
+    updated_at_to: null,
   };
   openPanel = false;
   currentId = 0;
   ArchitectureStatuses = [];
+  focus_id = null;
 
   // Объединение объектов
   combineObjectsMode = false;
@@ -51,6 +56,10 @@ class NewStore {
       sort_by: null,
       sort_type: null,
       status_id: 0,
+      created_at_from: null,
+      created_at_to: null,
+      updated_at_from: null,
+      updated_at_to: null,
     };
   }
 
@@ -60,6 +69,14 @@ class NewStore {
     if (!this.combineObjectsMode) {
       this.selectedObjects = [];
     }
+  };
+
+  showOnMap = (id: number) => {
+    this.focus_id = id;
+  };
+
+  clearMapFocus = () => {
+    this.focus_id = null;
   };
 
   selectObjectForCombine = (obj: any) => {

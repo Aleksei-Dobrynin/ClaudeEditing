@@ -12,7 +12,9 @@ namespace Domain.Entities
         public DateTime? createdAt { get; set; }
         public DateTime? updatedAt { get; set; }
         public int? createdBy { get; set; }
+        public string? createdBy_name { get; set; }
         public int? updatedBy { get; set; }
+        public string? updatedBy_name { get; set; }
         public string? name { get; set; }
         public string? code { get; set; }
         public string? description { get; set; }

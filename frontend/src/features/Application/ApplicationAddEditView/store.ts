@@ -165,10 +165,12 @@ class NewStore {
   selectedIncomingDocuments = [];
   selectedOutgoingDocuments = [];
   selectedWorkDocuments = [];
+  favorite = [];
 
   constructor() {
     makeAutoObservable(this);
-
+    const fav = localStorage.getItem("favorite_services");
+    this.favorite = fav ? JSON.parse(fav) : [];
     reaction(
       () => [this.customerInputValue],
       () => this.onInputValueChanged(),
@@ -245,6 +247,106 @@ class NewStore {
       this.selectedOutgoingDocuments = [];
       this.selectedWorkDocuments = [];
       this.is_electronic_only = false;
+    });
+  }
+
+
+  clearApplicationData() {
+    runInAction(() => {
+      // Очищаем только данные, специфичные для заявки
+      // НЕ очищаем справочники!
+      this.id = 0;
+      this.is_application_read_only = true;
+      this.registration_date = null;
+      this.updated_at = null;
+      this.customer_id = 0;
+      this.total_sum = 0;
+      this.arch_object_id = 0;
+      this.arch_object_district = "";
+      this.status_id = 0;
+      this.status_code = "";
+      this.workflow_id = 0;
+      this.workflow_id_for_structure = null;
+      this.service_id = 0;
+      this.district_id = 0;
+      this.deadline = null;
+      this.workflow_task_structure_id = null;
+      this.comment = "";
+      this.is_paid = false;
+      this.number = "";
+      this.cabinet_html = "";
+      this.app_cabinet_uuid = "";
+      this.new_arch_object = "";
+      this.new_pin = "";
+      this.created_by_name = "";
+      this.created_at = null;
+      this.work_description = "";
+      this.incoming_numbers = "";
+      this.outgoing_numbers = "";
+      this.object_tag_id = 0;
+
+      // Очищаем ошибки
+      this.errorwork_description = "";
+      this.errorregistration_date = "";
+      this.errorcustomer_id = "";
+      this.errorarch_object_id = "";
+      this.errorstatus_id = "";
+      this.errorworkflow_id = "";
+      this.errorservice_id = "";
+      this.errordeadline = "";
+      this.errorcomment = "";
+      this.errordistrict_id = "";
+      this.errorobject_tag_id = "";
+      this.errorincoming_numbers = "";
+      this.erroroutgoing_numbers = "";
+
+      // Очищаем данные клиента
+      this.changeCustomer(null);
+
+      // Очищаем флаги панелей
+      this.openCustomerPanel = false;
+      this.openStatusHistoryPanel = false;
+      this.openPanelProcess = false;
+      this.openArchObjectPanel = false;
+      this.openCustomerRepresentativePanel = false;
+      this.openHistoryForm = false;
+      this.openSendDocumentPanel = false;
+
+      // Очищаем временные данные
+      this.customerInputValue = "";
+      this.customerLoading = false;
+      this.objectName = "";
+      this.objectAddress = "";
+      this.objectDescription = "";
+      this.objectLoading = false;
+      this.objectInputValue = "";
+      this.arch_process_id = null;
+
+      // Очищаем документы
+      this.selectedDocumentIds = [];
+      this.incomingDocuments = [];
+      this.outgoingDocuments = [];
+      this.workDocuments = [];
+      this.selectedIncomingDocuments = [];
+      this.selectedOutgoingDocuments = [];
+      this.selectedWorkDocuments = [];
+      this.is_electronic_only = false;
+
+      // НЕ ОЧИЩАЕМ СПРАВОЧНИКИ:
+      // this.Customers - НЕ очищаем
+      // this.ArchObjects - НЕ очищаем
+      // this.Services - НЕ очищаем
+      // this.Districts - НЕ очищаем
+      // this.Statuses - НЕ очищаем
+      // this.ApplicationRoads - НЕ очищаем
+      // this.ArchObjectTag - НЕ очищаем
+      // this.Countries - НЕ очищаем
+      // this.WorkflowTaskTemplates - НЕ очищаем
+      // this.OrganizationTypes - НЕ очищаем
+      // this.ObjectTags - НЕ очищаем
+      // this.Identity_document_types - НЕ очищаем
+      // this.MyCurrentStructure - НЕ очищаем
+      // this.org_structures - НЕ очищаем
     });
   }
 
@@ -627,7 +729,7 @@ class NewStore {
         return;
       }
 
-      if (status.code === APPLICATION_STATUSES.to_technical_council){
+      if (status.code === APPLICATION_STATUSES.to_technical_council) {
         this.isOpenTechCouncil = true;
       }
 
@@ -656,7 +758,7 @@ class NewStore {
     }
   }
 
-  onSaveClick = async (onSaved: (id: number) => void, saveWithoutCheck: boolean = false) => {
+  validateCustomerForm = () => {
     let canSave = true;
     let event: { target: { name: string; value: any } } = {
       target: { name: "id", value: this.id },
@@ -681,6 +783,57 @@ class NewStore {
 
     const saveObject = storeObject.onSaveClick()
 
+    if (!(canSave && saveObject.canSave)) {
+      MainStore.openErrorDialog(i18n.t("message:error.alertMessageAlert"));
+    }
+    return canSave && saveObject.canSave;
+  }
+
+  validateObjectForm = () => {
+    let canSave = true;
+    let event: { target: { name: string; value: any } } = {
+      target: { name: "id", value: this.id },
+    };
+    canSave = validate(event) && canSave;
+    event = { target: { name: "customer_id", value: this.customer_id } };
+    canSave = validate(event) && canSave;
+    event = { target: { name: "arch_object_id", value: this.arch_object_id } };
+    canSave = validate(event) && canSave;
+    event = { target: { name: "service_id", value: this.service_id } };
+    canSave = validate(event) && canSave;
+
+    const saveObject = storeObject.onSaveClick()
+
+    if (!(canSave && saveObject.canSave)) {
+      MainStore.openErrorDialog(i18n.t("message:error.alertMessageAlert"));
+    }
+    return canSave && saveObject.canSave;
+  }
+
+  onSaveClick = async (onSaved: (id: number) => void, saveWithoutCheck: boolean = false) => {
+    let canSave = true;
+    let event: { target: { name: string; value: any } } = {
+      target: { name: "id", value: this.id },
+    };
+    canSave = validate(event) && canSave;
+    event = { target: { name: "customer_id", value: this.customer_id } };
+    canSave = validate(event) && canSave;
+    event = { target: { name: "arch_object_id", value: this.arch_object_id } };
+    canSave = validate(event) && canSave;
+    event = { target: { name: "service_id", value: this.service_id } };
+    canSave = validate(event) && canSave;
+    event = { target: { name: "pin", value: this.customer } };
+    canSave = validate(event) && canSave;
+    if (!this.customer.is_organization) {
+      event = { target: { name: "individual_surname", value: this.customer.individual_surname } };
+      canSave = validate(event) && canSave;
+      event = { target: { name: "individual_name", value: this.customer.individual_name } };
+      canSave = validate(event) && canSave;
+      event = { target: { name: "individual_secondname", value: this.customer.individual_secondname } };
+      canSave = validate(event) && canSave;
+    }
+
+    const saveObject = storeObject.onSaveClick()
     if (canSave && saveObject.canSave) {
       try {
         MainStore.changeLoader(true);
@@ -816,7 +969,7 @@ class NewStore {
       const response = await getServices();
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
         const today = dayjs();
-        
+
         this.Services = response.data
       } else {
         throw new Error();
@@ -1145,6 +1298,25 @@ class NewStore {
     }
     await this.loadApplication(id);
     commentStore.loadAllComments(id);
+  }
+
+  setFavorit(serviceId: number) {
+    if (this.favorite.includes(serviceId)) {
+      this.favorite = this.favorite.filter(id => id !== serviceId);
+    } else {
+      this.favorite.push(serviceId);
+    }
+    localStorage.setItem("favorite_services", JSON.stringify(this.favorite));
+  }
+
+  isFavorit(serviceId: number) {
+    return this.favorite.includes(serviceId);
+  }
+
+  get sortService() {
+    const favs = this.Services.filter(s => this.favorite.includes(s.id));
+    const rest = this.Services.filter(s => !this.favorite.includes(s.id));
+    return [...favs, ...rest];
   }
 }
 

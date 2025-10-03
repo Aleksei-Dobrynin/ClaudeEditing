@@ -2456,5 +2456,49 @@
     "name_kg": "Name (Kyrgyz)",
     "description": "Description",
     "description_kg": "Description (Kyrgyz)"
-  }
+  },
+  "EventTypeListView": {
+    "entityTitle": "Event Types",
+    "name": "Name",
+    "description": "Description",
+    "code": "Code",
+    "name_kg": "Name (KG)",
+    "description_kg": "Description (KG)"
+  },
+  "EventTypeAddEditView": {
+    "entityTitle": "Event Type",
+    "name": "Name",
+    "description": "Description",
+    "code": "Code",
+    "name_kg": "Name (Kyrgyz)",
+    "description_kg": "Description (Kyrgyz)",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "ArchiveObjectsEventsListView": {
+      "entityTitle": "Archive Objects Events",
+      "description": "Description",
+      "employee": "Employee",
+      "head_structure": "Head Structure",
+      "archive_object": "Archive Object",
+      "event_type": "Event Type",
+      "event_date": "Event Date",
+      "structure": "Structure",
+      "application": "Application",
+      "created_at": "Created At",
+      "updated_at": "Updated At"
+    },
+    "ArchiveObjectsEventsAddEditView": {
+      "entityTitle": "Archive Object Event",
+      "description": "Description",
+      "employee_id": "Employee",
+      "head_structure_id": "Head Structure",
+      "archive_object_id": "Archive Object",
+      "event_type_id": "Event Type",
+      "event_date": "Event Date",
+      "structure_id": "Structure",
+      "application_id": "Application",
+      "save": "Save",
+      "cancel": "Cancel"
+    }
 }

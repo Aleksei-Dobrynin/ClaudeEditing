@@ -57,6 +57,7 @@ namespace Application.UseCases
         public async Task<List<S_DocumentTemplate>> GetByApplicationTypeAndID(int idApplication)
         {
             var app = await unitOfWork.S_DocumentTemplateRepository.GetByApplicationIsOrganization(idApplication);
+            var application = await unitOfWork.ApplicationRepository.GetOneByID(idApplication);
 
             var type = await unitOfWork.S_DocumentTemplateTypeRepository.GetOneByCode("application");
             var yur = await unitOfWork.S_DocumentTemplateTypeRepository.GetOneByCode("app_yur");
@@ -68,6 +69,13 @@ namespace Application.UseCases
             var templatesForPhys = await unitOfWork.S_DocumentTemplateRepository.GetByApplicationTypeAndID(phys.id, idApplication);
 
             var templatesToConcat = app.is_organization ? templatesForYur : templatesForPhys;
+            if (application.is_electronic_only == true)
+            {
+                var electronic = await unitOfWork.S_DocumentTemplateTypeRepository.GetOneByCode("application_electronic_only");
+                var templatesForElectronic = await unitOfWork.S_DocumentTemplateRepository.GetByApplicationTypeAndID(electronic.id, idApplication);
+                templatesForType = templatesForType.Where(x => x.code != "confirm").ToList();
+                templatesForType = templatesForType.Concat(templatesForElectronic).ToList();
+            }
 
             var result = templatesForType.Concat(templatesToConcat).ToList();
             return result;

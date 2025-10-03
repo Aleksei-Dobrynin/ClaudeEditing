@@ -9,6 +9,7 @@ import pages, { icons } from "./menu-items/pages";
 import { getCountMyStructure } from "./api/TechCouncil";
 import TechCouncilSection from "./layouts/MainLayout/Header/TechCouncilSection";
 import { getCountApplicationsFromCabinet } from "api/Application/useGetApplications";
+import dayjs, { Dayjs } from "dayjs";
 
 class NewStore {
   loader_counter = 0;
@@ -356,6 +357,11 @@ class NewStore {
     }
   }
 
+  formatDate(date: Dayjs | null | undefined): string | null {
+    if (!date) return null;
+    if (!dayjs(date).isValid()) return null;
+    return dayjs(date).format("YYYY-MM-DDTHH:mm:ss");
+  }
 
   onCloseDigitalSign = () => {
     this.digitalSign.open = false;

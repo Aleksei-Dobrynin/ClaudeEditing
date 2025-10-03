@@ -161,8 +161,11 @@ const DigitalSignDialog = observer(() => {
           </>
         )}
 
-        <ActionsWrapper>
-          {!isSend && (
+        {!isSend && (
+          <>
+            <br />
+            <br />
+
             <ButtonWrapper>
               <CustomButton
                 name="AlertButtonYes"
@@ -172,38 +175,70 @@ const DigitalSignDialog = observer(() => {
                 disabled={pin?.length !== 14}
                 onClick={handleSendCode}
               >
-                Отправить код
+                Отправить код заново
               </CustomButton>
             </ButtonWrapper>
-          )}
+            <br />
+            <br />
 
-          {isSend && (
+            <MaskedTextField
+              label={translate("PIN-код")}
+              value={pinCode}
+              mask={"000000"}
+              onChange={(e) => setPinCode(e.target.value)}
+              id='id_dialog_sign_pin_code'
+              name='dialog_sign_pin_code'
+            />
+            <br />
+            <br />
             <ButtonWrapper>
               <CustomButton
                 name="AlertButtonYes"
                 color={"primary"}
                 variant="contained"
                 id={"AlertButtonYes"}
-                disabled={pinCode?.length !== 6}
+                disabled={pinCode?.length !== 6 || pin?.length !== 14}
                 onClick={handleSign}
               >
-                Подписать
+                Подписать прошлым кодом
               </CustomButton>
             </ButtonWrapper>
-          )}
+          </>
 
+
+        )}
+
+        {isSend && (
           <ButtonWrapper>
+            <br />
+            <br />
+
             <CustomButton
-              color={"error"}
+              name="AlertButtonYes"
+              color={"primary"}
               variant="contained"
-              name="AlertButtonNo"
-              id={"AlertButtonNo"}
-              onClick={handleClose}
+              id={"AlertButtonYes"}
+              disabled={pinCode?.length !== 6}
+              onClick={handleSign}
             >
-              Отменить
+              Подписать
             </CustomButton>
           </ButtonWrapper>
-        </ActionsWrapper>
+        )}
+        <br />
+        <br />
+
+        <ButtonWrapper>
+          <CustomButton
+            color={"error"}
+            variant="contained"
+            name="AlertButtonNo"
+            id={"AlertButtonNo"}
+            onClick={handleClose}
+          >
+            Отменить
+          </CustomButton>
+        </ButtonWrapper>
       </ContentWrapper>
     </Dialog>
   );

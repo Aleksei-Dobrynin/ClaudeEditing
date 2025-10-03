@@ -17,10 +17,17 @@ namespace Application.UseCases
         {
             return unitOfWork.contragentRepository.GetAll();
         }
+
         public Task<contragent> GetOne(int id)
         {
             return unitOfWork.contragentRepository.GetOne(id);
         }
+
+        public Task<contragent> GetOneByCode(string code)
+        {
+            return unitOfWork.contragentRepository.GetOneByCode(code);
+        }
+
         public async Task<contragent> Create(contragent domain)
         {
             var result = await unitOfWork.contragentRepository.Add(domain);
@@ -49,8 +56,5 @@ namespace Application.UseCases
             unitOfWork.Commit();
             return id;
         }
-
-
-
     }
 }

@@ -143,26 +143,35 @@ namespace WebApi
             {
                 options.Limits.MaxRequestBodySize = int.MaxValue;
             });
-            
+
             // Configure RabbitMQ
-            builder.Services.Configure<RabbitMQOptions>(builder.Configuration.GetSection("RabbitMQ"));
-            builder.Services.AddSingleton<IRabbitMQConnection, RabbitMQConnection>();
+            builder.Services.Configure<Messaging.Shared.RabbitMQ.RabbitMQOptions>(builder.Configuration.GetSection("RabbitMQ"));
+            builder.Services.AddSingleton<Messaging.Shared.RabbitMQ.IRabbitMQConnection, Messaging.Shared.RabbitMQ.RabbitMQConnection>();
 
             // Configure EventBus
-            builder.Services.AddSingleton<IEventBus>(sp =>
+            builder.Services.AddSingleton<Messaging.Shared.IEventBus>(sp =>
             {
-                var rabbitMQConnection = sp.GetRequiredService<IRabbitMQConnection>();
-                var logger = sp.GetRequiredService<ILogger<RabbitMQEventBus>>();
-                var serviceName = "services";
-                var queueName = $"bga_{serviceName}_queue"; // Stable queue name for the service type
+                var rabbitMQConnection = sp.GetRequiredService<Messaging.Shared.RabbitMQ.IRabbitMQConnection>();
+                var logger = sp.GetRequiredService<ILogger<Messaging.Shared.RabbitMQ.RabbitMQEventBus>>();
+                var configuration = sp.GetRequiredService<IConfiguration>();
 
-                return new RabbitMQEventBus(
+                // Получаем имя очереди из конфигурации
+                var queueName = configuration.GetValue<string>("RabbitMQ:MainQueueName") ?? "bga_main_queue";
+
+                // Получаем retryCount из конфигурации
+                var retryCount = configuration.GetValue<int?>("RabbitMQ:RetryCount");
+
+                logger.LogInformation("Initializing RabbitMQEventBus with queue: {QueueName}", queueName);
+
+                return new Messaging.Shared.RabbitMQ.RabbitMQEventBus(
                     rabbitMQConnection,
                     logger,
                     sp,
-                    queueName);
+                    configuration,
+                    queueName,
+                    retryCount);
             });
-            
+
             //// Register event handlers
             builder.Services.AddTransient<ServiceRequestedEventHandler>();
             builder.Services.AddSingleton<IRabbitMQPublisher, RabbitMQPublisher>();
@@ -350,6 +359,13 @@ namespace WebApi
             builder.Services.AddScoped<IAddressUnitRepository, AddressUnitRepository>();
             builder.Services.AddScoped<IStreetTypeRepository, StreetTypeRepository>();
             builder.Services.AddScoped<IStreetRepository, StreetRepository>();
+            builder.Services.AddScoped<IEventTypeRepository, EventTypeRepository>();
+            builder.Services.AddScoped<IArchiveObjectsEventsRepository, ArchiveObjectsEventsRepository>();
+            builder.Services.AddScoped<IEmployeeSavedFiltersRepository, EmployeeSavedFiltersRepository>();
+            builder.Services.AddScoped<ISmejPortalApiRepository, SmejPortalApiRepository>();
+
+            builder.Services.AddScoped<EventTypeUseCases>();
+            builder.Services.AddScoped<ArchiveObjectsEventsUseCases>();
 
 
             builder.Services.AddScoped<employee_contactUseCases>();
@@ -541,6 +557,9 @@ namespace WebApi
             builder.Services.AddScoped<AddressUnitUseCases>();
             builder.Services.AddScoped<StreetTypeUseCases>();
             builder.Services.AddScoped<StreetUseCases>();
+            builder.Services.AddScoped<SmejPortalUseCases>();
+
+            builder.Services.AddScoped<EmployeeSavedFiltersUseCases>();
 
             builder.Services.AddScoped<IWatermarkService, WatermarkService>();
 

@@ -118,7 +118,7 @@ const CustomerChat: FC<CustomerChatProps> = observer((props) => {
           color="primary"
           onClick={() => {
             storeItem.setInteractionId(Number(props.interactionId));
-            storeItem.for_customer = true;
+            // storeItem.for_customer = true;
             storeItem.onSaveClick((id: number) => {
               document_store.loadcontragent_interaction_docs();
               storeItem.clearStore();

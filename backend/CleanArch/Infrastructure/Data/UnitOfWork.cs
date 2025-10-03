@@ -212,11 +212,16 @@ namespace Infrastructure.Data
         private IAddressUnitRepository? _addressUnitRepository;
         private IStreetRepository? _streetRepository;
         private IStreetTypeRepository? _streetTypeRepository;
+        private IEventTypeRepository? _eventTypeRepository;
+        private IArchiveObjectsEventsRepository? _archiveObjectsEventsRepository;
+        private IEmployeeSavedFiltersRepository? _employeeSavedFiltersRepository; 
+        private ISmejPortalApiRepository? _smejPortalApiRepository; 
 
         private ILogger<UnitOfWork> _logger;
+        private IConfiguration _configuration;
 
         public UnitOfWork(DapperDbContext context, MariaDbContext mariaDbcontext, IHostEnvironment appEnvironment, 
-            IUserRepository userRepository, ILogger<UnitOfWork> logger, IServiceProvider serviceProvider)
+            IUserRepository userRepository, ILogger<UnitOfWork> logger, IServiceProvider serviceProvider, IConfiguration configuration)
         {
             _dbConnection = context.CreateConnection();
             _mariadbConnection = mariaDbcontext.CreateConnection();
@@ -226,6 +231,8 @@ namespace Infrastructure.Data
             _appEnvironment = appEnvironment;
             _userRepository = userRepository;
             _serviceProvider = serviceProvider;
+            _logger = logger;
+            _configuration = configuration;
         }
 
 
@@ -1018,7 +1025,7 @@ namespace Infrastructure.Data
             {
                 if (_structureReportStatusRepository == null)
                 {
-                    _structureReportStatusRepository = new StructureReportStatusRepository(_dbConnection);
+                    _structureReportStatusRepository = new StructureReportStatusRepository(_dbConnection, _userRepository);
                     _structureReportStatusRepository.SetTransaction(_dbTransaction);
                 }
                 return _structureReportStatusRepository;
@@ -2557,6 +2564,57 @@ namespace Infrastructure.Data
             }
         }
 
+        public IEventTypeRepository EventTypeRepository
+        {
+            get
+            {
+                if (_eventTypeRepository == null)
+                {
+                    _eventTypeRepository = new EventTypeRepository(_dbConnection, _userRepository);
+                    _eventTypeRepository.SetTransaction(_dbTransaction);
+                }
+                return _eventTypeRepository;
+            }
+        }
+
+
+        public IArchiveObjectsEventsRepository ArchiveObjectsEventsrepository
+        {
+            get
+            {
+                if (_archiveObjectsEventsRepository == null)
+                {
+                    _archiveObjectsEventsRepository = new ArchiveObjectsEventsRepository(_dbConnection, _userRepository);
+                    _archiveObjectsEventsRepository.SetTransaction(_dbTransaction);
+                }
+                return _archiveObjectsEventsRepository;
+            }
+        }
+
+        public IEmployeeSavedFiltersRepository EmployeeSavedFiltersRepository
+        {
+            get
+            {
+                if (_employeeSavedFiltersRepository == null)
+                {
+                    _employeeSavedFiltersRepository = new EmployeeSavedFiltersRepository(_dbConnection, _userRepository);
+                    _employeeSavedFiltersRepository.SetTransaction(_dbTransaction);
+                }
+                return _employeeSavedFiltersRepository;
+            }
+        }
+
+        public ISmejPortalApiRepository SmejPortalApiRepository
+        {
+            get
+            {
+                if (_smejPortalApiRepository == null)
+                {
+                    _smejPortalApiRepository = new SmejPortalApiRepository(_configuration);
+                }
+                return _smejPortalApiRepository;
+            }
+        }
 
 
         public void Commit()
@@ -2565,8 +2623,9 @@ namespace Infrastructure.Data
             {
                 _dbTransaction.Commit();
             }
-            catch
+            catch(Exception e)
             {
+                _logger.LogError(e, "commit: " + e.Message);
                 _dbTransaction.Rollback();
                 throw;
             }

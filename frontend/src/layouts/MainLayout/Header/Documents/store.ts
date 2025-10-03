@@ -19,6 +19,8 @@ export interface IApplication {
   service_name: string;
   service_days: number;
   full_name: string;
+  app_work_description: string;
+  arch_object_address: string;
   task_id: number;
   app_step_id: number;
   pin: string;

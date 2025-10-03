@@ -49,17 +49,20 @@ namespace Application.UseCases
         {
             var roles = await _authRepository.GetMyRoleIds();
             var user_id = await unitOfWork.UserRepository.GetUserID();
+            var user_guid = await unitOfWork.UserRepository.GetUserUID();
 
             var orgs = await unitOfWork.EmployeeInStructureRepository.GetInMyStructure(user_id);
-            var role_id = roles?.FirstOrDefault() ?? 0;
-            var org_id = orgs?.FirstOrDefault()?.structure_id ?? 0;
+            //var role_ids = roles.Select(x=>x);
+            var org_ids = orgs.Select(x => x.structure_id).ToList();
 
-            var res = await unitOfWork.application_stepRepository.GetUnsignedDocuments(role_id, org_id, search, isDeadline);
+            var res = await unitOfWork.application_stepRepository.GetUnsignedDocuments(roles, org_ids, search, isDeadline, user_guid);
 
             var result = res.GroupBy(x => x.app_id).Select(x => new ApplicationUnsignedDocumentsModel
             {
                 app_id = x.Key,
                 app_number = x.FirstOrDefault()?.app_number,
+                app_work_description = x.FirstOrDefault()?.app_work_description,
+                arch_object_address = x.FirstOrDefault()?.arch_object_address,
                 full_name = x.FirstOrDefault()?.full_name,
                 service_name = x.FirstOrDefault()?.service_name,
                 service_days = x.FirstOrDefault()?.service_days,

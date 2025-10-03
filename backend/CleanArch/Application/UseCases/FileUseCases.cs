@@ -11,6 +11,7 @@ using Org.BouncyCastle.Cms;
 using System.Text;
 using Newtonsoft.Json;
 using System.Security.Cryptography;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Application.UseCases
 {
@@ -21,14 +22,16 @@ namespace Application.UseCases
         private readonly IConfiguration _configuration;
         private readonly IBgaService _bgaService;
         private readonly IAuthRepository _authRepository;
+        private readonly IServiceProvider _provider;
 
-        public FileUseCases(IUnitOfWork unitOfWork, IUserRepository? userRepository, IConfiguration configuration, IBgaService bgaService, IAuthRepository authRepository)
+        public FileUseCases(IUnitOfWork unitOfWork, IUserRepository? userRepository, IConfiguration configuration, IBgaService bgaService, IAuthRepository authRepository, IServiceProvider provider)
         {
             this.unitOfWork = unitOfWork;
             _userRepository = userRepository;
             _configuration = configuration;
             _bgaService = bgaService;
             this._authRepository = authRepository;
+            _provider = provider;
         }
 
         public Task<List<Domain.Entities.File>> GetAll()
@@ -60,7 +63,7 @@ namespace Application.UseCases
                 }
 
                 using var client = new HttpClient();
-                string token = "dpJFf4Yk2XbRu-Klyp6xySoxfXPT4d8lNqFmSYEIGhQ";
+                string token = "ZH75XQXnVwhDSxC2iFhz3FMjC9kW__1adROKUua6e3s";
                 client.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
                 client.DefaultRequestHeaders.Add("User-Agent", "bga");
 
@@ -113,9 +116,12 @@ namespace Application.UseCases
                     var role_id = roles?.FirstOrDefault() ?? 0;
                     var org_id = orgs?.FirstOrDefault()?.structure_id ?? 0;
 
-                    var apprvals = (await unitOfWork.document_approvalRepository.GetByapp_document_id(uplId ?? 0)).Where(x => x.position_id == role_id && x.department_id == org_id).ToList();
+                    var item = (await unitOfWork.document_approvalRepository.GetByapp_document_id(uplId ?? 0))
+                        .FirstOrDefault(x => x.position_id == role_id 
+                                             && x.department_id == org_id 
+                                             && x.status == "waiting");
 
-                    foreach (var item in apprvals)
+                    if (item != null)
                     {
                         item.file_sign_id = sign_id;
                         item.status = "signed";
@@ -136,7 +142,7 @@ namespace Application.UseCases
             //try
             //{
             //    using var client = new HttpClient();
-            //    string token = "dpJFf4Yk2XbRu-Klyp6xySoxfXPT4d8lNqFmSYEIGhQ";
+            //    string token = "ZH75XQXnVwhDSxC2iFhz3FMjC9kW__1adROKUua6e3s";
             //    client.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
             //    client.DefaultRequestHeaders.Add("User-Agent", "bga");
 
@@ -183,7 +189,7 @@ namespace Application.UseCases
             //    var hash = GetFileSHA256Hash(fullPath);
 
             //    using var client = new HttpClient();
-            //    string token = "dpJFf4Yk2XbRu-Klyp6xySoxfXPT4d8lNqFmSYEIGhQ";
+            //    string token = "ZH75XQXnVwhDSxC2iFhz3FMjC9kW__1adROKUua6e3s";
             //    client.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
             //    client.DefaultRequestHeaders.Add("User-Agent", "bga");
 
@@ -267,9 +273,12 @@ namespace Application.UseCases
                 var role_id = roles?.FirstOrDefault() ?? 0;
                 var org_id = orgs?.FirstOrDefault()?.structure_id ?? 0;
 
-                var apprvals = (await unitOfWork.document_approvalRepository.GetByapp_document_id(uplId ?? 0)).Where(x => x.position_id == role_id && x.department_id == org_id).ToList();
+                var item = (await unitOfWork.document_approvalRepository.GetByapp_document_id(uplId ?? 0))
+                    .FirstOrDefault(x => x.position_id == role_id 
+                                         && x.department_id == org_id 
+                                         && x.status == "waiting");
 
-                foreach (var item in apprvals)
+                if (item != null)
                 {
                     item.file_sign_id = res;
                     item.status = "signed";
@@ -281,9 +290,32 @@ namespace Application.UseCases
                 unitOfWork.Commit();
             }
 
-
+            await CheckSingFiles(uploaded_document.FirstOrDefault()?.application_document_id);
             unitOfWork.Commit();
             return res; //todo
+        }
+
+        private async Task CheckSingFiles(int? id)
+        {
+            if (id == null)
+            {
+                return;
+            }
+            var app = await unitOfWork.ApplicationRepository.GetOneByID(id.Value);
+            if (app != null && app.status_code == "ready_for_signing_eo")
+            {
+                var files = await unitOfWork.FileRepository.GetSignsByApplicationId(app.id);
+                var unsignedFiles = files
+                    .GroupBy(f => f.service_document_id)
+                    .Any(g => g.All(x => x.file_id == null) || g.All(x => x.employee_id == null));
+
+                if (!unsignedFiles)
+                {
+                    var newStatus = await unitOfWork.ApplicationStatusRepository.GetByCode("document_ready");
+                    var _applicationUseCases = _provider.GetRequiredService<ApplicationUseCases>();
+                    await _applicationUseCases.ChangeStatus(app.id, newStatus.id);
+                }
+            }
         }
 
         public async Task<List<FileSign>> GetAllSignByUser()

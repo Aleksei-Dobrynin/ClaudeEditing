@@ -267,5 +267,29 @@ namespace Infrastructure.Repositories
         {
             return ExcelHelper.ReadPaymentMbankRecords(stream);
         }
+        
+        public async Task<List<FilesSignInfo>> GetSignsByApplicationId(int id)
+        {
+            try
+            {
+                var sql = @"SELECT doc.id AS service_document_id, uad.file_id, fs.employee_id
+FROM service_document doc
+         LEFT JOIN service s ON s.id = doc.service_id
+         LEFT JOIN application app ON app.service_id = s.id
+         LEFT JOIN application_document appdoc ON appdoc.id = doc.application_document_id
+         LEFT JOIN uploaded_application_document uad ON uad.service_document_id = doc.id
+         LEFT JOIN file_sign fs ON fs.file_id = uad.file_id
+WHERE app.id = @id
+  AND appdoc.doc_is_outcome = TRUE
+ORDER BY doc.id, uad.id, fs.id;";
+
+                var models = await _dbConnection.QueryAsync<FilesSignInfo>(sql, new { id }, transaction: _dbTransaction);
+                return models.ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to get File", ex);
+            }
+        }
     }
 }

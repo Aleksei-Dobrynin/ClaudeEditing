@@ -11,7 +11,6 @@ import { observer } from "mobx-react";
 import store from "./store";
 import CustomButton from "components/Button";
 import MtmTabs from "./mtmTabs";
-import ArchiveObjectFileListView from '../../ArchiveObjectFile/ArchiveObjectFileListView';
 
 type ArchiveObjectProps = {
   isReadOnly?: boolean;
@@ -29,19 +28,19 @@ const ArchiveObjectAddEditView: FC<ArchiveObjectProps> = observer((props) => {
       (id !== "") &&
       !isNaN(Number(id.toString()))) {
       store.doLoad(Number(id));
+      store.isReadOnly = props.isReadOnly || false;
     } else {
       navigate("/error-404");
     }
     return () => {
       store.clearStore();
     };
-  }, []);
+  }, [props.isReadOnly]);
 
   return (
     <ArchiveObjectAddEditBaseView {...props}>
       <br/>
-      {store.id > 0 && <ArchiveObjectFileListView idArchiveObject={store.id} idFolder={0} isReadOnly={props.isReadOnly}/>}
-
+      {store.id > 0 && <MtmTabs isReadOnly={props.isReadOnly} />}
     </ArchiveObjectAddEditBaseView>
   );
 });

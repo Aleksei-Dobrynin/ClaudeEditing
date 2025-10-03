@@ -1,6 +1,9 @@
 export type ArchObject = {
   id: number;
   address: string;
+  street?: string;
+  house?: string;
+  apartment?: string;
   name: string;
   identifier: string;
   district_id: number;
@@ -20,6 +23,7 @@ export type ArchObject = {
   tags: number[];
   district_name?: string;
   is_manual?: boolean;
+  random_key?: string;
 };
 
 

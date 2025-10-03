@@ -40,6 +40,7 @@ import printJS from "print-js";
 
 type saved_application_documentListViewProps = {
   idMain: number;
+  templateCodeFilter?: string[];
 };
 
 
@@ -49,6 +50,7 @@ const Saved_application_documentListView: FC<saved_application_documentListViewP
 
 
   useEffect(() => {
+    if (props.idMain == 0) return;
     store.handleChange({ target: { value: props.idMain, name: "application_id" } })
     store.loadS_DocumentTemplates()
     store.loadLanguages()
@@ -57,6 +59,9 @@ const Saved_application_documentListView: FC<saved_application_documentListViewP
     }
   }, [props.idMain])
 
+  const filteredTemplates = store.S_DocumentTemplates.filter(template =>
+    !props.templateCodeFilter || props.templateCodeFilter.includes(template.code)
+  );
 
   return (
     <Container maxWidth='xl' sx={{ mt: 4 }}>
@@ -69,7 +74,7 @@ const Saved_application_documentListView: FC<saved_application_documentListViewP
                 title={lg.name}
               />
               <CardContent sx={{ padding: 1 }}>
-                {store.S_DocumentTemplates.map(item => {
+                {filteredTemplates.map(item => {
                   const foundDocument = item.saved_application_documents?.find(x => x?.language_id === lg.id);
                   const hasDocument = item.saved_application_documents?.find(x => x?.language_id === lg.id && x?.file_id != null);
                   return (<Grid container item key={`template-${item.id}`} alignItems="center">
@@ -195,15 +200,16 @@ const Saved_application_documentListView: FC<saved_application_documentListViewP
       </Basesaved_application_documentView>}
 
       {store.isHistoryDialogOpen && (
-        <Dialog open={store.isHistoryDialogOpen} onClose={store.closeHistoryDialog} maxWidth="sm" fullWidth>
+        <Dialog open={store.isHistoryDialogOpen} onClose={store.closeHistoryDialog} maxWidth="md" fullWidth>
         <PopupGrid
-          title={t("История документов")}
+          title={t("label:saved_application_documentListView.history")}
           onDeleteClicked={(id: number) => {}}
           onEditClicked={(id: number) => {}}
           hideAddButton={true}
           hideActions={true}
           columns={[
             { field: 'template_name', headerName: t('label:saved_application_documentListView.template_name'), flex: 1 },
+            { field: 'created_by_name', headerName: t('label:saved_application_documentListView.created_by'), flex: 1 },
             { field: 'created_at', headerName: t('label:saved_application_documentListView.created_at'), flex: 1, renderCell: (param) => (
                 <span>
           {param.row.created_at ? dayjs(param.row.created_at).format("DD.MM.YYYY HH:mm") : ""}

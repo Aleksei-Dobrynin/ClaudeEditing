@@ -37,7 +37,6 @@ namespace WebApi.Controllers
         {
             var request = new Domain.Entities.contragent
             {
-
                 name = requestDto.name,
                 address = requestDto.address,
                 contacts = requestDto.contacts,
@@ -46,6 +45,9 @@ namespace WebApi.Controllers
                 updated_at = requestDto.updated_at,
                 created_by = requestDto.created_by,
                 updated_by = requestDto.updated_by,
+                date_start = requestDto.date_start,
+                date_end = requestDto.date_end,
+                code = requestDto.code,
             };
             var response = await _contragentUseCases.Create(request);
             return Ok(response);
@@ -58,7 +60,6 @@ namespace WebApi.Controllers
             var request = new Domain.Entities.contragent
             {
                 id = requestDto.id,
-
                 name = requestDto.name,
                 address = requestDto.address,
                 contacts = requestDto.contacts,
@@ -67,6 +68,9 @@ namespace WebApi.Controllers
                 updated_at = requestDto.updated_at,
                 created_by = requestDto.created_by,
                 updated_by = requestDto.updated_by,
+                date_start = requestDto.date_start,
+                date_end = requestDto.date_end,
+                code = requestDto.code,
             };
             var response = await _contragentUseCases.Update(request);
             return Ok(response);
@@ -88,7 +92,12 @@ namespace WebApi.Controllers
             return Ok(response);
         }
 
-
-
+        [HttpGet]
+        [Route("GetByCode/{code}")]
+        public async Task<IActionResult> GetOneByCode(string code)
+        {
+            var response = await _contragentUseCases.GetOneByCode(code);
+            return Ok(response);
+        }
     }
 }

@@ -49,6 +49,8 @@ import { APPLICATION_STATUSES } from "constants/constant";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import RichTextEditor from "../../../components/richtexteditor/RichTextWithTabs";
+import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
+import FileViewer from "../../../components/FileViewer";
 
 type application_paymentProps = {
   children?: React.ReactNode;
@@ -128,6 +130,12 @@ const FastInputapplication_paymentView: FC<application_paymentProps> = observer(
 
   return (
     <>
+      <FileViewer
+        isOpen={store.isOpenFileView}
+        onClose={() => { store.isOpenFileView = false }}
+        fileUrl={store.fileUrl}
+        fileType={store.fileType} />
+
       <Paper elevation={7} variant="outlined" sx={{ mt: 2 }}>
         <Card sx={{ m: 2 }}>
           <Box id="application_payment_TitleName" sx={{ mb: 1, ml: 1 }}>
@@ -209,6 +217,11 @@ const FastInputapplication_paymentView: FC<application_paymentProps> = observer(
                   <Grid item display={"flex"} justifyContent={"center"} style={{ flexWrap: 'wrap', wordBreak: 'break-all' }} xs={2}>
                     {storeList.isEdit === false && (
                       <>
+                        {storeList.data.find(ap => ap.id === entity.id)?.file_id && <Tooltip title={translate("view")}>
+                          <IconButton size='small' onClick={() => store.OpenFileFile(storeList.data.find(ap => ap.id === entity.id)?.file_id, storeList.data.find(ap => ap.id === entity.id)?.file_name)}>
+                            <RemoveRedEyeIcon />
+                          </IconButton>
+                        </Tooltip>}
                         {storeList.data.find(ap => ap.id === entity.id)?.file_id && <Tooltip title={translate("downloadFile")}>
                           <IconButton size="small" onClick={() => store.downloadFile(storeList.data.find(ap => ap.id === entity.id)?.file_id, storeList.data.find(ap => ap.id === entity.id)?.file_name)}>
                             <DownloadIcon />
@@ -491,7 +504,7 @@ const FastInputapplication_paymentView: FC<application_paymentProps> = observer(
                       onChange={(event) => store.handleChange(event)}
                       name="head_structure_id"
                       data={store.employeeInStructure}
-                      fieldNameDisplay={(field) => field.employee_name + " - " + field.post_name}
+                      fieldNameDisplay={(field) => field.employee_name + " - " + field.post_name + " (" + field.id + ')'}
                       data-testid="id_f_application_task_assignee_head_structure_id"
                       id='id_f_application_task_assignee_head_structure_id'
                       label={translate('label:application_paymentAddEditView.head_structure_id')}
@@ -505,7 +518,7 @@ const FastInputapplication_paymentView: FC<application_paymentProps> = observer(
                       onChange={(event) => store.handleChange(event)}
                       name="implementer_id"
                       data={store.employeeInStructure}
-                      fieldNameDisplay={(field) => field.employee_name + " - " + field.post_name}
+                      fieldNameDisplay={(field) => field.employee_name + " - " + field.post_name + " (" + field.id + ')'}
                       data-testid="id_f_application_task_assignee_implementer_id"
                       id='id_f_application_task_assignee_implementer_id'
                       label={translate('label:application_paymentAddEditView.implementer_id')}
@@ -801,7 +814,7 @@ const FastInputapplication_paymentView: FC<application_paymentProps> = observer(
               onClick={() => {
                 store.getTemplate();
                 store.isOpenSelectLang = false;
-            }}>Ok</Button>
+              }}>Ok</Button>
           </DialogActions>
         </Dialog>
         <Dialog

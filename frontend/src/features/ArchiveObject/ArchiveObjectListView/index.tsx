@@ -24,6 +24,8 @@ import {
 } from "@mui/icons-material";
 import CombineObjectsPopup from "./CombineProjectsPopup";
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import dayjs from "dayjs";
+import NavigationIcon from '@mui/icons-material/Navigation';
 
 type ArchiveObjectListViewProps = {};
 
@@ -44,27 +46,67 @@ const ArchiveObjectListView: FC<ArchiveObjectListViewProps> = observer((props) =
     {
       field: "doc_number",
       headerName: translate("label:ArchiveObjectListView.doc_number"),
-      flex: 1
+      flex: 1,
+      minWidth: 150,
+    },
+    {
+      field: "map",
+      headerName: "На карте",
+      width: 140,
+      sortable: false,
+      disableColumnMenu: true,
+      renderCell: (params: GridRenderCellParams) => (
+        <CustomButton
+          variant="outlined"
+          size="small"
+          startIcon={<NavigationIcon />}
+          onClick={() => store.showOnMap(params.row.id)}
+        >
+          На карте
+        </CustomButton>
+      )
     },
     {
       field: "address",
       headerName: translate("label:ArchiveObjectListView.address"),
-      flex: 1
+      flex: 1,
+      minWidth: 250,
     },
     {
       field: "description",
       headerName: translate("label:ArchiveObjectListView.description"),
-      flex: 1
+      flex: 1,
+      minWidth: 250,
     },
     {
       field: "customer_name",
       headerName: translate("label:ArchiveObjectListView.customer_name"),
-      flex: 1
+      flex: 1,
+      minWidth: 200,
     },
     {
       field: "customer_pin",
       headerName: translate("label:ArchiveObjectListView.customer_pin"),
-      flex: 1
+      flex: 1,
+      minWidth: 180,
+    },
+    {
+      field: 'created_at',
+      headerName: translate("label:ArchiveObjectListView.created_at"),
+      flex: 2,
+      minWidth: 180,
+      renderCell: (param) => (<div>
+        {param.row.created_at ? dayjs(param.row.created_at).format("DD.MM.YYYY HH:mm") : ""}
+      </div>),
+    },
+    {
+      field: 'updated_at',
+      headerName: translate("label:ArchiveObjectListView.updated_at"),
+      flex: 2,
+      minWidth: 180,
+      renderCell: (param) => (<div>
+        {param.row.updated_at ? dayjs(param.row.updated_at).format("DD.MM.YYYY HH:mm") : ""}
+      </div>),
     },
   ];
 

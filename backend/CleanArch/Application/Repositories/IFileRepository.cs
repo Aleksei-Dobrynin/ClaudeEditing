@@ -20,5 +20,6 @@ namespace Application.Repositories
         public string GetFullPath(string path);
         Task<List<FileSign>> GetAllSignForUser(string id);
         Task<List<FileSignInfo>> GetSignEmployeeListByFile(int id);
+        Task<List<FilesSignInfo>> GetSignsByApplicationId(int id);
     }
 }

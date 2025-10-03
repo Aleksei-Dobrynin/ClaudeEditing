@@ -24,7 +24,7 @@ import DateField from "components/DateField";
 import dayjs from "dayjs";
 import AutocompleteCustomer from "./AutocompleteCustomer";
 import CloseIcon from '@mui/icons-material/Close';
-import FastInputView from "./fastInput";
+import FastInputView from "./reppresentativeFastInput";
 import { MapContainer, TileLayer, Polygon, Popup, Marker, LayersControl } from "react-leaflet";
 import { LatLngExpression, LatLngTuple } from "leaflet";
 import MaskedAutocomplete from "../../../components/MaskedAutocomplete";
@@ -74,10 +74,10 @@ const MapView: FC<MapViewProps> = observer((props) => {
       style={{ height: "450px", width: "100%" }}>
       <LayersControl position="topright">
         <BaseLayer checked name="Схема">
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-      />
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+          />
         </BaseLayer>
         <BaseLayer name="Спутник">
           <TileLayer
@@ -109,7 +109,7 @@ const MapView: FC<MapViewProps> = observer((props) => {
               </table>
             </div>
           </Popup>
-          
+
         </Polygon>
       )}
       {props.point?.length > 0 && props.point[0] !== 0 && props.point[1] !== 0 && (

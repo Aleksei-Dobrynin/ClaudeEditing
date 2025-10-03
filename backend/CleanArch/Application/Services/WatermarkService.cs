@@ -23,6 +23,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -64,7 +65,7 @@ namespace Infrastructure.Services
         /// <param name="signatureInfo">Signature information (can be multiple lines)</param>
         /// <returns>The PDF with signature stamp as byte array</returns>
         Task<Result<byte[]>> AddSignatureStampToPdfAsync(byte[] inputPdfBytes, string signatureInfo);
-        Task<Result<byte[]>> AddSignatureStampDirectlyToPdfAsync(byte[] inputPdfBytes, List<string> signatureInfo, string docGuid);
+        Task<Result<byte[]>> AddSignatureStampDirectlyToPdfAsync(byte[] inputPdfBytes, List<string> signatureInfo, string docGuid, int docId);
         public string GenerateSecureLink(string inn, string guid, bool temporal = false);
         public DocumentData DecryptSecureLink(string token);
     }
@@ -90,33 +91,127 @@ namespace Infrastructure.Services
 
         }
 
-        
+
 
 
         // Генерация зашифрованной ссылки
         public string GenerateSecureLink(string inn, string guid, bool t = false)
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_secretKey);
+            // Формируем компактную строку данных
+            var expiry = t ? DateTimeOffset.UtcNow.AddDays(1).ToUnixTimeSeconds()
+                           : DateTimeOffset.UtcNow.AddYears(100).ToUnixTimeSeconds();
+            var data = $"{inn}|{guid}|{expiry}";
 
-            var tokenDescriptor = new SecurityTokenDescriptor
+            // Шифруем с помощью AES
+            using (var aes = Aes.Create())
             {
-                Subject = new ClaimsIdentity(new[]
+                // Используем первые 32 байта ключа для AES-256
+                // Ваш ключ: !63vKd91Rn7Up@qk0e0%T1Wt1S9!O@^E (ровно 32 символа - идеально!)
+                var key = Encoding.UTF8.GetBytes(_secretKey);
+
+                // Если ключ не 32 байта, дополняем или обрезаем
+                if (key.Length < 32)
                 {
-                new Claim("inn", inn),
-                new Claim("date", DateTime.Now.ToString("yyyy-MM-dd")),
-                new Claim("guid", guid)
-            }),
-                Expires = t == true ? DateTime.UtcNow.AddDays(1) : DateTime.UtcNow.AddYears(100),
-                SigningCredentials = new SigningCredentials(
-                    new SymmetricSecurityKey(key),
-                    SecurityAlgorithms.HmacSha256Signature)
-            };
+                    Array.Resize(ref key, 32);
+                }
+                else if (key.Length > 32)
+                {
+                    key = key.Take(32).ToArray();
+                }
 
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            var tokenString = tokenHandler.WriteToken(token);
+                aes.Key = key;
+                aes.Mode = CipherMode.CBC;
+                aes.Padding = PaddingMode.PKCS7;
+                aes.GenerateIV();
 
-            return tokenString;
+                var encryptor = aes.CreateEncryptor();
+                var dataBytes = Encoding.UTF8.GetBytes(data);
+                var encrypted = encryptor.TransformFinalBlock(dataBytes, 0, dataBytes.Length);
+
+                // Объединяем IV + зашифрованные данные
+                var result = new byte[aes.IV.Length + encrypted.Length];
+                Array.Copy(aes.IV, 0, result, 0, aes.IV.Length);
+                Array.Copy(encrypted, 0, result, aes.IV.Length, encrypted.Length);
+
+                // Конвертируем в Base64Url (короче обычного Base64)
+                var res = Base64UrlEncode(result);
+                return res;
+            }
+        }
+
+        public (string inn, string guid, DateTime expiry, bool isValid) DecryptSecureLink2(string encryptedLink)
+        {
+            try
+            {
+                var data = Base64UrlDecode(encryptedLink);
+
+                using (var aes = Aes.Create())
+                {
+                    var key = Encoding.UTF8.GetBytes(_secretKey);
+
+                    if (key.Length < 32)
+                    {
+                        Array.Resize(ref key, 32);
+                    }
+                    else if (key.Length > 32)
+                    {
+                        key = key.Take(32).ToArray();
+                    }
+
+                    aes.Key = key;
+                    aes.Mode = CipherMode.CBC;
+                    aes.Padding = PaddingMode.PKCS7;
+
+                    // Извлекаем IV (первые 16 байт)
+                    var iv = new byte[16];
+                    Array.Copy(data, 0, iv, 0, 16);
+                    aes.IV = iv;
+
+                    // Расшифровываем остальное
+                    var decryptor = aes.CreateDecryptor();
+                    var encrypted = new byte[data.Length - 16];
+                    Array.Copy(data, 16, encrypted, 0, encrypted.Length);
+
+                    var decrypted = decryptor.TransformFinalBlock(encrypted, 0, encrypted.Length);
+                    var result = Encoding.UTF8.GetString(decrypted);
+
+                    var parts = result.Split('|');
+                    if (parts.Length != 3)
+                    {
+                        return ("", "", DateTime.MinValue, false);
+                    }
+
+                    var expiryTimestamp = long.Parse(parts[2]);
+                    var expiryDate = DateTimeOffset.FromUnixTimeSeconds(expiryTimestamp).UtcDateTime;
+
+                    // Проверяем срок действия
+                    bool isValid = DateTime.UtcNow <= expiryDate;
+
+                    return (parts[0], parts[1], expiryDate, isValid);
+                }
+            }
+            catch
+            {
+                return ("", "", DateTime.MinValue, false);
+            }
+        }
+
+        private string Base64UrlEncode(byte[] input)
+        {
+            var output = Convert.ToBase64String(input);
+            output = output.Replace('+', '-').Replace('/', '_').Replace("=", "");
+            return output;
+        }
+
+        private byte[] Base64UrlDecode(string input)
+        {
+            var output = input.Replace('-', '+').Replace('_', '/');
+            switch (output.Length % 4)
+            {
+                case 2: output += "=="; break;
+                case 3: output += "="; break;
+            }
+            return Convert.FromBase64String(output);
         }
 
         // Дешифрование и получение данных
@@ -141,34 +236,37 @@ namespace Infrastructure.Services
         {
             try
             {
-                var tokenHandler = new JwtSecurityTokenHandler();
-                var key = Encoding.ASCII.GetBytes(_secretKey);
+                var data = DecryptSecureLink2(token);
 
-                // Проверяем токен с валидацией времени жизни
-                tokenHandler.ValidateToken(token, new TokenValidationParameters
-                {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ValidateIssuer = false,
-                    ValidateAudience = false,
-                    ClockSkew = TimeSpan.Zero,
-                    ValidateLifetime = true, // Включаем валидацию времени жизни
-                    RequireExpirationTime = true // Требуем наличие времени истечения
-                }, out SecurityToken validatedToken);
+                //var tokenHandler = new JwtSecurityTokenHandler();
+                //var key = Encoding.ASCII.GetBytes(_secretKey);
 
-                var jwtToken = (JwtSecurityToken)validatedToken;
+                //// Проверяем токен с валидацией времени жизни
+                //tokenHandler.ValidateToken(token, new TokenValidationParameters
+                //{
+                //    ValidateIssuerSigningKey = true,
+                //    IssuerSigningKey = new SymmetricSecurityKey(key),
+                //    ValidateIssuer = false,
+                //    ValidateAudience = false,
+                //    ClockSkew = TimeSpan.Zero,
+                //    ValidateLifetime = true, // Включаем валидацию времени жизни
+                //    RequireExpirationTime = true // Требуем наличие времени истечения
+                //}, out SecurityToken validatedToken);
+
+                //var jwtToken = (JwtSecurityToken)validatedToken;
 
                 // Дополнительная проверка времени истечения
-                if (jwtToken.ValidTo < DateTime.UtcNow)
+                //if (jwtToken.ValidTo < DateTime.UtcNow)
+                if (data.expiry < DateTime.UtcNow)
                 {
                     throw new UnauthorizedAccessException("Срок действия ссылки истек");
                 }
 
                 return new DocumentData
                 {
-                    Inn = jwtToken.Claims.FirstOrDefault(x => x.Type == "inn")?.Value,
-                    Date = jwtToken.Claims.FirstOrDefault(x => x.Type == "date")?.Value,
-                    Guid = jwtToken.Claims.FirstOrDefault(x => x.Type == "guid")?.Value
+                    Inn = data.inn,
+                    Date = data.ToString(),
+                    Guid = data.guid
                 };
             }
             catch (SecurityTokenExpiredException)
@@ -396,7 +494,7 @@ namespace Infrastructure.Services
                 }
             }
         }
-        public async Task<Result<byte[]>> AddSignatureStampDirectlyToPdfAsync(byte[] inputPdfBytes, List<string> signatureInfo, string docGuid)
+        public async Task<Result<byte[]>> AddSignatureStampDirectlyToPdfAsync(byte[] inputPdfBytes, List<string> signatureInfo, string docGuid, int docId)
         {
             try
             {
@@ -416,7 +514,12 @@ namespace Infrastructure.Services
                             for (int i = 1; i <= numberOfPages; i++)
                             {
                                 PdfPage page = pdfDoc.GetPage(i);
-                                AddDirectSignatureStampToPage(pdfDoc, page, signatureInfo, docGuid);
+                                if (docId == 155)
+                                {
+                                //    //AddDirectSignatureStampToPageTop(pdfDoc, page, signatureInfo, docGuid, docId);
+                                }
+                                else 
+                                    AddDirectSignatureStampToPage(pdfDoc, page, signatureInfo, docGuid, docId);
                             }
                         }
 
@@ -432,15 +535,110 @@ namespace Infrastructure.Services
                     .WithMetadata("ErrorDetails", ex.Message));
             }
         }
-        private void AddDirectSignatureStampToPage(PdfDocument pdfDoc, PdfPage page, List<string> signatureInfo, string docGuid)
+
+        private void AddDirectSignatureStampToPageTop(PdfDocument pdfDoc, PdfPage page, List<string> signatureInfo, string docGuid, int docId)
         {
             // Получаем размеры страницы
             Rectangle pageSize = page.GetPageSize();
 
             // Настройки штампа
             float stampWidth = 200;
-            float stampHeight = 90;
-            float margin = 20;
+            float stampHeight = 85;
+            float margin = 5; // Уменьшаем отступ для максимального приближения к углу
+            float qrCodeSize = 70;
+            float borderWidth = 1f;
+
+            // Позиция штампа (вверху справа)
+            float x = pageSize.GetWidth() - stampWidth - margin;
+            float y = pageSize.GetHeight() - stampHeight - margin; // Изменено: теперь отсчитываем от верха страницы
+
+            // Используем обычный конструктор PdfCanvas
+            PdfCanvas pdfCanvas = new PdfCanvas(page);
+
+            // Добавляем полупрозрачный белый фон
+            PdfExtGState gs1 = new PdfExtGState();
+            gs1.SetFillOpacity(0.7f);
+            pdfCanvas.SaveState();
+            pdfCanvas.SetExtGState(gs1);
+            pdfCanvas.SetFillColor(ColorConstants.WHITE);
+            pdfCanvas.Rectangle(x, y, stampWidth, stampHeight);
+            pdfCanvas.Fill();
+            pdfCanvas.RestoreState();
+
+            // Рисуем рамку с полной непрозрачностью
+            pdfCanvas.SaveState();
+            pdfCanvas.SetStrokeColor(ColorConstants.GRAY);
+            pdfCanvas.SetLineWidth(borderWidth);
+            float offset = borderWidth / 2;
+            pdfCanvas.Rectangle(
+                x + offset,
+                y + offset,
+                stampWidth - borderWidth,
+                stampHeight - borderWidth
+            );
+            pdfCanvas.Stroke();
+            pdfCanvas.RestoreState();
+
+            // Создаём документный canvas для текста
+            iText.Layout.Canvas canvas = new iText.Layout.Canvas(pdfCanvas, pageSize);
+
+            PdfFont font;
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                font = PdfFontFactory.CreateFont("c:/windows/fonts/arial.ttf", PdfEncodings.IDENTITY_H);
+            }
+            else
+            {
+                font = PdfFontFactory.CreateFont("/app/fonts/arial.ttf", PdfEncodings.IDENTITY_H);
+            }
+
+            // Создаём и добавляем QR-код
+            BarcodeQRCode qrCode = new BarcodeQRCode(_apiCabinetUrl + "/secure-document-download?guid=" + docGuid);
+            PdfFormXObject qrCodeForm = qrCode.CreateFormXObject(ColorConstants.BLACK, pdfDoc);
+
+            // QR-код позиционируем справа внутри штампа
+            Image qrCodeImage = new Image(qrCodeForm)
+                .SetWidth(qrCodeSize)
+                .SetHeight(qrCodeSize)
+                .SetFixedPosition(x + stampWidth - qrCodeSize - 10, y + 10);
+            canvas.Add(qrCodeImage);
+
+            // Создаём контейнер для текста с фиксированной позицией
+            Div textContainer = new Div()
+                .SetFixedPosition(x + 10, y + 10, stampWidth - qrCodeSize - 30)
+                .SetHeight(stampHeight - 20);
+
+            // Добавляем строки текста
+            for (int i = 0; i < signatureInfo.Count; i++)
+            {
+                Paragraph line = new Paragraph(signatureInfo[i])
+                    .SetFont(font)
+                    .SetFontSize(10)
+                    .SetFontColor(ColorConstants.BLACK)
+                    .SetMargin(0)
+                    .SetPadding(0);
+
+                if (i < signatureInfo.Count - 1)
+                {
+                    line.SetMarginBottom(2); // Небольшой отступ между строками
+                }
+
+                textContainer.Add(line);
+            }
+
+            canvas.Add(textContainer);
+            canvas.Close();
+        }
+        private void AddDirectSignatureStampToPage(PdfDocument pdfDoc, PdfPage page, List<string> signatureInfo, string docGuid, int docId)
+        {
+            // Получаем размеры страницы
+            Rectangle pageSize = page.GetPageSize();
+
+            // Настройки штампа
+            float stampWidth = 200;
+            float stampHeight = 85;
+            float margin = 10;
             float qrCodeSize = 70;
             float borderWidth = 1f;
 
@@ -453,7 +651,7 @@ namespace Infrastructure.Services
 
             // Добавляем полупрозрачный белый фон
             PdfExtGState gs1 = new PdfExtGState();
-            gs1.SetFillOpacity(0.9f);
+            gs1.SetFillOpacity(0.7f);
             pdfCanvas.SaveState();
             pdfCanvas.SetExtGState(gs1);
             pdfCanvas.SetFillColor(ColorConstants.WHITE);

@@ -182,7 +182,7 @@ const TaskTabs: FC<TaskTabsProps> = observer((props) => {
         {store.application_id && <DocumentsView
           taskId={store.id}
           expandedStepId={store.expandedStepId}
-          hasAccess={hasAccess}
+          hasAccess={true}
           appId={store.application_id}
           service_id={store.Application?.service_id}
           onPaymentDialogOpen={() => {

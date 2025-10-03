@@ -312,7 +312,7 @@ SELECT obj.*, proc.id archirecture_process_id, st.id archirecture_process_status
             try
             {
                 var sql = @"
-            SELECT ao.*,
+      SELECT ao.*,
                    proc.id AS archirecture_process_id,
                    st.id AS archirecture_process_status_id,
                    st.name AS archirecture_process_status_name,
@@ -324,15 +324,24 @@ SELECT obj.*, proc.id archirecture_process_id, st.id archirecture_process_status
                    (SELECT STRING_AGG(c.pin, ', ') 
                     FROM archive_object_customer aoc 
                     JOIN customers_for_archive_object c ON aoc.customer_id = c.id 
-                    WHERE aoc.archive_object_id = ao.id) AS customer_pin
+                    WHERE aoc.archive_object_id = ao.id) AS customer_pin,
+					(SELECT STRING_AGG(c.dp_outgoing_number, ', ') 
+                    FROM archive_object_customer aoc 
+                    JOIN customers_for_archive_object c ON aoc.customer_id = c.id 
+                    WHERE aoc.archive_object_id = ao.id) AS customer_number,
+					ot.description as tag_description,
+					ot.name as tag_name
             FROM dutyplan_object ao
             LEFT JOIN application_duty_object adp ON adp.dutyplan_object_id = ao.id
             LEFT JOIN architecture_process proc ON proc.id = adp.application_id
             LEFT JOIN architecture_status st ON st.id = proc.status_id
+	left join application a on a.id = proc.id
+			left join object_tag ot on ot.id = a.object_tag_id
         ";
 
                 var parameters = new DynamicParameters();
                 var whereClauses = new List<string>();
+                var whereDates = new List<string>();
 
                 if (!string.IsNullOrWhiteSpace(filter.search))
                 {
@@ -344,6 +353,32 @@ SELECT obj.*, proc.id archirecture_process_id, st.id archirecture_process_status
                     whereClauses.Add("EXISTS (SELECT 1 FROM archive_object_customer aoc JOIN customers_for_archive_object c ON aoc.customer_id = c.id WHERE aoc.archive_object_id = ao.id AND c.pin ILIKE @Search)");
 
                     parameters.Add("Search", $"%{filter.search}%");
+                }
+                
+                if (filter.created_at_from.HasValue)
+                {
+                    whereDates.Add("ao.created_at >= @CreatedAtFrom");
+                    parameters.Add("CreatedAtFrom", filter.created_at_from.Value.Date);
+                }
+                if (filter.created_at_to.HasValue)
+                {
+                    whereDates.Add("ao.created_at <= @CreatedAtTo");
+                    parameters.Add("CreatedAtTo", filter.created_at_to.Value.Date);
+                }
+                if (filter.updated_at_from.HasValue)
+                {
+                    whereDates.Add("ao.updated_at >= @UpdatedAtFrom");
+                    parameters.Add("UpdatedAtFrom", filter.updated_at_from.Value.Date);
+                }
+                if (filter.updated_at_to.HasValue)
+                {
+                    whereDates.Add("ao.updated_at <= @UpdatedAtTo");
+                    parameters.Add("UpdatedAtTo", filter.updated_at_to.Value.Date);
+                }
+                
+                if (whereDates.Any())
+                {
+                    whereClauses.Add(string.Join(" AND ", whereDates));
                 }
 
                 if (whereClauses.Any())

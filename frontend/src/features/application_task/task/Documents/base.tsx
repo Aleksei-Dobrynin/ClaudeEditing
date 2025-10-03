@@ -100,7 +100,7 @@ const ApplicationStepsBaseView: FC<ApplicationStepsBaseViewProps> = observer(({ 
 
     return (
       taskStore.Application.status_code === APPLICATION_STATUSES.preparation
-      && (LayoutStore.my_structures?.find(x => str_ids.includes(x.structure_id)) != null)
+      // && (LayoutStore.my_structures?.find(x => str_ids.includes(x.structure_id)) != null)
     )
       || MainStore.isAdmin
   }
@@ -499,7 +499,7 @@ const ApplicationStepsBaseView: FC<ApplicationStepsBaseViewProps> = observer(({ 
                           <WorkDocumentCard
                             document={doc}
                             t={t}
-                            hasAccess={store.hasAccess}
+                            hasAccess={true}
                             step_id={step.id}
                             step={step}
                             onOpenFileHistory={(step: number) => {
@@ -533,7 +533,8 @@ const ApplicationStepsBaseView: FC<ApplicationStepsBaseViewProps> = observer(({ 
                           onUploadFile={() => {
                             store.onUploadFile(doc.service_document_id ?? 0, doc.upl?.id, step.id);
                           }}
-                          hasAccess={hasAccessToStepToReturn(step.responsible_department_id)}
+                          //hasAccess={hasAccessToStepToReturn(step.responsible_department_id)}
+                          hasAccess={true}
                           onOpenSigners={() => {
                             store.ecpListOpen = true;
                             store.loadGetSignByFileId(doc.upl?.file_id)

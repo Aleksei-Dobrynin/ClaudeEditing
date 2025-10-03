@@ -4,6 +4,7 @@ using System.Text.Json;
 using FluentResults;
 using Messaging.Shared.Events;
 using Messaging.Shared.RabbitMQ;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Polly;
@@ -18,8 +19,9 @@ namespace Messaging.Shared.RabbitMQ
     /// </summary>
     public class RabbitMQEventBus : IEventBus, IDisposable
     {
-        private const string EXCHANGE_NAME = "1dev2008_bga_event_bus";
-        private const string AUTOFAC_SCOPE_NAME = "bga_event_bus";
+        // Теперь это readonly поля вместо констант
+        private readonly string _exchangeName;
+        private readonly string _autofacScopeName;
 
         private readonly IRabbitMQConnection _persistentConnection;
         private readonly ILogger<RabbitMQEventBus> _logger;
@@ -38,18 +40,27 @@ namespace Messaging.Shared.RabbitMQ
             IRabbitMQConnection persistentConnection,
             ILogger<RabbitMQEventBus> logger,
             IServiceProvider serviceProvider,
+            IConfiguration configuration,
             string queueName,
-            int retryCount = 5)
+            int? retryCount = null)
         {
             _persistentConnection = persistentConnection ?? throw new ArgumentNullException(nameof(persistentConnection));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+
+            // Получаем значения из конфигурации с fallback значениями
+            _exchangeName = configuration.GetValue<string>("RabbitMQ:ExchangeName") ?? "bga_event_bus";
+            _autofacScopeName = configuration.GetValue<string>("RabbitMQ:AutofacScopeName") ?? _exchangeName;
+
             _queueName = queueName;
-            _retryCount = retryCount;
+            _retryCount = retryCount ?? configuration.GetValue<int?>("RabbitMQ:RetryCount") ?? 5;
             _eventHandlerTypes = new Dictionary<string, List<Type>>();
             _eventTypes = new List<Type>();
 
             _consumerChannel = CreateConsumerChannel();
+
+            _logger.LogInformation("RabbitMQEventBus initialized with ExchangeName: {ExchangeName}, RetryCount: {RetryCount}",
+                _exchangeName, _retryCount);
         }
 
         /// <summary>
@@ -80,7 +91,7 @@ namespace Messaging.Shared.RabbitMQ
             {
                 _logger.LogTrace("Declaring RabbitMQ exchange to publish event: {EventId}", @event.Id);
 
-                channel.ExchangeDeclare(exchange: EXCHANGE_NAME, type: ExchangeType.Direct);
+                channel.ExchangeDeclare(exchange: _exchangeName, type: ExchangeType.Direct);
 
                 var body = JsonSerializer.SerializeToUtf8Bytes(@event, @event.GetType());
 
@@ -92,7 +103,7 @@ namespace Messaging.Shared.RabbitMQ
                     _logger.LogTrace("Publishing event to RabbitMQ: {EventId}", @event.Id);
 
                     channel.BasicPublish(
-                        exchange: EXCHANGE_NAME,
+                        exchange: _exchangeName,
                         routingKey: eventName,
                         mandatory: true,
                         basicProperties: properties,
@@ -175,7 +186,7 @@ namespace Messaging.Shared.RabbitMQ
 
             var channel = _persistentConnection.CreateModel();
 
-            channel.ExchangeDeclare(exchange: EXCHANGE_NAME,
+            channel.ExchangeDeclare(exchange: _exchangeName,
                                     type: ExchangeType.Direct);
 
             channel.QueueDeclare(queue: _queueName,
@@ -212,7 +223,7 @@ namespace Messaging.Shared.RabbitMQ
                 foreach (var eventName in _eventHandlerTypes.Keys)
                 {
                     _consumerChannel.QueueBind(queue: _queueName,
-                                          exchange: EXCHANGE_NAME,
+                                          exchange: _exchangeName,
                                           routingKey: eventName);
                 }
 

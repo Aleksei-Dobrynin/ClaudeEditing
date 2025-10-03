@@ -10,7 +10,7 @@ import DateField from "components/DateField";
 import dayjs from "dayjs";
 import AutocompleteCustomer from "./AutocompleteCustomer";
 import CloseIcon from "@mui/icons-material/Close";
-import FastInputView from "./fastInput";
+import FastInputView from "./reppresentativeFastInput";
 import MaskedTextField from "../../../components/MaskedTextField";
 import AutocompleteCustomImg from "../../../components/AutocompleteWithImg";
 import ContentPasteSearchIcon from "@mui/icons-material/ContentPasteSearch";
@@ -54,17 +54,17 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
                 <CloseIcon />
               </IconButton>
               {store.customer.id !== 0 && (
-                    <BadgeButton
-                      count={store.badgeCount}
-                      circular={<CircularProgress size="20px"  />}
-                      stateCircular={store.loading}
-                      icon={  <ContentPasteSearchIcon sx={{ color: "#FF652F" }}/>}
-                      onClick={() => {
-                        PopupApplicationStore.handleChange({ target: { name: "openCustomerApplicationDialog", value: !PopupApplicationStore.openCustomerApplicationDialog }})
-                        PopupApplicationStore.handleChange({ target: { name: "common_filter", value: store.customer.pin }}, "filter")
-                        PopupApplicationStore.handleChange({ target: { name: "only_count", value: false }}, "filter")
-                      }}
-                    />
+                <BadgeButton
+                  count={store.badgeCount}
+                  circular={<CircularProgress size="20px" />}
+                  stateCircular={store.loading}
+                  icon={<ContentPasteSearchIcon sx={{ color: "#FF652F" }} />}
+                  onClick={() => {
+                    PopupApplicationStore.handleChange({ target: { name: "openCustomerApplicationDialog", value: !PopupApplicationStore.openCustomerApplicationDialog } })
+                    PopupApplicationStore.handleChange({ target: { name: "common_filter", value: store.customer.pin } }, "filter")
+                    PopupApplicationStore.handleChange({ target: { name: "only_count", value: false } }, "filter")
+                  }}
+                />
               )}
             </Box>
           </Grid>
@@ -317,7 +317,7 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
             <Grid item md={4} xs={12}>
               <DateField
                 disabled={store.is_application_read_only}
-                value={store.customer.document_date_issue ? dayjs(store.customer.document_date_issue) : null}
+                value={store.customer.document_date_issue ? dayjs(store.customer.document_date_issue, 'YYYY-MM-DD') : null}
                 onChange={(event) => {
                   event.target.value = event.target.value?.format()
                   store.handleChangeCustomer(event)

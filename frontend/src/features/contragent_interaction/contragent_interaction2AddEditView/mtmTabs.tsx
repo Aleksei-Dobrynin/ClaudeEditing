@@ -29,23 +29,28 @@ const contragent_interactionMtmTabs: FC<contragent_interactionProps> = observer(
     <Box component={Paper} elevation={5}>
       <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
         <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
+          {/* <Tab data-testid={"contragent_interaction_doc_tab_title"}
+            label={translate("label:contragent_interaction_docListView.with_contragent")}
+            sx={{ textTransform: "none" }} {...a11yProps(0)} />
           <Tab data-testid={"contragent_interaction_doc_tab_title"}
-               label={translate("label:contragent_interaction_docListView.with_contragent")}
-               sx={{ textTransform: "none" }} {...a11yProps(0)} />
+            label={translate("label:contragent_interaction_docListView.with_customer")}
+            sx={{ textTransform: "none" }} {...a11yProps(1)} /> */}
           <Tab data-testid={"contragent_interaction_doc_tab_title"}
-               label={translate("label:contragent_interaction_docListView.with_customer")}
-               sx={{ textTransform: "none" }} {...a11yProps(1)} />
-
+            label={translate("label:contragent_interaction_docListView.entityTitle")}
+            sx={{ textTransform: "none" }} {...a11yProps(0)} />
         </Tabs>
       </Box>
 
-      <CustomTabPanel value={value} index={0}>
+      {/* <CustomTabPanel value={value} index={0}>
         <Grid item xs={12} spacing={0}><Chat interactionId={props.id}
-                                             contragent={store.contragents.find(c => c.id === store.contragent_id)} /></Grid>
+          contragent={store.contragents.find(c => c.id === store.contragent_id)} /></Grid>
       </CustomTabPanel>
       <CustomTabPanel value={value} index={1}>
         <Grid item xs={12} spacing={0}><CustomerChat interactionId={props.id}
-                                                     contragent={store.contragents.find(c => c.id === store.contragent_id)} /></Grid>
+          contragent={store.contragents.find(c => c.id === store.contragent_id)} /></Grid>
+      </CustomTabPanel> */}
+      <CustomTabPanel value={value} index={0}>
+        <Contragent_interaction_docListView idMain={props.id}/>
       </CustomTabPanel>
 
     </Box>

@@ -13,6 +13,7 @@ using Application.UseCases;
 using Domain.Entities;
 using Messaging.Shared.RabbitMQ;
 using Application.Services;
+using Microsoft.Extensions.Configuration;
 
 namespace Messaging.Services
 {
@@ -22,16 +23,20 @@ namespace Messaging.Services
         private readonly IRabbitMQConnection _rabbitMQConnection;
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly IModel _channel;
-        private readonly string _queueName = "1dev2008_send_notifications";
+        private readonly string _queueName;
 
         public NotificationsSendCabinet(
             ILogger<NotificationsSendCabinet> logger,
             IRabbitMQConnection rabbitMQConnection,
-            IServiceScopeFactory serviceScopeFactory)
+            IServiceScopeFactory serviceScopeFactory,
+            IConfiguration configuration)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _rabbitMQConnection = rabbitMQConnection ?? throw new ArgumentNullException(nameof(rabbitMQConnection));
             _serviceScopeFactory = serviceScopeFactory ?? throw new ArgumentNullException(nameof(serviceScopeFactory));
+
+            // Получаем имя очереди из конфигурации
+            _queueName = configuration["RabbitMQ:SendNoitifications"];
 
             try
             {
@@ -43,18 +48,18 @@ namespace Messaging.Services
                     autoDelete: false,
                     arguments: null);
 
-                _logger.LogInformation("RabbitMQ queue initialized successfully for consumer.");
+                _logger.LogInformation("RabbitMQ queue '{QueueName}' initialized successfully for consumer.", _queueName);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to initialize RabbitMQ channel or queue.");
+                _logger.LogError(ex, "Failed to initialize RabbitMQ channel or queue '{QueueName}'.", _queueName);
                 throw;
             }
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("Notification Background Service is starting.");
+            _logger.LogInformation("NotificationsSendCabinet Background Service is starting with queue: {QueueName}.", _queueName);
 
             var consumer = new AsyncEventingBasicConsumer(_channel);
             consumer.Received += async (model, ea) =>
@@ -97,7 +102,7 @@ namespace Messaging.Services
 
             await Task.Delay(Timeout.Infinite, stoppingToken);
 
-            _logger.LogInformation("Notification Background Service is stopping.");
+            _logger.LogInformation("NotificationsSendCabinet Background Service is stopping.");
         }
 
         private async Task ProcessNotificationAsync(List<SendMessageN8n> message, CancellationToken cancellationToken)
@@ -123,25 +128,12 @@ namespace Messaging.Services
 
                     }).ToList();
                     await sendNotification.JustSendNn8nNotifications(data);
-                    //var applications = await applicationUseCase.GetByUUID(message.application_uuid);
-                    //var app = applications.FirstOrDefault();
-                    //var notificationLog = new NotificationLog
-                    //{
-                    //    Text = message.message,
-                    //    ApplicationId = app.Id,
-                    //    Contact = message.value,
-                    //    DateSend = DateTime.Now.ToString("yyyy-MM-dd"),
-                    //    RContactTypeId = message.type_con,
-                    //};
 
-                    //await notificationLogUseCase.Create(notificationLog);
-                    //unitOfWork.Commit();
-
-                    _logger.LogInformation("Processed notification: {Message}");
+                    _logger.LogInformation("Processed {Count} notification(s) successfully.", data.Count);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error processing notification: {Message}");
+                    _logger.LogError(ex, "Error processing notification batch with {Count} message(s).", message?.Count ?? 0);
                     throw;
                 }
             }
@@ -152,11 +144,11 @@ namespace Messaging.Services
             try
             {
                 _channel?.Close();
-                _logger.LogInformation("RabbitMQ channel closed.");
+                _logger.LogInformation("RabbitMQ channel closed for queue: {QueueName}.", _queueName);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error while closing RabbitMQ channel.");
+                _logger.LogError(ex, "Error while closing RabbitMQ channel for queue: {QueueName}.", _queueName);
             }
             base.Dispose();
         }

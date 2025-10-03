@@ -2,6 +2,9 @@ import { makeAutoObservable } from "mobx";
 import dayjs from "dayjs";
 import { CustomerRepresentative } from "constants/CustomerRepresentative";
 import customerStore from './store'
+import { validate } from "./validRepresentative";
+import i18n from "i18next";
+import MainStore from "MainStore";
 
 class NewStore {
   representativeOnEdit: CustomerRepresentative = {
@@ -23,14 +26,14 @@ class NewStore {
 
   errors: { [key: string]: string } = {};
 
-  
+
   constructor() {
     makeAutoObservable(this);
   }
 
   handleChangeRepresentative(event) {
     this.representativeOnEdit[event.target.name] = event.target.value;
-    // validate(event);
+    validate(event);
   }
 
   clearRepresentative = () => {
@@ -50,6 +53,7 @@ class NewStore {
       contact: ""
     }
   }
+
   clearStore = () => {
     this.clearRepresentative()
     this.isEdit = false;
@@ -69,15 +73,39 @@ class NewStore {
     this.representativeOnEdit = value
   }
 
+  validateRepresentativeForm = () => {
+    let canSave = true;
+    let event: { target: { name: string; value: any } } = {
+      target: { name: "last_name", value: this.representativeOnEdit.last_name },
+    };
+    canSave = validate(event) && canSave;
+
+    event = { target: { name: "first_name", value: this.representativeOnEdit.first_name } };
+    canSave = validate(event) && canSave;
+
+    event = { target: { name: "pin", value: this.representativeOnEdit.pin } };
+    canSave = validate(event) && canSave;
+
+    return canSave;
+  }
+
   onSaveClicked = () => {
-    customerStore.addedNewRepresentative(this.representativeOnEdit)
-    this.clearRepresentative()
-    this.isEdit = false;
+    const canSave = this.validateRepresentativeForm();
+
+    if (canSave) {
+      customerStore.addedNewRepresentative(this.representativeOnEdit);
+      this.clearRepresentative();
+      this.isEdit = false;
+      this.errors = {};
+    } else {
+      MainStore.openErrorDialog(i18n.t("message:error.alertMessageAlert"));
+    }
   }
 
   onCancelClick = () => {
-    this.clearRepresentative()
+    this.clearRepresentative();
     this.isEdit = false;
+    this.errors = {};
   }
 
 }

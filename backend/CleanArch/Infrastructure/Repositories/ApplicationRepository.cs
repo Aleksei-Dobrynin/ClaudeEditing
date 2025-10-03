@@ -563,7 +563,7 @@ from application app
             try
             {
                 var sql =
-                    @"SELECT application.id, application.app_cabinet_uuid, application.cabinet_html, application.object_tag_id, ot.name object_tag_name, registration_date, customer_id, application.status_id, application.workflow_id, service_id, maria_db_statement_id, work_description,
+                    @"SELECT application.id, application.total_payed, application.app_cabinet_uuid, application.cabinet_html, application.object_tag_id, ot.name object_tag_name, registration_date, customer_id, application.status_id, application.workflow_id, service_id, maria_db_statement_id, work_description,
                                 deadline, arch_object_id, is_paid, number, obj.name as arch_object_name, obj.address as arch_object_address, obj.district_id as district_id, dis.name as arch_object_district,
                                 CONCAT(emp_c.last_name, ' ', emp_c.first_name, ' ', emp_c.second_name) AS created_by_name, s.name service_name, st.name status_name, st.code status_code, st.status_color status_color,
                                 application.created_at, application.updated_at, cus.full_name customer_name, cus.pin customer_pin, cus.is_organization customer_is_organization, cus.address customer_address, 
@@ -1539,7 +1539,7 @@ AND app.status_id in ({string.Join(',', filter.status_ids)})";
                     }
 
                     // District filtering
-                    if (filter.district_id != null && filter.district_id != 0)
+                    if (filter.district_id != null && filter.district_id != 0 && filter.district_id != 6)
                     {
                         sql += $" AND app.cashed_info->'district_ids' @> '[{filter.district_id}]' ";
                     }
@@ -1690,6 +1690,11 @@ AND (
                 if (filter.app_ids?.Count() > 0)
                 {
                     sql += " AND app.id = ANY(@appids)";
+                }
+                
+                if (filter.for_signature.HasValue && filter.for_signature.Value)
+                {
+                    sql += " AND app.status_id = (select id from application_status where code = 'ready_for_signing_eo')";
                 }
 
                 countSql = countSql + sql;

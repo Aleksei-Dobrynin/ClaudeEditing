@@ -8,6 +8,7 @@ using Application.Models;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Infrastructure.FillLogData;
 
 namespace Infrastructure.Repositories
 {
@@ -15,10 +16,12 @@ namespace Infrastructure.Repositories
     {
         private readonly IDbConnection _dbConnection;
         private IDbTransaction? _dbTransaction;
+        private readonly IUserRepository _userRepository;   
 
-        public StructureReportStatusRepository(IDbConnection dbConnection)
+        public StructureReportStatusRepository(IDbConnection dbConnection, IUserRepository userRepository)
         {
             _dbConnection = dbConnection;
+            _userRepository = userRepository;
         }
 
         public void SetTransaction(IDbTransaction dbTransaction)
@@ -30,7 +33,13 @@ namespace Infrastructure.Repositories
         {
             try
             {
-                var sql = "SELECT * FROM \"structure_report_status\"";
+                var sql = @"SELECT srs.*, 
+       CONCAT(emp_c.last_name, ' ', emp_c.first_name, ' ', emp_c.second_name) AS createdBy_name, 
+       CONCAT(emp_u.last_name, ' ', emp_u.first_name, ' ', emp_u.second_name) AS updatedBy_name FROM structure_report_status srs 
+                    left join ""User"" uc on uc.id = srs.created_by 
+                    left join employee emp_c on emp_c.user_id = uc.""userId"" 
+                    left join ""User"" uu on uu.id = srs.updated_by 
+                    left join employee emp_u on emp_u.user_id = uu.""userId""";
                 var models = await _dbConnection.QueryAsync<StructureReportStatus>(sql, transaction: _dbTransaction);
                 return models.ToList();
             }
@@ -44,17 +53,17 @@ namespace Infrastructure.Repositories
         {
             try
             {
+                var userId = await UserSessionHelper.SetCurrentUserAsync(_userRepository, _dbConnection, _dbTransaction);
                 var model = new StructureReportStatusModel
                 {
                     code = domain.code,
-                    createdBy = domain.createdBy,
-                    createdAt = domain.createdAt,
-                    updatedBy = domain.updatedBy,
-                    updatedAt = domain.updatedAt,
+                    createdBy = userId,
+                    createdAt = DateTime.Now,
+                    updatedBy = userId,
+                    updatedAt = DateTime.Now,
                     description = domain.description,
                     name = domain.name
                 };
-
                 var sql = @"INSERT INTO ""structure_report_status"" 
                             (""code"", ""created_by"", ""created_at"", ""updated_by"", ""updated_at"", ""description"", ""name"") 
                             VALUES (@code, @createdBy, @createdAt, @updatedBy, @updatedAt, @description, @name) 
@@ -73,14 +82,15 @@ namespace Infrastructure.Repositories
         {
             try
             {
+                var userId = await UserSessionHelper.SetCurrentUserAsync(_userRepository, _dbConnection, _dbTransaction);
                 var model = new StructureReportStatusModel
                 {
                     id = domain.id,
                     code = domain.code,
                     //createdBy = domain.createdBy,
                     //createdAt = domain.createdAt,
-                    updatedBy = domain.updatedBy,
-                    updatedAt = domain.updatedAt,
+                    updatedBy = userId,
+                    updatedAt = DateTime.Now,
                     description = domain.description,
                     name = domain.name
                 };

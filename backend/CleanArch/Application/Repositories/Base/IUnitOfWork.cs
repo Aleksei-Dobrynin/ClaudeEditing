@@ -202,5 +202,9 @@ namespace Application.Repositories
         IAddressUnitTypeRepository AddressUnitTypeRepository { get; }
         IStreetTypeRepository StreetTypeRepository { get; }
         IStreetRepository StreetRepository { get; }
-    }
+        IArchiveObjectsEventsRepository ArchiveObjectsEventsrepository { get; }
+        IEventTypeRepository EventTypeRepository { get; }
+        IEmployeeSavedFiltersRepository EmployeeSavedFiltersRepository { get; }
+        ISmejPortalApiRepository SmejPortalApiRepository { get; }
+        }
 }

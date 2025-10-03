@@ -15,7 +15,7 @@ namespace Infrastructure.Repositories
         private readonly IDbConnection _dbConnection;
         private IDbTransaction? _dbTransaction;
         private IUserRepository _userRepository;
-        
+
         public contragentRepository(IDbConnection dbConnection, IUserRepository userRepository)
         {
             _dbConnection = dbConnection;
@@ -54,10 +54,13 @@ namespace Infrastructure.Repositories
                     address = domain.address,
                     contacts = domain.contacts,
                     user_id = domain.user_id,
+                    date_start = domain.date_start,
+                    date_end = domain.date_end,
+                    code = domain.code,
                 };
                 await FillLogDataHelper.FillLogDataCreate(model, userId);
-                var sql = @"INSERT INTO ""contragent""(""name"", ""address"", ""contacts"", ""user_id"", ""created_at"", ""updated_at"", ""created_by"", ""updated_by"") 
-                VALUES (@name, @address, @contacts, @user_id, @created_at, @updated_at, @created_by, @updated_by) RETURNING id";
+                var sql = @"INSERT INTO ""contragent""(""name"", ""address"", ""contacts"", ""user_id"", ""date_start"", ""date_end"", ""code"", ""created_at"", ""updated_at"", ""created_by"", ""updated_by"") 
+                VALUES (@name, @address, @contacts, @user_id, @date_start, @date_end, @code, @created_at, @updated_at, @created_by, @updated_by) RETURNING id";
                 var result = await _dbConnection.ExecuteScalarAsync<int>(sql, model, transaction: _dbTransaction);
                 return result;
             }
@@ -75,15 +78,17 @@ namespace Infrastructure.Repositories
 
                 var model = new contragentModel
                 {
-
                     id = domain.id,
                     name = domain.name,
                     address = domain.address,
                     contacts = domain.contacts,
                     user_id = domain.user_id,
+                    date_start = domain.date_start,
+                    date_end = domain.date_end,
+                    code = domain.code,
                 };
                 await FillLogDataHelper.FillLogDataUpdate(model, userId);
-                var sql = @"UPDATE ""contragent"" SET ""id"" = @id, ""name"" = @name, ""address"" = @address, ""contacts"" = @contacts, ""user_id"" = @user_id, ""updated_at"" = @updated_at, ""updated_by"" = @updated_by WHERE id = @id";
+                var sql = @"UPDATE ""contragent"" SET ""id"" = @id, ""name"" = @name, ""address"" = @address, ""contacts"" = @contacts, ""user_id"" = @user_id, ""date_start"" = @date_start, ""date_end"" = @date_end, ""code"" = @code, ""updated_at"" = @updated_at, ""updated_by"" = @updated_by WHERE id = @id";
                 var affected = await _dbConnection.ExecuteAsync(sql, model, transaction: _dbTransaction);
                 if (affected == 0)
                 {
@@ -115,6 +120,7 @@ namespace Infrastructure.Repositories
                 throw new RepositoryException("Failed to get contragents", ex);
             }
         }
+
         public async Task Delete(int id)
         {
             try
@@ -129,9 +135,10 @@ namespace Infrastructure.Repositories
             }
             catch (Exception ex)
             {
-                throw new RepositoryException("Failed to update contragent", ex);
+                throw new RepositoryException("Failed to delete contragent", ex);
             }
         }
+
         public async Task<contragent> GetOne(int id)
         {
             try
@@ -146,6 +153,18 @@ namespace Infrastructure.Repositories
             }
         }
 
-
+        public async Task<contragent> GetOneByCode(string code)
+        {
+            try
+            {
+                var sql = @"SELECT * FROM ""contragent"" WHERE code = @code LIMIT 1";
+                var models = await _dbConnection.QueryAsync<contragent>(sql, new { code }, transaction: _dbTransaction);
+                return models.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to get contragent by code", ex);
+            }
+        }
     }
 }

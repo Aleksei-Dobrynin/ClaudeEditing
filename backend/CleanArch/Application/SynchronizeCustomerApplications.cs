@@ -23,7 +23,7 @@ namespace Messaging.Services
         private readonly IRabbitMQConnection _rabbitMQConnection;
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly IModel _channel;
-        private readonly string _queueName = "synchr_customer_apps";
+        private readonly string _queueName;
         private readonly IConfiguration _configuration;
 
         public SynchronizeCustomerApplications(
@@ -35,7 +35,10 @@ namespace Messaging.Services
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _rabbitMQConnection = rabbitMQConnection ?? throw new ArgumentNullException(nameof(rabbitMQConnection));
             _serviceScopeFactory = serviceScopeFactory ?? throw new ArgumentNullException(nameof(serviceScopeFactory));
-            _configuration = configuration;
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+
+            // Получаем имя очереди из конфигурации
+            _queueName = _configuration["RabbitMQ:SynchronizeCustomerApplications"];
 
             try
             {
@@ -47,18 +50,18 @@ namespace Messaging.Services
                     autoDelete: false,
                     arguments: null);
 
-                _logger.LogInformation("RabbitMQ queue initialized successfully for consumer.");
+                _logger.LogInformation("RabbitMQ queue '{QueueName}' initialized successfully for consumer.", _queueName);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to initialize RabbitMQ channel or queue.");
+                _logger.LogError(ex, "Failed to initialize RabbitMQ channel or queue '{QueueName}'.", _queueName);
                 throw;
             }
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("Notification Background Service is starting.");
+            _logger.LogInformation("SynchronizeCustomerApplications Background Service is starting with queue: {QueueName}.", _queueName);
 
             var consumer = new AsyncEventingBasicConsumer(_channel);
             consumer.Received += async (model, ea) =>
@@ -101,7 +104,7 @@ namespace Messaging.Services
 
             await Task.Delay(Timeout.Infinite, stoppingToken);
 
-            _logger.LogInformation("Notification Background Service is stopping.");
+            _logger.LogInformation("SynchronizeCustomerApplications Background Service is stopping.");
         }
 
         private async Task ProcessNotificationAsync(SynchronizeCustomerApplicationsDto data, CancellationToken cancellationToken)
@@ -122,7 +125,7 @@ namespace Messaging.Services
                         // меняем заказчика из кабинета !!!!!
                         app.customer_id = data.CustomerId;
 
-                        if(app.app_cabinet_uuid == null)
+                        if (app.app_cabinet_uuid == null)
                         {
                             var guid = Guid.NewGuid().ToString();
                             app.app_cabinet_uuid = guid;
@@ -131,7 +134,10 @@ namespace Messaging.Services
                         }
                     }
 
+                    // Используем конфигурацию для всех параметров RabbitMQ
                     var hostName = _configuration["RabbitMQ:Host"];
+                    var userName = _configuration["RabbitMQ:Username"];
+                    var password = _configuration["RabbitMQ:Password"];
                     var queueName = _configuration["RabbitMQ:SyncAppsToCabinet"];
 
                     string jsonMessage = JsonSerializer.Serialize(apps);
@@ -139,9 +145,10 @@ namespace Messaging.Services
                     var factory = new ConnectionFactory()
                     {
                         HostName = hostName,
-                        Password = _configuration["RabbitMQ:Username"],
-                        UserName = _configuration["RabbitMQ:Password"]
+                        UserName = userName,  // Исправлено: Username вместо Password
+                        Password = password   // Исправлено: Password вместо Username
                     };
+
                     using var connection = factory.CreateConnection();
                     using var channel = connection.CreateModel();
 
@@ -152,13 +159,14 @@ namespace Messaging.Services
                     properties.Persistent = true;
 
                     channel.BasicPublish(exchange: "", routingKey: queueName, basicProperties: properties, body: body);
-                    Console.WriteLine($"Sent to synchronize customer apps");
 
-                    _logger.LogInformation("Processed notification: {Message}");
+                    _logger.LogInformation("Sent message to synchronize customer apps to queue: {QueueName}", queueName);
+
+                    _logger.LogInformation("Processed synchronization for customer: {CustomerId}, PIN: {Pin}", data.CustomerId, data.Pin);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error processing notification: {Message}");
+                    _logger.LogError(ex, "Error processing synchronization for customer: {CustomerId}", data.CustomerId);
                     throw;
                 }
             }
@@ -169,11 +177,11 @@ namespace Messaging.Services
             try
             {
                 _channel?.Close();
-                _logger.LogInformation("RabbitMQ channel closed.");
+                _logger.LogInformation("RabbitMQ channel closed for queue: {QueueName}.", _queueName);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error while closing RabbitMQ channel.");
+                _logger.LogError(ex, "Error while closing RabbitMQ channel for queue: {QueueName}.", _queueName);
             }
             base.Dispose();
         }

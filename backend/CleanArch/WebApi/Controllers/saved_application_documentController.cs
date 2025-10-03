@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using WebApi.Dtos;
 using Application.UseCases;
 using Application.Models;
+using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 
 namespace WebApi.Controllers
@@ -96,13 +97,17 @@ namespace WebApi.Controllers
         [Route("GetByApplication")]
         public async Task<IActionResult> GetByApplication(int application_id, int template_id, int language_id, string language_code)
         {
-            var response = await _saved_application_documentUseCases.GetByApplication(application_id, template_id, language_id);
-            if(response?.id == 0)
+            // var response = await _saved_application_documentUseCases.GetByApplication(application_id, template_id, language_id);
+            // if(response?.id == 0)
+            var response = new saved_application_document();
             {
                 var queriedPlaceholders = new Dictionary<string, object>();
                 queriedPlaceholders.Add("application_id", application_id);
-                var res = await _S_DocumentTemplateUseCases.GetFilledDocumentHtml(response.template_id, language_code, queriedPlaceholders);
+                var res = await _S_DocumentTemplateUseCases.GetFilledDocumentHtml(template_id, language_code, queriedPlaceholders);
                 response.body = res.Value;
+                response.application_id = application_id;
+                response.template_id = template_id;
+                response.language_id = language_id;
             }
             return Ok(response);
         }

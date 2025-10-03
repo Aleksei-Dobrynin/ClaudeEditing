@@ -1,14 +1,16 @@
-import React, { FC, useEffect } from 'react';
+import React, { FC, useEffect } from "react";
 import {
-  Container, Dialog, DialogContent, DialogTitle, List, ListItem
+  Container, Dialog, DialogContent, DialogTitle, Grid, List, ListItem
 } from "@mui/material";
-import PageGrid from 'components/PageGrid';
-import { observer } from "mobx-react"
-import store from "./store"
-import { useTranslation } from 'react-i18next';
-import { GridColDef } from '@mui/x-data-grid';
+import PageGrid from "components/PageGrid";
+import { observer } from "mobx-react";
+import store from "./store";
+import { useTranslation } from "react-i18next";
+import { GridColDef } from "@mui/x-data-grid";
 import dayjs from "dayjs";
 import Button from "@mui/material/Button";
+import DateField from "components/DateField";
+import CustomTextField from "components/TextField";
 
 type SignDocumentsListViewProps = {};
 
@@ -17,45 +19,47 @@ const SignDocumentsListView: FC<SignDocumentsListViewProps> = observer((props) =
   const translate = t;
 
   useEffect(() => {
-    store.loadSignDocumentss()
+    store.loadSignDocumentss();
     return () => {
-      store.clearStore()
-    }
-  }, [])
+      store.clearStore();
+    };
+  }, []);
 
   const columns: GridColDef[] = [
     {
-      field: 'structure_fullname',
+      field: "structure_fullname",
       headerName: translate("label:SignDocumentsListView.structure_fullname"),
       flex: 1
     },
     {
-      field: 'file_name',
+      field: "file_name",
       headerName: translate("label:SignDocumentsListView.file_name"),
       flex: 1
     },
     {
-      field: 'file_type',
+      field: "file_type",
       headerName: translate("label:SignDocumentsListView.file_type"),
-      flex: 1
+      flex: 1,
+      sortable: true
     },
     {
-      field: 'timestamp',
+      field: "timestamp",
       headerName: translate("label:SignDocumentsListView.timestamp"),
       flex: 1,
       renderCell: (params) => (
         <span>
-          {params.value ? dayjs(params.value).format('DD.MM.YYYY HH:mm') : ""}
+          {params.value ? dayjs(params.value).format("DD.MM.YYYY HH:mm") : ""}
         </span>
-      )
+      ),
+      sortable: true
     },
     {
-      field: 'application_number',
+      field: "application_number",
       headerName: translate("label:SignDocumentsListView.application_number"),
       flex: 1
     },
     {
-      field: 'actions',
+      field: "actions",
       headerName: translate("actions"),
       flex: 1,
       renderCell: (params) => (
@@ -75,17 +79,53 @@ const SignDocumentsListView: FC<SignDocumentsListViewProps> = observer((props) =
 
   let component = <PageGrid
     title={translate("label:SignDocumentsListView.entityTitle")}
-    onDeleteClicked={() => {}}
+    onDeleteClicked={() => {
+    }}
     columns={columns}
     hideAddButton={true}
     hideActions={true}
-    data={store.data}
+    data={store.filteredData}
     tableName="FilterApplication" />;
 
   return (
-    <Container maxWidth='xl' style={{ marginTop: 30 }}>
+    <Container maxWidth="xl" style={{ marginTop: 30 }}>
+      <Grid container spacing={3} sx={{ mb: 1 }}>
+        <Grid item md={4} xs={4}>
+          <CustomTextField
+            value={store.search}
+            onChange={(event) => store.handleChange(event)}
+            name="search"
+            id="id_f_SignDocuments_date_end"
+            label={translate("label:SignDocumentsListView.search")}
+            helperText={""}
+          />
+        </Grid>
+        <Grid item md={4} xs={4}>
+          <DateField
+            value={store.date_start}
+            onChange={(event) => store.handleChange(event)}
+            name="date_start"
+            id="id_f_SignDocuments_date_start"
+            label={translate("label:SignDocumentsListView.date_start")}
+            helperText={""}
+          />
+        </Grid>
+        <Grid item md={4} xs={4}>
+          <DateField
+            value={store.date_end}
+            onChange={(event) => store.handleChange(event)}
+            name="date_end"
+            id="id_f_SignDocuments_date_end"
+            label={translate("label:SignDocumentsListView.date_end")}
+            helperText={""}
+          />
+        </Grid>
+      </Grid>
       {component}
-      <Dialog open={store.dialogOpen} onClose={() => {store.dialogOpen = false; store.signers = [] }} fullWidth>
+      <Dialog open={store.dialogOpen} onClose={() => {
+        store.dialogOpen = false;
+        store.signers = [];
+      }} fullWidth>
         <DialogTitle>{translate("label:SignDocumentsListView.signers")}</DialogTitle>
         <DialogContent>
           <table>
@@ -101,7 +141,7 @@ const SignDocumentsListView: FC<SignDocumentsListViewProps> = observer((props) =
       </Dialog>
     </Container>
   );
-})
+});
 
 
-export default SignDocumentsListView
+export default SignDocumentsListView;

@@ -186,9 +186,11 @@ where tem.id = @template_id and tran.""idLanguage"" = @language_id
             try
             {
                 var sql = """
-SELECT saved.*, l.name language_name, s.name template_name FROM saved_application_document saved
+SELECT saved.*, CONCAT(emp_c.last_name, ' ', emp_c.first_name, ' ', emp_c.second_name) AS created_by_name, l.name language_name, s.name template_name FROM saved_application_document saved
 LEFT JOIN "S_DocumentTemplate" s on s.id = saved.template_id
 LEFT JOIN "Language" l on l.id = saved.language_id
+LEFT JOIN "User" uc on uc.id = saved.created_by
+LEFT JOIN employee emp_c on emp_c.user_id = uc."userId"
 WHERE saved.application_id = @application_id
 """;
                 var models = await _dbConnection.QueryAsync<saved_application_document>(sql, new { application_id }, transaction: _dbTransaction);

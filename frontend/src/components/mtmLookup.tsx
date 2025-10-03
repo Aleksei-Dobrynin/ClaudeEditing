@@ -7,8 +7,9 @@ import Button from '@mui/material/Button';
 import Grid from '@mui/material/Grid';
 import { observer } from 'mobx-react';
 import styled from 'styled-components';
-import { FC, useState } from 'react';
+import React, { FC, useState } from 'react';
 import { useTranslation } from "react-i18next";
+import FormHelperText from "@mui/material/FormHelperText";
 
 export type Dictionary = {
   id: number;
@@ -21,6 +22,8 @@ type MtmLookupProps = {
   value: number[];
   onChange: (name: string, value: number[]) => void;
   name: string;
+  helperText?: string;
+  error?: boolean;
   label: string;
   onKeyDown?: (e) => void;
   toggles?: boolean;
@@ -66,7 +69,14 @@ const MtmLookup: FC<MtmLookupProps> = observer((props) => {
           options={props.data}
           // Use the specified display field or default to 'name'
           getOptionLabel={(option) => option?.[displayField] || ''}
-          renderInput={(params) => <TextField {...params} label={props.label} />}
+          renderInput={(params) =>
+            <TextField
+              {...params}
+              label={props.label}
+              error={props.error}
+              helperText={props.error ? <FormHelperText error={true}>{props.helperText}</FormHelperText> : ''}
+            />}
+
         />
         {props.toggles && (
           <Button

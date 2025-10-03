@@ -279,7 +279,7 @@ namespace Application.UseCases
 
             var mark = new List<string> { "Дата создания: " + DateTime.Now.ToString("dd.MM.yyyy"), "QR-код для проверки ЭЦП", document.path };
             var secured = _watermarkService.GenerateSecureLink("", document.path);
-            var res = await _watermarkService.AddSignatureStampDirectlyToPdfAsync(document.body, mark, secured);
+            var res = await _watermarkService.AddSignatureStampDirectlyToPdfAsync(document.body, mark, secured, 0);
             document.body = res.Value;
             document = unitOfWork.FileRepository.UpdateDocumentFilePath(document);
 

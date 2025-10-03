@@ -12,8 +12,7 @@ namespace Application.Repositories
         Task<int> Add(contragent domain);
         Task Update(contragent domain);
         Task<contragent> GetOne(int id);
+        Task<contragent> GetOneByCode(string code);
         Task Delete(int id);
-
-
     }
 }
