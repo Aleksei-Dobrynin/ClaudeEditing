@@ -20,6 +20,7 @@ namespace Messaging.Services
         Task SendRejectRequestAsync(string uuid, string html, string number, int file_id, string ftpFileName, int[] serviceDocIds);
         Task SendApproveRequestAsync(string uuid, string number);
         Task SendCabinetFilesAsync(CabinetMessage message);
+        Task SendSmejPortalFilesAsync(SmejPortalMessage message);
         Task SendUpdateAppTotalSumAsync(string uuid, decimal totalSum);
         Task SendReadyDocRequestAsync(string uuid, string number);
         Task SendNotificationToCabinet(string uuid, string title, string text);
@@ -40,6 +41,7 @@ namespace Messaging.Services
         private readonly string _updateAppTotalSumQueueName;
         private readonly string _readyDocQueueName;
         private readonly string _notificationToCabinetQueueName;
+        private readonly string _smejPortalQueueName;
         private readonly IConnection _connection;
         
         private readonly string _ftpHost;
@@ -66,6 +68,7 @@ namespace Messaging.Services
             _updateAppTotalSumQueueName = configuration["RabbitMQ:UpdateAppTotalSumQueueName"] ?? throw new ArgumentNullException("UpdateAppTotalSumQueueName");
             _readyDocQueueName = configuration["RabbitMQ:ReadyDocQueueName"] ?? throw new ArgumentNullException("ReadyDocQueueName");
             _notificationToCabinetQueueName = configuration["RabbitMQ:NotificationToCabinetQueueName"] ?? throw new ArgumentNullException("NotificationToCabinetQueueName");
+            _smejPortalQueueName = configuration["RabbitMQ:SmejPortalQueueName"] ?? throw new ArgumentNullException("SmejPortalQueueName");
             _ftpHost = configuration["FTP:Host"];
             _ftpUsername = configuration["FTP:Username"];
             _ftpPassword = configuration["FTP:Password"];
@@ -133,6 +136,13 @@ namespace Messaging.Services
                 
                 _channel.QueueDeclare(
                     queue: _notificationToCabinetQueueName,
+                    durable: true,
+                    exclusive: false,
+                    autoDelete: false,
+                    arguments: null);
+                
+                _channel.QueueDeclare(
+                    queue: _smejPortalQueueName,
                     durable: true,
                     exclusive: false,
                     autoDelete: false,
@@ -601,6 +611,31 @@ namespace Messaging.Services
                 throw;
             }
         }
+        
+        public async Task SendSmejPortalFilesAsync(SmejPortalMessage message)
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(message);
+                var body = Encoding.UTF8.GetBytes(json);
+
+                var properties = _channel.CreateBasicProperties();
+                properties.Persistent = true;
+
+                _channel.BasicPublish(
+                    exchange: "",
+                    routingKey: _smejPortalQueueName,
+                    basicProperties: properties,
+                    body: body);
+
+                _logger.LogInformation("Sent files");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send");
+                throw;
+            }
+        }
 
         public override void Dispose()
         {
@@ -773,5 +808,11 @@ namespace Messaging.Services
     {
         public string Name { get; set; }
         public string Path { get; set; }
+    }
+    
+    public class SmejPortalMessage
+    {
+        public string ApplicationNumber { get; set; }
+        public List<UploadedDocumentData> Files { get; set; }
     }
 }

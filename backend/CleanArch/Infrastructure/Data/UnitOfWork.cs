@@ -216,6 +216,7 @@ namespace Infrastructure.Data
         private IArchiveObjectsEventsRepository? _archiveObjectsEventsRepository;
         private IEmployeeSavedFiltersRepository? _employeeSavedFiltersRepository; 
         private ISmejPortalApiRepository? _smejPortalApiRepository; 
+        private IRegistratorServiceConfigRepository? _registratorServiceConfigRepository;
 
         private ILogger<UnitOfWork> _logger;
         private IConfiguration _configuration;
@@ -2615,6 +2616,20 @@ namespace Infrastructure.Data
                 return _smejPortalApiRepository;
             }
         }
+
+        public IRegistratorServiceConfigRepository RegistratorServiceConfigRepository
+        {
+            get
+            {
+                if (_registratorServiceConfigRepository == null)
+                {
+                    _registratorServiceConfigRepository = new RegistratorServiceConfigRepository(_dbConnection, _userRepository);
+                }
+                return _registratorServiceConfigRepository;
+            }
+        }
+
+
 
 
         public void Commit()

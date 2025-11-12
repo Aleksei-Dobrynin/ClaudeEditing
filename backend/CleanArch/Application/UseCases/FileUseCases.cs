@@ -12,6 +12,7 @@ using System.Text;
 using Newtonsoft.Json;
 using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
+using File = Domain.Entities.File;
 
 namespace Application.UseCases
 {
@@ -715,6 +716,28 @@ namespace Application.UseCases
 
                 return archiveFile;
             }
+        }
+        
+        public async Task SendFilesToSmejPortal(int application_id, List<File> files)
+        {
+            var app = await unitOfWork.ApplicationRepository.GetOneByID(application_id);
+            var message = new SmejPortalMessage();
+            message.ApplicationNumber = app.number;
+            message.Files = new List<UploadedDocumentData>();
+            foreach (var file in files)
+            {
+                var path = Guid.NewGuid().ToString();
+                await UploadFileToFtp(path, file.body);
+                message.Files.Add(new UploadedDocumentData
+                {
+                    File = new FileData
+                    {
+                        Name = file.name,
+                        Path = path
+                    }
+                });
+            }
+            await _bgaService.SendSmejPortalFilesAsync(message);
         }
     }
 }

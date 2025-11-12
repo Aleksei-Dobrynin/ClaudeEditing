@@ -499,21 +499,6 @@ const pages = {
           icon: icons.IconClipboardText,
           url: "/user/S_documenttemplate"
         },
-
-        {
-          id: "Contragent",
-          title: "Контрагенты",
-          type: "item",
-          icon: icons.IconClipboardText,
-          url: "/user/Contragent"
-        },
-        {
-          id: "Contragent_interaction",
-          title: "Взаимодействие с контрагентом",
-          type: "item",
-          icon: icons.IconClipboardText,
-          url: "/user/Contragent_interaction"
-        },
         {
           id: "2",
           title: "Запросы",

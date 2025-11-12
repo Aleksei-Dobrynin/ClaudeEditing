@@ -1359,7 +1359,7 @@ namespace Application.UseCases
                                     updated_at = DateTime.Now
                                 });
                                 assignees.Add(headStructure.employee_name);
-                                if (old_cash.assignee_ids == null)
+                                if (old_cash.assignee_ids  == null)
                                 {
                                     old_cash.assignee_ids = new List<int>();
                                 }

@@ -98,5 +98,10 @@ namespace WebApi.IntegrationTests.Mocks
         {
             throw new NotImplementedException();
         }
+
+        public Task<bool> ForgotPassword(string email, string newPassword)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
