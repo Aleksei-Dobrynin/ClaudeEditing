@@ -71,6 +71,14 @@ namespace WebApi.Controllers
         }
 
         [HttpGet]
+        [Route("CallOutSignDocument")]
+        public async Task<IActionResult> CallOutSignDocument(int id)
+        {
+            var res = await _fileUseCases.CallOutSignDocument(id);
+            return Ok(res);
+        }
+
+        [HttpGet]
         [Route("GetAllSignByUser")]
         public async Task<IActionResult> GetAllSignByUser()
         {

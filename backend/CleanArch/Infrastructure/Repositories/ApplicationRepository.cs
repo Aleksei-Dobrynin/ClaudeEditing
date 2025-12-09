@@ -912,66 +912,63 @@ limit 1";
                 var countSql = @"
 SELECT count(distinct app.id)
 FROM application app
-    LEFT JOIN customer cus on cus.id = app.customer_id 
-    LEFT JOIN service on service.id = app.service_id
-    LEFT JOIN application_object ao on ao.application_id = app.id
-    LEFT JOIN arch_object obj on ao.arch_object_id = obj.id
-    LEFT JOIN district dis on obj.district_id = dis.id
-    LEFT JOIN application_status st on app.status_id = st.id
-    LEFT JOIN application_task task on task.application_id = app.id
-    LEFT JOIN application_task_assignee ats on ats.application_task_id = task.id
-    LEFT JOIN employee_in_structure eis on eis.id = ats.structure_employee_id
-    LEFT JOIN structure_post sp on sp.id = eis.post_id
-    LEFT JOIN employee eee on eee.id = eis.employee_id
-    LEFT JOIN customer_contact cc on cus.id = cc.customer_id 
-    LEFT JOIN ""User"" uc on uc.id = app.created_by
-    LEFT JOIN employee emp_c on emp_c.user_id = uc.""userId""
-    LEFT JOIN workflow w on service.workflow_id = w.id
-    LEFT JOIN architecture_process proc on proc.id = app.id
-    LEFT JOIN ""User"" u_proc on u_proc.id = proc.created_by
-    LEFT JOIN employee e_proc on e_proc.user_id = u_proc.""userId""
-";
+        	LEFT JOIN customer cus on cus.id = app.customer_id 
+        	LEFT JOIN service on service.id = app.service_id
+        	LEFT JOIN application_object ao on ao.application_id = app.id
+        	LEFT JOIN arch_object obj on ao.arch_object_id = obj.id
+        	LEFT JOIN district dis on obj.district_id = dis.id
+        	LEFT JOIN application_status st on app.status_id = st.id
+        	LEFT JOIN application_task task on task.application_id = app.id
+        	LEFT JOIN application_task_assignee ats on ats.application_task_id = task.id
+        	LEFT JOIN employee_in_structure eis on eis.id = ats.structure_employee_id
+            LEFT JOIN structure_post sp on sp.id = eis.post_id
+        	LEFT JOIN employee eee on eee.id = eis.employee_id
+        	LEFT JOIN customer_contact cc on cus.id = cc.customer_id 
+                    left join ""User"" uc on uc.id = app.created_by
+                    left join employee emp_c on emp_c.user_id = uc.""userId""
+            left join workflow w on service.workflow_id = w.id
+
+            LEFT JOIN architecture_process proc on proc.id = app.id
+            LEFT JOIN ""User"" u_proc on u_proc.id = proc.created_by
+            LEFT JOIN employee e_proc on e_proc.user_id = u_proc.""userId""
+        ";
 
                 var mainSql = @"
 SELECT app.id, app.done_date, app.object_tag_id, registration_date, app.customer_id, cus.full_name as customer_name, cus.pin as customer_pin, app.status_id, app.workflow_id, st.name status_name, st.code status_code, st.status_color status_color, maria_db_statement_id,
-        service_id, service.name as service_name, deadline,work_description, 
-        string_agg(DISTINCT obj.name, '; ') as arch_object_name, string_agg(DISTINCT obj.address, '; ') as arch_object_address, string_agg(DISTINCT dis.name, '; ') as arch_object_district,
-        CONCAT(emp_c.last_name, ' ', emp_c.first_name, ' ', emp_c.second_name) AS created_by_name,
-        is_paid, number, app.total_sum, app.total_payed, service.day_count,
-        string_agg(DISTINCT CONCAT(COALESCE(eee.last_name, ''), ' ', COALESCE(eee.first_name, '')), ', ') AS assigned_employees_names,
-        string_agg(DISTINCT coalesce(cc.value), ', ') AS customer_contacts,
-        app.status_id as application_status_id,
-        st.code as application_status_code,
-        st.group_code as application_status_group_code
-FROM application app
-    LEFT JOIN customer cus on cus.id = app.customer_id 
-    LEFT JOIN service on service.id = app.service_id
-    LEFT JOIN application_object ao on ao.application_id = app.id
-    LEFT JOIN arch_object obj on ao.arch_object_id = obj.id
-    LEFT JOIN district dis on obj.district_id = dis.id
-    LEFT JOIN application_status st on app.status_id = st.id
-    LEFT JOIN application_task task on task.application_id = app.id
-    LEFT JOIN application_task_assignee ats on ats.application_task_id = task.id
-    LEFT JOIN employee_in_structure eis on eis.id = ats.structure_employee_id
-    LEFT JOIN structure_post sp on sp.id = eis.post_id
-    LEFT JOIN employee eee on eee.id = eis.employee_id
-    LEFT JOIN customer_contact cc on cus.id = cc.customer_id 
-    LEFT JOIN ""User"" uc on uc.id = app.created_by
-    LEFT JOIN employee emp_c on emp_c.user_id = uc.""userId""
-    LEFT JOIN workflow w on service.workflow_id = w.id
-    LEFT JOIN architecture_process proc on proc.id = app.id
-    LEFT JOIN ""User"" u_proc on u_proc.id = proc.created_by
-    LEFT JOIN employee e_proc on e_proc.user_id = u_proc.""userId""
-";
+                service_id, service.name as service_name, deadline,work_description, 
+        		string_agg(DISTINCT obj.name, '; ') as arch_object_name, string_agg(DISTINCT obj.address, '; ') as arch_object_address, string_agg(DISTINCT dis.name, '; ') as arch_object_district,
+                CONCAT(emp_c.last_name, ' ', emp_c.first_name, ' ', emp_c.second_name) AS created_by_name,
+                is_paid, number, app.total_sum, app.total_payed, service.day_count,
+        		string_agg(DISTINCT CONCAT(COALESCE(eee.last_name, ''), ' ', COALESCE(eee.first_name, '')), ', ') AS assigned_employees_names,
+        		string_agg(DISTINCT coalesce(cc.value), ', ') AS customer_contacts,
+       app.status_id as application_status_id,
+       st.code as application_status_code,
+       st.group_code as application_status_group_code
+        FROM application app
+        	LEFT JOIN customer cus on cus.id = app.customer_id 
+        	LEFT JOIN service on service.id = app.service_id
+        	LEFT JOIN application_object ao on ao.application_id = app.id
+        	LEFT JOIN arch_object obj on ao.arch_object_id = obj.id
+        	LEFT JOIN district dis on obj.district_id = dis.id
+        	LEFT JOIN application_status st on app.status_id = st.id
+        	LEFT JOIN application_task task on task.application_id = app.id
+        	LEFT JOIN application_task_assignee ats on ats.application_task_id = task.id
+        	LEFT JOIN employee_in_structure eis on eis.id = ats.structure_employee_id
+            LEFT JOIN structure_post sp on sp.id = eis.post_id
+        	LEFT JOIN employee eee on eee.id = eis.employee_id
+        	LEFT JOIN customer_contact cc on cus.id = cc.customer_id 
+                    left join ""User"" uc on uc.id = app.created_by
+                    left join employee emp_c on emp_c.user_id = uc.""userId""
+            left join workflow w on service.workflow_id = w.id
+
+            LEFT JOIN architecture_process proc on proc.id = app.id
+            LEFT JOIN ""User"" u_proc on u_proc.id = proc.created_by
+            LEFT JOIN employee e_proc on e_proc.user_id = u_proc.""userId""
+
+        ";
 
                 // ГЛАВНОЕ УСЛОВИЕ: ВСЕГДА фильтруем только по EO статусам
                 var sql = " WHERE (st.code = 'return_to_eo' OR st.code = 'rejection_ready' OR st.code = 'ready_for_eo' OR st.code = 'tech_rejection_to_eo' OR st.code = 'act_rejection_to_eo') ";
-
-                // 🆕 НОВЫЙ ФИЛЬТР: По услугам регистратора (если они настроены)
-                if (filter.registrator_service_ids != null && filter.registrator_service_ids.Length > 0)
-                {
-                    sql += $@" AND app.service_id IN ({string.Join(',', filter.registrator_service_ids)})";
-                }
 
                 // Добавляем дополнительные фильтры
                 if (filter.useCommon && !string.IsNullOrWhiteSpace(filter.common_filter))
@@ -1029,44 +1026,44 @@ or lower(app.outgoing_numbers) LIKE lower(CONCAT('%', @common_filter, '%')))";
                     if (!string.IsNullOrEmpty(filter.address))
                     {
                         sql += @$"
-    AND LOWER(obj.address) like '%{filter.address.ToLower()}%'";
+        AND LOWER(obj.address) like '%{filter.address.ToLower()}%'";
                     }
                     if (!string.IsNullOrEmpty(filter.customerName))
                     {
                         sql += @$"
-    AND LOWER(cus.full_name) LIKE concat('%',@customer_name,'%') ";
+        AND LOWER(cus.full_name) LIKE concat('%',@customer_name,'%') ";
                     }
 
                     if (filter.service_ids.Count() > 0)
                     {
                         sql += @$"
-    AND service_id in ({string.Join(',', filter.service_ids)})";
+        AND service_id in ({string.Join(',', filter.service_ids)})";
                     }
                     if (filter.status_ids.Count() > 0)
                     {
                         sql += @$"
-    AND app.status_id in ({string.Join(',', filter.status_ids)})";
+        AND app.status_id in ({string.Join(',', filter.status_ids)})";
                     }
 
                     if (filter.district_id != null && filter.district_id != 0)
                     {
                         sql += @$"
-    AND obj.district_id = {filter.district_id}";
+        AND obj.district_id = {filter.district_id}";
                     }
 
                     if (filter.employee_arch_id != null && filter.employee_arch_id != 0)
                     {
                         sql += @$"
-    AND e_proc.id = {filter.employee_arch_id}";
+        AND e_proc.id = {filter.employee_arch_id}";
                         if (filter.dashboard_date_start != null)
                         {
                             sql += @$"
-        AND proc.created_at >= @dashboard_date_start";
+            AND proc.created_at >= @dashboard_date_start";
                         }
                         if (filter.dashboard_date_end != null)
                         {
                             sql += @$"
-        AND proc.created_at <= @dashboard_date_end";
+            AND proc.created_at <= @dashboard_date_end";
                         }
                     }
 
@@ -1112,52 +1109,52 @@ or lower(app.outgoing_numbers) LIKE lower(CONCAT('%', @common_filter, '%')))";
                     if (filter.date_start != null)
                     {
                         sql += @$"
-    AND registration_date >= @date_start";
+        AND registration_date >= @date_start";
                     }
 
                     if (filter.date_end != null)
                     {
                         sql += @$"
-    AND registration_date <= @date_end";
+        AND registration_date <= @date_end";
                     }
                 }
 
                 if (filter.structure_ids != null && filter.structure_ids.Length > 0)
                 {
                     sql += @$"
-                AND w.id in (select wtt.workflow_id from workflow_task_template wtt where wtt.type_id != 1 and wtt.structure_id in ({string.Join(',', filter.structure_ids)}))";
+                        AND w.id in (select wtt.workflow_id from workflow_task_template wtt where wtt.type_id != 1 and wtt.structure_id in ({string.Join(',', filter.structure_ids)}))";
                 }
 
                 if (filter.is_paid != null)
                 {
                     sql += $@"
-       AND (
-    (@is_paid = true AND (is_paid = true OR (is_paid = false AND total_payed >= total_sum AND total_payed > 0)))
-    OR (@is_paid = false AND is_paid = false AND total_payed < total_sum)
-)";
+           AND (
+        (@is_paid = true AND (is_paid = true OR (is_paid = false AND total_payed >= total_sum AND total_payed > 0)))
+        OR (@is_paid = false AND is_paid = false AND total_payed < total_sum)
+    )";
                 }
 
                 countSql = countSql + sql;
                 // group
                 sql += @$" 
-    group by app.id, cus.id, service.id, st.id, emp_c.id";
+        group by app.id, cus.id, service.id, st.id, emp_c.id";
 
                 // sort
                 if (filter.sort_by != null && filter.sort_type != null)
                 {
                     sql += @$"
-    ORDER BY {filter.sort_by} {filter.sort_type}";
+        ORDER BY {filter.sort_by} {filter.sort_type}";
                 }
                 else
                 {
                     sql += @$"
-    ORDER BY app.id desc";
+        ORDER BY app.id desc";
                 }
 
                 // pagesize
                 var sqlWithPagination = sql + @"
-    OFFSET @pageSize * @pageNumber Limit @pageSize;
-    ";
+        OFFSET @pageSize * @pageNumber Limit @pageSize;
+        ";
 
                 IEnumerable<Domain.Entities.Application> models = new List<Domain.Entities.Application>();
                 if (!onlyCount)

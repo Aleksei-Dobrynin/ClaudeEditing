@@ -39,6 +39,7 @@
         public string? file_name { get; set; }
         public string? application_number { get; set; }
         public string? file_type { get; set; }
+        public bool? is_called_out { get; set; }
     }
     
     public class FileSignInfo

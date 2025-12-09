@@ -75,5 +75,13 @@ namespace WebApi.Controllers
             await _userRoleUseCases.Delete(id);
             return Ok();
         }
+
+        [HttpGet]
+        [Route("GetCurentUserId")]
+        public async Task<IActionResult> GetCurentUserId()
+        {
+            var res = await _userRoleUseCases.GetCurentUserId();
+            return Ok(res);
+        }
     }
 }

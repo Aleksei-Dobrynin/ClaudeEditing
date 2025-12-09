@@ -1,17 +1,18 @@
-﻿using System.Net;
-using Application.Repositories;
+﻿using Application.Repositories;
+using DocumentFormat.OpenXml.InkML;
 using Domain.Entities;
 using HTMLQuestPDF.Extensions;
 using Messaging.Services;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
+using Org.BouncyCastle.Cms;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
 using System.IO.Compression;
-using Org.BouncyCastle.Cms;
-using System.Text;
-using Newtonsoft.Json;
+using System.Net;
 using System.Security.Cryptography;
-using Microsoft.Extensions.DependencyInjection;
+using System.Text;
 using File = Domain.Entities.File;
 
 namespace Application.UseCases
@@ -108,6 +109,7 @@ namespace Application.UseCases
             if (signs.Any(x => x.user_id == userId))
             {
                 var sign_id = signs.Find(x => x.user_id == userId)?.id;
+
                 if (uplId != null && uplId != 0)
                 {
                     var roles = await _authRepository.GetMyRoleIds();
@@ -247,23 +249,41 @@ namespace Application.UseCases
 
             var whoSigned = fullname + " - " + structure_name + " - " + post_name;
 
-            var res = await unitOfWork.FileRepository.AddSign(new FileSign
+            var sign = signs.Find(x => x.user_id == userId);
+            var res = 0;
+            if (sign != null)
             {
-                sign_hash = signResult,
-                sign_timestamp = signTime,
-                pin_user = pin,
-                user_id = userId,
-                user_full_name = whoSigned,
-                pin_organization = personFio,
-                employee_id = employee_id,
-                employee_fullname = fullname,
-                structure_employee_id = structure_id,
-                structure_fullname = structure_name,
-                timestamp = DateTime.UtcNow.AddHours(6), //TODO
-                file_id = id,
-                file_type_id = docType != 0 ? docType : null
-            });
+                sign.sign_hash = signResult; //TODO check later
+                sign.sign_timestamp = signTime;
+                sign.structure_employee_id = structure_id;
+                sign.structure_fullname = structure_name;
+                sign.timestamp = DateTime.UtcNow.AddHours(6); //TODO
+                sign.file_id = id;
+                sign.file_type_id = docType != 0 ? docType : null;
+                sign.is_called_out = false;
 
+                res = await unitOfWork.FileRepository.UpdateSign(sign);
+            }
+            else
+            {
+                res = await unitOfWork.FileRepository.AddSign(new FileSign
+                {
+                    sign_hash = signResult,
+                    sign_timestamp = signTime,
+                    pin_user = pin,
+                    user_id = userId,
+                    user_full_name = whoSigned,
+                    pin_organization = personFio,
+                    employee_id = employee_id,
+                    employee_fullname = fullname,
+                    structure_employee_id = structure_id,
+                    structure_fullname = structure_name,
+                    timestamp = DateTime.UtcNow.AddHours(6), //TODO
+                    file_id = id,
+                    file_type_id = docType != 0 ? docType : null,
+                    is_called_out = false
+                });
+            }
 
             if (uplId != null && uplId != 0)
             {
@@ -295,7 +315,23 @@ namespace Application.UseCases
             unitOfWork.Commit();
             return res; //todo
         }
+        public async Task<int> CallOutSignDocument(int id)
+        {
+            var signs = await unitOfWork.FileRepository.GetSignByFileIds(new int[] { id });
+            var userId = await _userRepository.GetUserID();
+            var userGuid = await _userRepository.GetUserUID();
+            int res = 0;
 
+            var sign = signs.Find(x => x.user_id == userId);
+            if(sign != null)
+            {
+                sign.is_called_out = true;
+                res = await unitOfWork.FileRepository.UpdateSign(sign);
+            }
+
+            return res;
+
+        }
         private async Task CheckSingFiles(int? id)
         {
             if (id == null)

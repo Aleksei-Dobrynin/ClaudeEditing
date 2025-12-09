@@ -561,7 +561,7 @@ namespace Application.UseCases
 
                     foreach (var appr in doc.approvals)
                     {
-                        appr.signInfo = signs.FirstOrDefault(x => x.id == appr.file_sign_id);
+                        appr.signInfo = signs.FirstOrDefault(x => x.id == appr.file_sign_id && x.is_called_out != true );
                         appr.is_required = appr.is_required_approver;
                     }
 

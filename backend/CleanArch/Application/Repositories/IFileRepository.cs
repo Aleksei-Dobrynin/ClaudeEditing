@@ -13,6 +13,7 @@ namespace Application.Repositories
         public Task<int> Add(Domain.Entities.File dto);
         public Task<int> Update(Domain.Entities.File dto);
         Task<int> AddSign(Domain.Entities.FileSign dto);
+        Task<int> UpdateSign(Domain.Entities.FileSign dto);
         public Domain.Entities.File AddDocument(Domain.Entities.File dto);
         public Task<List<PaymentRecord>> ReadPaymentRecords(MemoryStream stream);
         public Task<List<PaymentRecordMbank>> ReadPaymentMbankRecords(MemoryStream stream);
