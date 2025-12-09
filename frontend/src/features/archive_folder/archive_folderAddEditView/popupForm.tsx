@@ -1,0 +1,65 @@
+import { FC, useEffect } from 'react';
+import Archive_folderAddEditBaseView from './base';
+import store from "./store"
+import { observer } from "mobx-react"
+import { Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
+import { useTranslation } from 'react-i18next';
+import CustomButton from 'components/Button';
+
+type PopupFormProps = {
+  openPanel: boolean;
+  id: number;
+  object_id: number;
+  onBtnCancelClick: () => void;
+  onSaveClick: (id: number) => void;
+}
+
+const Archive_folderPopupForm: FC<PopupFormProps> = observer((props) => {
+  const { t } = useTranslation();
+  const translate = t;
+
+  useEffect(() => {
+    if (props.openPanel) {
+      store.handleChange({target: {value: props.object_id, name: "dutyplan_object_id"}})
+      store.doLoad(props.id)
+    } else {
+      store.clearStore()
+    }
+  }, [props.openPanel])
+
+  return (
+    <Dialog open={props.openPanel} onClose={props.onBtnCancelClick} maxWidth="sm" fullWidth>
+      <DialogTitle>{translate('label:archive_folderAddEditView.entityTitle')}</DialogTitle>
+      <DialogContent>
+        <Archive_folderAddEditBaseView
+          isPopup={true}
+        >
+        </Archive_folderAddEditBaseView>
+      </DialogContent>
+      <DialogActions>
+        <DialogActions>
+          <CustomButton
+            variant="contained"
+            id="id_archive_folderSaveButton"
+            name={'archive_folderAddEditView.save'}
+            onClick={() => {
+              store.onSaveClick((id: number) => props.onSaveClick(id))
+            }}
+          >
+            {translate("common:save")}
+          </CustomButton>
+          <CustomButton
+            variant="contained"
+            id="id_archive_folderCancelButton"
+            name={'archive_folderAddEditView.cancel'}
+            onClick={() => props.onBtnCancelClick()}
+          >
+            {translate("common:cancel")}
+          </CustomButton>
+        </DialogActions>
+      </DialogActions >
+    </Dialog >
+  );
+})
+
+export default Archive_folderPopupForm

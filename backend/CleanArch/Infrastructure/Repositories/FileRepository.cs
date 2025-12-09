@@ -154,6 +154,9 @@ namespace Infrastructure.Repositories
             }
         }
 
+        // Путь: backend/CleanArch/Infrastructure/Repositories/FileRepository.cs
+        // Метод: UpdateSign (КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ - ЗАМЕНИТЬ существующий метод)
+
         public async Task<int> UpdateSign(Domain.Entities.FileSign dto)
         {
             try
@@ -161,13 +164,31 @@ namespace Infrastructure.Repositories
                 var userId = await UserSessionHelper.SetCurrentUserAsync(_userRepository, _dbConnection, _dbTransaction);
                 dto.user_id = userId;
 
-                var sql = "UPDATE file_sign(user_full_name, sign_hash, sign_timestamp, pin_user, file_id, user_id, timestamp, employee_id, structure_employee_id, employee_fullname, structure_fullname, file_type_id, cabinet_file_id, is_called_out) VALUES (@user_full_name, @sign_hash, @sign_timestamp, @pin_user, @file_id, @user_id, @timestamp, @employee_id, @structure_employee_id, @employee_fullname, @structure_fullname ,@file_type_id, @cabinet_file_id, @is_called_out) WHERE id = @id  RETURNING id";
+                // ИСПРАВЛЕНО: Изменен SQL с INSERT на UPDATE
+                var sql = @"UPDATE file_sign 
+                    SET user_full_name = @user_full_name, 
+                        sign_hash = @sign_hash, 
+                        sign_timestamp = @sign_timestamp, 
+                        pin_user = @pin_user, 
+                        file_id = @file_id, 
+                        user_id = @user_id, 
+                        timestamp = @timestamp, 
+                        employee_id = @employee_id, 
+                        structure_employee_id = @structure_employee_id, 
+                        employee_fullname = @employee_fullname, 
+                        structure_fullname = @structure_fullname, 
+                        file_type_id = @file_type_id, 
+                        cabinet_file_id = @cabinet_file_id, 
+                        is_called_out = @is_called_out 
+                    WHERE id = @id 
+                    RETURNING id";
+
                 var result = await _dbConnection.ExecuteScalarAsync<int>(sql, dto, transaction: _dbTransaction);
                 return result;
             }
             catch (Exception ex)
             {
-                throw new RepositoryException("Failed to add ApplicationDocumentType", ex);
+                throw new RepositoryException("Failed to update file sign", ex);
             }
         }
 
