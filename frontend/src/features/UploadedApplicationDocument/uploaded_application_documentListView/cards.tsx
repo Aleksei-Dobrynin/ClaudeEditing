@@ -33,19 +33,19 @@ type DocumentCardProps = {
   userId?: number
 }
 
-export const DocumentCard: FC<DocumentCardProps> = ({ 
-  document, 
-  t, 
-  onDocumentPreview, 
-  onOpenSigners, 
-  onOpenFileHistory, 
-  onSigned, 
-  onUploadFile, 
-  step_id, 
-  step, 
-  onAddSigner, 
+export const DocumentCard: FC<DocumentCardProps> = ({
+  document,
+  t,
+  onDocumentPreview,
+  onOpenSigners,
+  onOpenFileHistory,
+  onSigned,
+  onUploadFile,
+  step_id,
+  step,
+  onAddSigner,
   hasAccess,
-  userId 
+  userId
 }) => {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
 
@@ -65,8 +65,8 @@ export const DocumentCard: FC<DocumentCardProps> = ({
   // Проверяем, подписал ли текущий пользователь этот документ
   const hasUserSigned = () => {
     if (!userId || !document.approvals) return false;
-    
-    return document.approvals.some(approval => 
+
+    return document.approvals.some(approval =>
       approval.signInfo?.user_id === userId
     );
   };
@@ -204,7 +204,7 @@ export const DocumentCard: FC<DocumentCardProps> = ({
         <ActionsRight>
           {shouldShowRevokeButton ? (
             <PrimaryButton
-              onClick={() => store.callOutSignApplicationPayment(document.upl?.file_id, () => {
+              onClick={() => store.openRoleSelectionForRevoke(document.upl?.file_id, () => {
                 onSigned()
               })}
             // disabled={step?.status !== "in_progress"} //TODO
@@ -213,7 +213,7 @@ export const DocumentCard: FC<DocumentCardProps> = ({
             </PrimaryButton>
           ) : (
             <PrimaryButton
-              onClick={() => store.signApplicationPayment(document.upl?.file_id, document.upl?.id, () => {
+              onClick={() => store.openRoleSelectionForSigning(document.upl?.file_id, document.upl?.id, () => {
                 onSigned()
               })}
             // disabled={step?.status !== "in_progress"} //TODO

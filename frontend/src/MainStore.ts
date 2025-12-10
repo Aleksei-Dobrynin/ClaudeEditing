@@ -23,11 +23,14 @@ class NewStore {
     titles: [],
   };
   digitalSign = {
-    open: false,
+    isOpen: false,
     fileId: 0,
-    onCloseYes: null,
-    onCloseNo: null,
     uplId: 0,
+    onCloseYes: () => { },
+    onCloseNo: () => { },
+    // НОВЫЕ ПОЛЯ для поддержки выбора роли
+    selectedPositionId: undefined as number | undefined,
+    selectedDepartmentId: undefined as number | undefined,
   };
   confirm = {
     errorMessage: [],
@@ -289,13 +292,26 @@ class NewStore {
 
   openDigitalSign = (
     fileId: number,
-    yesCallback: any,
-    noCallback: any,
+    onCloseYes: () => void,
+    onCloseNo: () => void,
+    selectedPositionId?: number,
+    selectedDepartmentId?: number
   ) => {
-    this.digitalSign.open = true;
+    this.digitalSign.isOpen = true;
     this.digitalSign.fileId = fileId;
-    this.digitalSign.onCloseYes = yesCallback;
-    this.digitalSign.onCloseNo = noCallback;
+    this.digitalSign.onCloseYes = onCloseYes;
+    this.digitalSign.onCloseNo = onCloseNo;
+    this.digitalSign.selectedPositionId = selectedPositionId;
+    this.digitalSign.selectedDepartmentId = selectedDepartmentId;
+  };
+
+  // И добавить метод для сброса данных роли при закрытии:
+  onCloseDigitalSign = () => {
+    this.digitalSign.isOpen = false;
+    this.digitalSign.fileId = 0;
+    this.digitalSign.uplId = 0;
+    this.digitalSign.selectedPositionId = undefined;
+    this.digitalSign.selectedDepartmentId = undefined;
   };
 
   openErrorConfirm = (
@@ -362,14 +378,6 @@ class NewStore {
     if (!dayjs(date).isValid()) return null;
     return dayjs(date).format("YYYY-MM-DDTHH:mm:ss");
   }
-
-  onCloseDigitalSign = () => {
-    this.digitalSign.open = false;
-    this.digitalSign.onCloseYes = null;
-    this.digitalSign.onCloseNo = null;
-    this.digitalSign.fileId = 0;
-    this.digitalSign.uplId = 0;
-  };
 
   changeLoader(flag: boolean) {
     if (flag) {

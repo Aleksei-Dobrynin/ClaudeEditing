@@ -1,4 +1,6 @@
-// DigitalSignDialog.tsx - исправленная версия
+// Путь: frontend/src/components/DigitalSignDialog.tsx
+// ЗАМЕНИТЬ ФАЙЛ ПОЛНОСТЬЮ
+
 import { observer } from "mobx-react";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
@@ -10,11 +12,9 @@ import MaskedTextField from "components/MaskedTextField";
 import MainStore from "./../MainStore";
 import CustomButton from "./Button";
 import { useTranslation } from "react-i18next";
-import { signFile, sendCode } from "api/FileSign";
+import { signFile, sendCode, signFileWithRole } from "api/FileSign";
 import i18n from "i18next";
-import { send } from "process";
 import { useNavigate } from 'react-router-dom';
-
 
 const DigitalSignDialog = observer(() => {
   const { t } = useTranslation();
@@ -28,23 +28,23 @@ const DigitalSignDialog = observer(() => {
 
   // Эффект для синхронизации PIN с MainStore при открытии диалога
   useEffect(() => {
-    if (MainStore.digitalSign.open) {
+    if (MainStore.digitalSign.isOpen) {
       // При открытии диалога всегда берем актуальное значение из MainStore
       setPin(MainStore.curentUserPin || "");
       // Сбрасываем остальные поля
       setPinCode("");
       setIsSend(false);
     }
-  }, [MainStore.digitalSign.open]); // Зависимость только от open, не от curentUserPin
+  }, [MainStore.digitalSign.isOpen]); // Зависимость только от isOpen, не от curentUserPin
 
   // Дополнительный эффект для отслеживания изменений curentUserPin в реальном времени
   // Это нужно, если PIN может измениться пока диалог открыт
   useEffect(() => {
     // Обновляем PIN только если диалог открыт и пользователь еще не отправил код
-    if (MainStore.digitalSign.open && !isSend) {
+    if (MainStore.digitalSign.isOpen && !isSend) {
       setPin(MainStore.curentUserPin || "");
     }
-  }, [MainStore.curentUserPin, MainStore.digitalSign.open, isSend]);
+  }, [MainStore.curentUserPin, MainStore.digitalSign.isOpen, isSend]);
 
   // Обработчик изменения PIN пользователем
   const handlePinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,7 +53,6 @@ const DigitalSignDialog = observer(() => {
 
   // Обработчик отправки кода
   const handleSendCode = async () => {
-
     try {
       MainStore.changeLoader(true);
       const response = await sendCode(pin);
@@ -64,7 +63,6 @@ const DigitalSignDialog = observer(() => {
       if ((response.status === 201 || response.status === 200)) {
         MainStore.setSnackbar(i18n.t("ПИН код отправлен"), "success");
         setIsSend(true);
-
       } else {
         throw new Error();
       }
@@ -73,18 +71,21 @@ const DigitalSignDialog = observer(() => {
     } finally {
       MainStore.changeLoader(false);
     }
-
   };
 
   // Обработчик подписания
   const handleSign = async () => {
     try {
       MainStore.changeLoader(true);
-      const response = await signFile(
+      
+      // Используем новую функцию signFileWithRole, которая поддерживает роли
+      const response = await signFileWithRole(
         MainStore.digitalSign.fileId,
         MainStore.digitalSign.uplId,
         pin,
-        pinCode
+        pinCode,
+        MainStore.digitalSign.selectedPositionId,
+        MainStore.digitalSign.selectedDepartmentId
       );
 
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
@@ -118,7 +119,7 @@ const DigitalSignDialog = observer(() => {
       fullWidth={true}
       id={"DigitalSignDialog"}
       maxWidth={"xs"}
-      open={MainStore.digitalSign.open}
+      open={MainStore.digitalSign.isOpen}
     >
       <CloseModal onClick={handleClose} />
       <ContentWrapper>
@@ -138,17 +139,17 @@ const DigitalSignDialog = observer(() => {
 
         {pin == "" && (
           <div style={{ margin: 15 }}>
-            У вас не заполнен ИНН в профиле, пройдите в <Link  onClick={() => {
-                  MainStore.digitalSign.onCloseNo();
-                  navigate('/user/account-settings')
-                }} >личный кабинет</Link> сотрудника и заполните свой ИНН
+            У вас не заполнен ИНН в профиле, пройдите в <Link onClick={() => {
+              MainStore.digitalSign.onCloseNo();
+              navigate('/user/account-settings')
+            }}>личный кабинет</Link> сотрудника и заполните свой ИНН
           </div>
         )}
 
         {isSend && (
           <>
             <div style={{ margin: 15 }}>
-              Вам был отправлен PIN-код доступа на почту или телефон привязанные к СЭД "Infodocs"
+              Вам был отправлен PIN-код доступа на почту или телефон привязанные к СЭП "Infodocs"
             </div>
             <MaskedTextField
               label={translate("PIN-код")}
@@ -204,8 +205,6 @@ const DigitalSignDialog = observer(() => {
               </CustomButton>
             </ButtonWrapper>
           </>
-
-
         )}
 
         {isSend && (
