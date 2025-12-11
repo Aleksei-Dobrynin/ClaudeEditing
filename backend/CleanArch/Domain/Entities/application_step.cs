@@ -36,6 +36,31 @@ namespace Domain.Entities
         public List<StepDocument> documents { get; set; }
         public List<ApplicationWorkDocument> workDocuments { get; set; }
         public List<ApplicationRequiredCalc> requiredCalcs { get; set; }
+
+        /// <summary>
+        /// Признак динамически добавленного шага
+        /// TRUE = шаг добавлен динамически из другой услуги
+        /// FALSE/NULL = обычный шаг из исходного service_path
+        /// </summary>
+        public bool? is_dynamically_added { get; set; }
+
+        /// <summary>
+        /// ID service_path, из которого добавлен этот шаг
+        /// Заполняется только для динамических шагов (is_dynamically_added = true)
+        /// </summary>
+        public int? additional_service_path_id { get; set; }
+
+        /// <summary>
+        /// Исходный порядковый номер шага в service_path-источнике
+        /// Сохраняем для трассировки откуда взят шаг
+        /// </summary>
+        public int? original_step_order { get; set; }
+
+        /// <summary>
+        /// Ссылка на запись о добавлении услуги (application_additional_service.id)
+        /// Используется для группировки всех шагов одной добавленной услуги
+        /// </summary>
+        public int? added_by_link_id { get; set; }
     }
 
     public class StepDocument

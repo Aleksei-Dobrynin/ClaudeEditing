@@ -215,7 +215,8 @@ namespace Infrastructure.Data
         private IEventTypeRepository? _eventTypeRepository;
         private IArchiveObjectsEventsRepository? _archiveObjectsEventsRepository;
         private IEmployeeSavedFiltersRepository? _employeeSavedFiltersRepository; 
-        private ISmejPortalApiRepository? _smejPortalApiRepository; 
+        private ISmejPortalApiRepository? _smejPortalApiRepository;
+        private Iapplication_additional_serviceRepository? _application_additional_serviceRepository;
 
         private ILogger<UnitOfWork> _logger;
         private IConfiguration _configuration;
@@ -2613,6 +2614,19 @@ namespace Infrastructure.Data
                     _smejPortalApiRepository = new SmejPortalApiRepository(_configuration);
                 }
                 return _smejPortalApiRepository;
+            }
+        }
+
+        public Iapplication_additional_serviceRepository application_additional_serviceRepository
+        {
+            get
+            {
+                if (_application_additional_serviceRepository == null)
+                {
+                    _application_additional_serviceRepository = new application_additional_serviceRepository(_dbConnection);
+                    _application_additional_serviceRepository.SetTransaction(_dbTransaction);
+                }
+                return _application_additional_serviceRepository;
             }
         }
 

@@ -118,6 +118,9 @@ namespace Application.UseCases
             return result;
         }
 
+        /// <summary>
+        /// ИЗМЕНЕНО: Добавлена проверка завершения дополнительных услуг
+        /// </summary>
         public async Task<Result<application_step>> Complete(int stepId)
         {
             var result = await unitOfWork.application_stepRepository.GetOne(stepId);
@@ -164,6 +167,13 @@ namespace Application.UseCases
 
             // Логируем завершение шага
             await LogStatusChange(stepId, oldStatus, "completed", "Шаг завершен");
+
+            // ============ ДОБАВЛЕНО: ПРОВЕРКА ЗАВЕРШЕНИЯ ДОПОЛНИТЕЛЬНОЙ УСЛУГИ ============
+            // Проверяем, не является ли этот шаг динамически добавленным
+            // Если да и все шаги дополнительной услуги завершены - завершаем услугу
+            var additionalServiceUseCases = new application_additional_serviceUseCases(unitOfWork);
+            await additionalServiceUseCases.CheckAndCompleteIfFinished(stepId);
+            // ===============================================================================
 
             unitOfWork.Commit();
             return result;

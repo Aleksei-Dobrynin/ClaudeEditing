@@ -269,7 +269,7 @@ ORDER BY
                 throw new RepositoryException("Failed to get application_step", ex);
             }
         }
-        
+
         public async Task DeleteByApplicationId(int application_id)
         {
             try
@@ -281,6 +281,161 @@ ORDER BY
             catch (Exception ex)
             {
                 throw new RepositoryException("Failed to update application_step", ex);
+            }
+        }
+
+        public async Task<List<application_step>> GetDynamicallyAddedSteps(int applicationId, int additionalServiceLinkId)
+        {
+            try
+            {
+                var sql = @"
+            SELECT st.*, 
+                   ps.name, 
+                   ps.order_number as path_order,
+                   ps.responsible_org_id as responsible_department_id 
+            FROM ""application_step"" st
+            LEFT JOIN path_step ps ON ps.id = st.step_id
+            WHERE st.application_id = @applicationId
+            AND st.added_by_link_id = @additionalServiceLinkId
+            AND st.is_dynamically_added = true
+            ORDER BY st.order_number";
+
+                var result = await _dbConnection.QueryAsync<application_step>(
+                    sql,
+                    new { applicationId, additionalServiceLinkId },
+                    transaction: _dbTransaction
+                );
+
+                return result.ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to get dynamically added steps", ex);
+            }
+        }
+
+        public async Task<int> ShiftOrderNumbers(int applicationId, int afterOrderNumber, int shiftBy)
+        {
+            try
+            {
+                var sql = @"
+            UPDATE ""application_step"" 
+            SET order_number = order_number + @shiftBy,
+                updated_at = NOW()
+            WHERE application_id = @applicationId
+            AND order_number > @afterOrderNumber";
+
+                var affected = await _dbConnection.ExecuteAsync(
+                    sql,
+                    new { applicationId, afterOrderNumber, shiftBy },
+                    transaction: _dbTransaction
+                );
+
+                return affected;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to shift order numbers", ex);
+            }
+        }
+
+        public async Task ReorderSteps(int applicationId)
+        {
+            try
+            {
+                var sql = @"
+            WITH numbered AS (
+                SELECT id, 
+                       ROW_NUMBER() OVER (ORDER BY order_number) as new_order
+                FROM ""application_step""
+                WHERE application_id = @applicationId
+            )
+            UPDATE ""application_step"" 
+            SET order_number = numbered.new_order,
+                updated_at = NOW()
+            FROM numbered
+            WHERE ""application_step"".id = numbered.id";
+
+                await _dbConnection.ExecuteAsync(
+                    sql,
+                    new { applicationId },
+                    transaction: _dbTransaction
+                );
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to reorder steps", ex);
+            }
+        }
+
+        public async Task<bool> AreAllDynamicStepsCompleted(int additionalServiceLinkId)
+        {
+            try
+            {
+                var sql = @"
+            SELECT COUNT(*) 
+            FROM ""application_step""
+            WHERE added_by_link_id = @additionalServiceLinkId
+            AND is_dynamically_added = true
+            AND status != 'completed'";
+
+                var incompleteCount = await _dbConnection.ExecuteScalarAsync<int>(
+                    sql,
+                    new { additionalServiceLinkId },
+                    transaction: _dbTransaction
+                );
+
+                return incompleteCount == 0;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to check steps completion", ex);
+            }
+        }
+
+        public async Task<bool> AreAnyDynamicStepsStarted(int additionalServiceLinkId)
+        {
+            try
+            {
+                var sql = @"
+            SELECT COUNT(*) 
+            FROM ""application_step""
+            WHERE added_by_link_id = @additionalServiceLinkId
+            AND is_dynamically_added = true
+            AND status != 'pending'";
+
+                var startedCount = await _dbConnection.ExecuteScalarAsync<int>(
+                    sql,
+                    new { additionalServiceLinkId },
+                    transaction: _dbTransaction
+                );
+
+                return startedCount > 0;
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to check if steps started", ex);
+            }
+        }
+
+        public async Task DeleteDynamicSteps(int additionalServiceLinkId)
+        {
+            try
+            {
+                var sql = @"
+            DELETE FROM ""application_step""
+            WHERE added_by_link_id = @additionalServiceLinkId
+            AND is_dynamically_added = true";
+
+                await _dbConnection.ExecuteAsync(
+                    sql,
+                    new { additionalServiceLinkId },
+                    transaction: _dbTransaction
+                );
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to delete dynamic steps", ex);
             }
         }
     }

@@ -19,5 +19,11 @@ namespace Application.Repositories
         Task<List<document_approval>> GetByUplIds(int[] uplIds);
         Task<List<document_approval>> GetByAppStepIds(int[] appStepIds);
         Task<List<document_approval>> GetByposition_id(int position_id);
+
+        /// <summary>
+        /// Получить все согласования для конкретного application_step
+        /// ЗАЧЕМ: Используется при удалении динамических шагов
+        /// </summary>
+        Task<List<document_approval>> GetByapp_step_id(int app_step_id);
     }
 }

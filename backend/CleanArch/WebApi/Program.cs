@@ -363,6 +363,7 @@ namespace WebApi
             builder.Services.AddScoped<IArchiveObjectsEventsRepository, ArchiveObjectsEventsRepository>();
             builder.Services.AddScoped<IEmployeeSavedFiltersRepository, EmployeeSavedFiltersRepository>();
             builder.Services.AddScoped<ISmejPortalApiRepository, SmejPortalApiRepository>();
+            builder.Services.AddScoped<Iapplication_additional_serviceRepository , application_additional_serviceRepository>();
 
             builder.Services.AddScoped<EventTypeUseCases>();
             builder.Services.AddScoped<ArchiveObjectsEventsUseCases>();
@@ -560,6 +561,7 @@ namespace WebApi
             builder.Services.AddScoped<SmejPortalUseCases>();
 
             builder.Services.AddScoped<EmployeeSavedFiltersUseCases>();
+            builder.Services.AddScoped<application_additional_serviceUseCases>();
 
             builder.Services.AddScoped<IWatermarkService, WatermarkService>();
 

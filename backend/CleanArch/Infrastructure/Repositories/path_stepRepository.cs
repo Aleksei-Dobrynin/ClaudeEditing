@@ -182,5 +182,30 @@ namespace Infrastructure.Repositories
             }
         }
 
+        public async Task<List<path_step>> GetByServicePathId(int servicePathId)
+        {
+            try
+            {
+                var sql = @"
+            SELECT ps.*, os.name as structure_name 
+            FROM ""path_step"" ps
+            LEFT JOIN ""org_structure"" os ON ps.responsible_org_id = os.id
+            WHERE ps.path_id = @servicePathId
+            ORDER BY ps.order_number";
+
+                var result = await _dbConnection.QueryAsync<path_step>(
+                    sql,
+                    new { servicePathId },
+                    transaction: _dbTransaction
+                );
+
+                return result.ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to get path steps by service path", ex);
+            }
+        }
+
     }
 }

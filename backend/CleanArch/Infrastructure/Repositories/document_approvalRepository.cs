@@ -251,5 +251,22 @@ WHERE app_step_id = ANY(@ids)
                 throw new RepositoryException("Failed to get document_approval", ex);
             }
         }
+
+        /// <summary>
+        /// ѕолучить все согласовани€ дл€ конкретного application_step
+        /// </summary>
+        public async Task<List<document_approval>> GetByapp_step_id(int app_step_id)
+        {
+            try
+            {
+                var sql = @"SELECT * FROM ""document_approval"" WHERE ""app_step_id"" = @app_step_id";
+                var models = await _dbConnection.QueryAsync<document_approval>(sql, new { app_step_id }, transaction: _dbTransaction);
+                return models.ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to get document_approval by app_step_id", ex);
+            }
+        }
     }
 }
