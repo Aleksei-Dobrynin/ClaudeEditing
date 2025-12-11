@@ -50,11 +50,5 @@ namespace Application.UseCases
             await unitOfWork.UserRoleRepository.Delete(id);
             unitOfWork.Commit();
         }
-
-        public async Task<int> GetCurentUserId()
-        {
-            var user_id = await unitOfWork.UserRepository.GetUserID();
-            return user_id;
-        }
     }
 }

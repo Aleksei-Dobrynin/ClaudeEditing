@@ -30,23 +30,9 @@ type DocumentCardProps = {
   onOpenFileHistory: () => void;
   onAddSigner: () => void,
   hasAccess: boolean,
-  userId?: number
 }
 
-export const DocumentCard: FC<DocumentCardProps> = ({
-  document,
-  t,
-  onDocumentPreview,
-  onOpenSigners,
-  onOpenFileHistory,
-  onSigned,
-  onUploadFile,
-  step_id,
-  step,
-  onAddSigner,
-  hasAccess,
-  userId
-}) => {
+export const DocumentCard: FC<DocumentCardProps> = ({ document, t, onDocumentPreview, onOpenSigners, onOpenFileHistory, onSigned, onUploadFile, step_id, step, onAddSigner, hasAccess }) => {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
 
   const formatDate = (date) => {
@@ -62,21 +48,10 @@ export const DocumentCard: FC<DocumentCardProps> = ({
     return <><span style={{ color: "green" }}>Файл загружен</span> • {document.upl?.file_name}</>;
   };
 
-  // Проверяем, подписал ли текущий пользователь этот документ
-  const hasUserSigned = () => {
-    if (!userId || !document.approvals) return false;
-
-    return document.approvals.some(approval =>
-      approval.signInfo?.user_id === userId
-    );
-  };
-
-  const shouldShowRevokeButton = hasUserSigned();
-
   // Определяем, нужно ли показывать tooltip для кнопки замены файла
   const shouldShowUploadTooltip = !hasAccess && document.upl?.file_id;
-  const uploadTooltipTitle = shouldShowUploadTooltip
-    ? "только начальник и админ могут заменить документ"
+  const uploadTooltipTitle = shouldShowUploadTooltip 
+    ? "только начальник и админ могут заменить документ" 
     : document.upl?.id ? "Заменить файл" : "Загрузить файл";
 
   return (
@@ -152,9 +127,9 @@ export const DocumentCard: FC<DocumentCardProps> = ({
 
             <Tooltip title={uploadTooltipTitle}>
               <span>
-                <IconButton
-                  disabled={!hasAccess || step?.status !== "in_progress"}
-                  size="small"
+                <IconButton 
+                  disabled={!hasAccess || step?.status !== "in_progress"} 
+                  size="small" 
                   onClick={() => {
                     onUploadFile()
                     setShowMoreMenu(false);
@@ -201,27 +176,15 @@ export const DocumentCard: FC<DocumentCardProps> = ({
 
           </MoreActionsWrapper>
         </ActionsLeft>
-        <ActionsRight>
-          {shouldShowRevokeButton ? (
-            <PrimaryButton
-              onClick={() => store.openRoleSelectionForRevoke(document.upl?.file_id, () => {
-                onSigned()
-              })}
-            // disabled={step?.status !== "in_progress"} //TODO
-            >
-              Отозвать подпись
-            </PrimaryButton>
-          ) : (
-            <PrimaryButton
-              onClick={() => store.openRoleSelectionForSigning(document.upl?.file_id, document.upl?.id, () => {
-                onSigned()
-              })}
-            // disabled={step?.status !== "in_progress"} //TODO
-            >
-              Подписать ЭЦП
-            </PrimaryButton>
-          )}
-        </ActionsRight>
+
+        <PrimaryButton
+          onClick={() => store.signApplicationPayment(document.upl?.file_id, document.upl?.id, () => {
+            onSigned()
+          })}
+          // disabled={step?.status !== "in_progress"} //TODO
+        >
+          Подписать ЭЦП
+        </PrimaryButton>
       </ActionsRow>
     </Card>
   );
@@ -284,13 +247,6 @@ const ActionsLeft = styled.div`
   gap: 16px;
   align-items: center;
 `;
-
-const ActionsRight = styled.div`
-  display: flex;
-  gap: 16px;
-  align-items: center;
-`;
-
 
 const PrimaryButton = styled.button`
   background-color: #0066cc;

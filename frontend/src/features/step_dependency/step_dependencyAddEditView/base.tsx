@@ -1,4 +1,4 @@
-import React, { FC } from "react";
+import React, { FC, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -18,12 +18,36 @@ import DateTimeField from "components/DateTimeField";
 
 type step_dependencyTableProps = {
   children ?: React.ReactNode;
+  service_path_id?: number;
+  dependent_step_id?: number;
+  prerequisite_step_id?: number;
+  hideCircle?: boolean;
   isPopup ?: boolean;
 };
 
 const Basestep_dependencyView: FC<step_dependencyTableProps> = observer((props) => {
   const { t } = useTranslation();
   const translate = t;
+  useEffect(() => {
+    if (props.service_path_id) {
+      store.service_path_id = props.service_path_id;
+    }
+    if (props.dependent_step_id) {
+      store.dependent_step_id = props.dependent_step_id;
+    }
+    if (props.prerequisite_step_id) {
+      store.prerequisite_step_id = props.prerequisite_step_id;
+    }
+  }, [
+    props.service_path_id,
+    props.dependent_step_id,
+    props.prerequisite_step_id,
+    props.hideCircle
+  ]);
+
+  const disableServicePath = props.service_path_id !== undefined && props.service_path_id > 0;
+  const disableDependentStep = props.dependent_step_id !== undefined && props.dependent_step_id > 0;
+  const disablePrerequisiteStep = props.prerequisite_step_id !== undefined && props.prerequisite_step_id > 0;
   return (
     <Container maxWidth='xl' sx={{ mt: 3 }}>
       <Grid container spacing={3}>
@@ -49,6 +73,7 @@ const Basestep_dependencyView: FC<step_dependencyTableProps> = observer((props) 
                       label={translate('label:step_dependencyAddEditView.service_path_id')}
                       helperText={store.errors.service_path_id}
                       error={!!store.errors.service_path_id}
+                      disabled={disableServicePath}
                     />
                   </Grid>
                   <Grid item md={12} xs={12}>
@@ -56,12 +81,18 @@ const Basestep_dependencyView: FC<step_dependencyTableProps> = observer((props) 
                       value={store.dependent_step_id}
                       onChange={(event) => store.handleChange(event)}
                       name="dependent_step_id"
-                      data={store.filtered_steps}
+                      data={store.filtered_steps.filter(step => {
+                        if (props.hideCircle) {
+                            if (step.id === store.prerequisite_step_id) return false;
+                            return true;
+                          }
+                        })
+                      }
                       id='id_f_step_dependency_dependent_step_id'
                       label={translate('label:step_dependencyAddEditView.dependent_step_id')}
                       helperText={store.errors.dependent_step_id}
                       error={!!store.errors.dependent_step_id}
-                      disabled={false} // Не блокируем, так как можно выбирать из всех шагов
+                      disabled={disableDependentStep}
                     />
                   </Grid>
                   <Grid item md={12} xs={12}>
@@ -69,12 +100,19 @@ const Basestep_dependencyView: FC<step_dependencyTableProps> = observer((props) 
                       value={store.prerequisite_step_id}
                       onChange={(event) => store.handleChange(event)}
                       name="prerequisite_step_id"
-                      data={store.filtered_steps}
+                      data={
+                        store.filtered_steps.filter(step => {
+                          if (props.hideCircle) {
+                            if (step.id === store.dependent_step_id) return false;
+                            return true;
+                          }
+                        })
+                      }
                       id='id_f_step_dependency_prerequisite_step_id'
                       label={translate('label:step_dependencyAddEditView.prerequisite_step_id')}
                       helperText={store.errors.prerequisite_step_id}
                       error={!!store.errors.prerequisite_step_id}
-                      disabled={false} // Не блокируем, так как можно выбирать из всех шагов
+                      disabled={disablePrerequisiteStep}
                     />
                   </Grid>
                   <Grid item md={12} xs={12}>

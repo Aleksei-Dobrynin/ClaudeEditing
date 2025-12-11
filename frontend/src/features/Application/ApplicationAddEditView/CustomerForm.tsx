@@ -1,5 +1,16 @@
 import React, { FC, useEffect } from "react";
-import { Box, Card, CardContent, CircularProgress, Grid, IconButton } from "@mui/material";
+import {
+  Box, Button,
+  Card,
+  CardContent,
+  CircularProgress,
+  Dialog, DialogActions,
+  DialogContent,
+  DialogTitle,
+  Grid,
+  IconButton, Table, TableBody,
+  TableCell, TableHead, TableRow
+} from "@mui/material";
 import { useTranslation } from "react-i18next";
 import store from "./store";
 import { observer } from "mobx-react";
@@ -45,7 +56,7 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
     <Card variant="outlined">
       <CardContent>
         <Grid container spacing={3}>
-          <Grid item md={8} xs={12}>
+          <Grid item md={7} xs={12}>
             <Box sx={{ display: "flex", alignItems: "center" }}>
               <AutocompleteCustomer />
               <IconButton disabled={store.id > 0} sx={{ ml: 1 }} onClick={() => {
@@ -81,6 +92,16 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
               mask={store.customer.is_foreign ? null : "00000000000000"}
               onBlur={() => store.setBadge()}
             />
+          </Grid>
+           <Grid item md={1} xs={12}>
+            <IconButton
+              disabled={!store.customer.pin || store.customer.pin.length < 14}
+              sx={{ ml: 1 }}
+              onClick={() => store.findCompanyByPin(store.customer.pin)}
+              title="Найти в Минюсте"
+            >
+              <ContentPasteSearchIcon color="primary" />
+            </IconButton>
           </Grid>
           <Grid item md={3} xs={12}>
             <CustomCheckbox
@@ -400,6 +421,93 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
         </Grid>
       </CardContent>
       <PopupApplicationListView />
+      <Dialog open={store.isOpenTundukData} fullWidth maxWidth="md">
+        <DialogTitle>Сравнение данных с Минюстом</DialogTitle>
+        <DialogContent>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell width="40%"><b>{translate("label:CustomerAddEditView.field")}</b></TableCell>
+                <TableCell width="30%"><b>{translate("label:CustomerAddEditView.tunduk_value")}</b></TableCell>
+                <TableCell width="30%"><b>{translate("label:CustomerAddEditView.current_value")}</b></TableCell>
+                <TableCell><b>{translate("label:CustomerAddEditView.match")}</b></TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {store.isOpenTundukData && store.fields.map(f => {
+                var local = "";
+                if (f.key === "organization_type_id") {
+                  local = store.OrganizationTypes.find(x => x.id == store.customer.organization_type_id)?.name ?? "";
+                } else {
+                  local = store.customer[f.key];
+                }
+                var tundukfield= "";
+                if (f.key === "address") {
+                  tundukfield = `${store.tundukData.street} ${store.tundukData.house}`;
+                } else if (f.key === "organization_type_id") {
+                  tundukfield = store.tundukData.categorySystemName;
+                } else if (f.key === "sms_1" || f.key === "sms_2") {
+                  const phones = store.tundukData.phones
+                    ? store.tundukData.phones.split(',').map(p => p.trim()).filter(Boolean)
+                    : [];
+                  tundukfield = f.key === "sms_1" ? phones[0] || "" : phones[1] || "";
+                } else {
+                  tundukfield = store.tundukData[f.tunduk];
+                }
+                const localValue = local ? String(local).trim() : "";
+                const tundukValue = tundukfield ? String(tundukfield).trim() : "";
+
+                const equal = localValue === tundukValue;
+
+                return (
+                  <TableRow key={f.key}>
+                    <TableCell width="40%">{translate(f.label)}</TableCell>
+                    <TableCell width="30%">{tundukfield}</TableCell>
+                    <TableCell width="30%">{local}</TableCell>
+                    <TableCell>{equal ? "✅" : "⚠️"}</TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </DialogContent>
+
+        <DialogActions>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => store.applyTundukData()}
+          >
+            Использовать данные Минюста
+          </Button>
+
+          <Button
+            onClick={() => store.keepCurrentData()}
+          >
+            Оставить как есть
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={store.isTundukError} fullWidth maxWidth="sm">
+        <DialogTitle sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 1 }}>
+          ⚠️ {translate("label:CustomerAddEditView.tunduk.error.title")}
+        </DialogTitle>
+
+        <DialogContent>
+          <Box sx={{ fontSize: "16px", mb: 2 }}>
+            {translate("label:CustomerAddEditView.tunduk.error.hint")}
+          </Box>
+        </DialogContent>
+
+        <DialogActions>
+          <Button variant="outlined" onClick={() => store.retryTunduk()}>
+            {translate("label:CustomerAddEditView.tunduk.error.retry")}
+          </Button>
+          <Button variant="contained" color="primary" onClick={() => store.continueWithoutTunduk()}>
+            {translate("label:CustomerAddEditView.tunduk.error.skip")}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Card>
   );
 });

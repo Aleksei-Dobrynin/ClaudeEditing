@@ -1,8 +1,7 @@
-using Application.UseCases;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebApi.Dtos;
-using WebApi.Dtos.WebApi.Dtos;
+using Application.UseCases;
+using Microsoft.AspNetCore.Authorization;
 
 namespace WebApi.Controllers
 {
@@ -63,19 +62,11 @@ namespace WebApi.Controllers
             return File(doc.body, "application/octet-stream", doc.name);
         }
 
-        //[HttpGet]
-        //[Route("SignDocument")]
-        //public async Task<IActionResult> SignDocument(int id, int? uplId, string pin, string code)
-        //{
-        //    var res =await _fileUseCases.SignDocument(id, uplId, pin, code);
-        //    return Ok(res);
-        //}
-
         [HttpGet]
-        [Route("CallOutSignDocument")]
-        public async Task<IActionResult> CallOutSignDocument(int id)
+        [Route("SignDocument")]
+        public async Task<IActionResult> SignDocument(int id, int? uplId, string pin, string code)
         {
-            var res = await _fileUseCases.CallOutSignDocument(id);
+            var res =await _fileUseCases.SignDocument(id, uplId, pin, code);
             return Ok(res);
         }
 
@@ -144,61 +135,6 @@ namespace WebApi.Controllers
         public async Task<IActionResult> GetFileLog()
         {
             return Ok(await _fileUseCases.GetFileLog());
-        }
-
-        // ОБНОВЛЕННЫЙ метод SignDocument (ЗАМЕНИТЬ существующий)
-        [HttpPost]
-        [Route("SignDocument")]
-        public async Task<IActionResult> SignDocument([FromBody] SignDocumentRequest request)
-        {
-            try
-            {
-                var result = await _fileUseCases.SignDocument(
-                    request.FileId,
-                    request.UplId,
-                    request.Pin,
-                    request.Code,
-                    request.PositionId,
-                    request.DepartmentId
-                );
-
-                return Ok(new SignDocumentResponse
-                {
-                    SignId = result,
-                    Success = true,
-                    Message = "Документ успешно подписан"
-                });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new SignDocumentResponse
-                {
-                    SignId = 0,
-                    Success = false,
-                    Message = ex.Message
-                });
-            }
-        }
-
-        // НОВЫЙ метод GetAvailableSigningRoles (ДОБАВИТЬ в контроллер)
-        /// <summary>
-        /// Получить список доступных ролей для подписи документа
-        /// </summary>
-        /// <param name="fileId">ID файла</param>
-        /// <returns>Список ролей с информацией о статусе подписи</returns>
-        [HttpGet]
-        [Route("GetAvailableSigningRoles")]
-        public async Task<IActionResult> GetAvailableSigningRoles([FromQuery] int fileId)
-        {
-            try
-            {
-                var roles = await _fileUseCases.GetAvailableSigningRoles(fileId);
-                return Ok(roles);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
         }
     }
 }

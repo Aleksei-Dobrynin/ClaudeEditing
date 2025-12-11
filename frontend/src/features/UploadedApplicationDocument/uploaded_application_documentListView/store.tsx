@@ -1,6 +1,3 @@
-// Путь: frontend/src/features/UploadedApplicationDocument/uploaded_application_documentListView/store.tsx
-// ЗАМЕНИТЬ ФАЙЛ ПОЛНОСТЬЮ
-
 import { makeAutoObservable, runInAction } from "mobx";
 import i18n from "i18next";
 import MainStore from "MainStore";
@@ -8,8 +5,6 @@ import { acceptuploaded_application_document, deleteuploaded_application_documen
 import { getuploaded_application_documentsBy } from "api/uploaded_application_document";
 import { downloadFile, getSignByFileId } from "api/File";
 import { getFilledTemplateByCode } from "api/org_structure";
-import { callOutSignFile, getAvailableSigningRoles, callOutSignFileById } from "api/FileSign";
-import { AvailableSigningRole } from "constants/SigningRole";
 
 class NewStore {
   data = [];
@@ -36,28 +31,6 @@ class NewStore {
   service_document_id = 0;
   uploadedDocId = 0;
 
-  // ========== НОВЫЕ ПОЛЯ ДЛЯ РАБОТЫ С РОЛЯМИ ==========
-  
-  /** Список доступных ролей для текущего пользователя */
-  availableRoles: AvailableSigningRole[] = [];
-  
-  /** Выбранная роль для подписания/отзыва */
-  selectedRole: AvailableSigningRole | null = null;
-  
-  /** Открыт ли диалог выбора роли */
-  roleSelectionDialogOpen: boolean = false;
-  
-  /** Режим диалога: 'sign' - подписание, 'revoke' - отзыв */
-  roleDialogMode: 'sign' | 'revoke' = 'sign';
-  
-  /** ID файла для текущей операции */
-  currentFileIdForSigning: number | null = null;
-  
-  /** ID загруженного документа для текущей операции */
-  currentUplIdForSigning: number | null = null;
-  
-  /** Callback для вызова после успешной операции */
-  currentOnSuccessCallback: (() => void) | null = null;
 
   constructor() {
     makeAutoObservable(this);
@@ -78,7 +51,6 @@ class NewStore {
     this.openPanelNew = true;
     this.currentId = id;
   }
-  
   closeNewPanel() {
     this.openPanelNew = false;
     this.currentId = 0;
@@ -89,243 +61,25 @@ class NewStore {
     this.idDocumentAttach = 0;
     this.currentId = 0;
   }
-  
   attachClicked(idDocument: number, service_document_id: number, uploadedDocId: number) {
     this.openPanelAttachFromOtherDoc = true;
     this.idDocumentAttach = idDocument;
     this.service_document_id = service_document_id;
-    this.uploadedDocId = uploadedDocId;
+    this.uploadedDocId = uploadedDocId
   }
 
-  // ============ ОБНОВЛЕННЫЕ МЕТОДЫ ПОДПИСАНИЯ ============
-
-  /**
-   * @deprecated Используйте openRoleSelectionForSigning
-   * Метод оставлен для обратной совместимости
-   */
   signApplicationPayment(fileId: number, uplId: number, onSaved: () => void) {
-    // Перенаправляем на новый метод с выбором ролей
-    this.openRoleSelectionForSigning(fileId, uplId, onSaved);
-  }
-
-  /**
-   * @deprecated Используйте openRoleSelectionForRevoke
-   * Метод оставлен для обратной совместимости
-   */
-  async callOutSignApplicationPayment(fileId: number, onSaved: () => void) {
-    // Перенаправляем на новый метод с выбором ролей
-    this.openRoleSelectionForRevoke(fileId, onSaved);
-  }
-
-  // ============ НОВЫЕ МЕТОДЫ ДЛЯ РАБОТЫ С РОЛЯМИ ============
-
-  /**
-   * Открыть диалог выбора роли для подписания
-   * @param fileId - ID файла
-   * @param uplId - ID загруженного документа
-   * @param onSaved - Callback после успешного подписания
-   */
-  async openRoleSelectionForSigning(fileId: number, uplId: number, onSaved: () => void) {
-    try {
-      MainStore.changeLoader(true);
-      const response = await getAvailableSigningRoles(fileId);
-      
-      runInAction(() => {
-        this.availableRoles = response.data || [];
-        this.currentFileIdForSigning = fileId;
-        this.currentUplIdForSigning = uplId;
-        this.currentOnSuccessCallback = onSaved;
-        this.roleDialogMode = 'sign';
-        
-        // Фильтруем только активные роли
-        const activeRoles = this.availableRoles.filter(r => r.isActive);
-        
-        // Если только одна активная роль - автоматически выбираем и подписываем
-        if (activeRoles.length === 1) {
-          this.selectedRole = activeRoles[0];
-          this.proceedToSign();
-        } else if (activeRoles.length > 1) {
-          // Если несколько ролей - показываем диалог выбора
-          this.roleSelectionDialogOpen = true;
-          // Автоматически выбираем первую неподписанную роль
-          this.selectedRole = activeRoles.find(r => !r.alreadySigned) || activeRoles[0];
-        } else {
-          MainStore.setSnackbar(i18n.t("У вас нет активных ролей для подписания"), "warning");
-        }
-      });
-    } catch (err) {
-      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
-    } finally {
-      MainStore.changeLoader(false);
-    }
-  }
-
-  /**
-   * Открыть диалог выбора роли для отзыва подписи
-   * @param fileId - ID файла
-   * @param onSaved - Callback после успешного отзыва
-   */
-  async openRoleSelectionForRevoke(fileId: number, onSaved: () => void) {
-    try {
-      MainStore.changeLoader(true);
-      const response = await getAvailableSigningRoles(fileId);
-      
-      runInAction(() => {
-        this.availableRoles = response.data || [];
-        this.currentFileIdForSigning = fileId;
-        this.currentOnSuccessCallback = onSaved;
-        this.roleDialogMode = 'revoke';
-        
-        // Фильтруем только подписанные роли
-        const signedRoles = this.availableRoles.filter(r => r.alreadySigned);
-        
-        // Если только одна подпись - автоматически отзываем
-        if (signedRoles.length === 1) {
-          this.selectedRole = signedRoles[0];
-          this.proceedToRevoke();
-        } else if (signedRoles.length > 1) {
-          // Если несколько подписей - показываем диалог выбора
-          this.roleSelectionDialogOpen = true;
-          this.selectedRole = signedRoles[0]; // Выбираем первую
-        } else {
-          MainStore.setSnackbar(i18n.t("У вас нет подписей для отзыва"), "warning");
-        }
-      });
-    } catch (err) {
-      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
-    } finally {
-      MainStore.changeLoader(false);
-    }
-  }
-
-  /**
-   * Закрыть диалог выбора роли
-   */
-  closeRoleSelectionDialog() {
-    this.roleSelectionDialogOpen = false;
-    this.selectedRole = null;
-    this.currentFileIdForSigning = null;
-    this.currentUplIdForSigning = null;
-    this.currentOnSuccessCallback = null;
-    this.availableRoles = [];
-  }
-
-  /**
-   * Установить выбранную роль
-   */
-  setSelectedRole(role: AvailableSigningRole) {
-    this.selectedRole = role;
-  }
-
-  /**
-   * Проверить, есть ли другие подписанные роли
-   */
-  hasAlreadySignedWithAnotherRole(): AvailableSigningRole | null {
-    if (!this.selectedRole) return null;
-    
-    return this.availableRoles.find(r => 
-      r.alreadySigned && 
-      r.structureEmployeeId !== this.selectedRole?.structureEmployeeId
-    ) || null;
-  }
-
-  /**
-   * Продолжить подписание с выбранной ролью
-   */
-  proceedToSign() {
-    if (!this.selectedRole || !this.currentFileIdForSigning || !this.currentUplIdForSigning) {
-      return;
-    }
-
-    // Проверяем, не подписана ли уже другая роль
-    const anotherSignedRole = this.hasAlreadySignedWithAnotherRole();
-    
-    if (anotherSignedRole) {
-      // Показываем предупреждение через confirm
-      const confirmed = window.confirm(
-        `Вы уже подписали этот документ как ${anotherSignedRole.positionName} (${anotherSignedRole.departmentName}).\n\n` +
-        `Вы уверены, что хотите подписать его также как ${this.selectedRole.positionName} (${this.selectedRole.departmentName})?`
-      );
-      
-      if (!confirmed) {
-        return; // Пользователь отменил
-      }
-    }
-
-    // Закрываем диалог выбора роли
-    this.closeRoleSelectionDialog();
-    
-    const fileId = this.currentFileIdForSigning;
-    const uplId = this.currentUplIdForSigning;
-    const positionId = this.selectedRole.positionId;
-    const departmentId = this.selectedRole.departmentId;
-    const onSuccess = this.currentOnSuccessCallback;
-    
-    // Открываем стандартный диалог ЭЦП с выбранной ролью
     MainStore.digitalSign.fileId = fileId;
     MainStore.digitalSign.uplId = uplId;
-    MainStore.digitalSign.selectedPositionId = positionId;
-    MainStore.digitalSign.selectedDepartmentId = departmentId;
-    
     MainStore.openDigitalSign(
       fileId,
       async () => {
         MainStore.onCloseDigitalSign();
-        if (onSuccess) {
-          onSuccess();
-        }
+        onSaved()
       },
       () => MainStore.onCloseDigitalSign(),
-      positionId,
-      departmentId
     );
-  }
-
-  /**
-   * Продолжить отзыв подписи для выбранной роли
-   */
-  async proceedToRevoke() {
-    if (!this.selectedRole?.fileSignId) {
-      MainStore.setSnackbar(i18n.t("Ошибка: не найден ID подписи"), "error");
-      return;
-    }
-
-    try {
-      MainStore.changeLoader(true);
-      const response = await callOutSignFileById(this.selectedRole.fileSignId);
-      
-      if (response.status === 201 || response.status === 200) {
-        MainStore.setSnackbar(i18n.t("message:snackbar.successDelete"), "success");
-        
-        // Закрываем диалог
-        this.closeRoleSelectionDialog();
-        
-        // Вызываем callback
-        if (this.currentOnSuccessCallback) {
-          this.currentOnSuccessCallback();
-        }
-      } else {
-        throw new Error();
-      }
-    } catch (err) {
-      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
-    } finally {
-      MainStore.changeLoader(false);
-    }
-  }
-
-  /**
-   * Обработчик подтверждения в диалоге выбора роли
-   */
-  handleRoleDialogConfirm() {
-    if (this.roleDialogMode === 'sign') {
-      this.proceedToSign();
-    } else {
-      this.proceedToRevoke();
-    }
-  }
-
-  // ============ ОСТАЛЬНЫЕ МЕТОДЫ (БЕЗ ИЗМЕНЕНИЙ) ============
+  };
 
   setFastInputIsEdit = (value: boolean) => {
     this.isEdit = value;
@@ -346,7 +100,7 @@ class NewStore {
         const mimeType = response.data.contentType || 'application/octet-stream';
         const fileNameBack = response.data.fileDownloadName;
 
-        let url = "";
+        let url = ""
 
         if (fileNameBack.endsWith('.jpg') || fileNameBack.endsWith('.jpeg') || fileNameBack.endsWith('.png')) {
           const newWindow = window.open();
@@ -421,7 +175,7 @@ class NewStore {
         const blob = new Blob([byteArray], { type: mimeType });
         this.fileUrl = URL.createObjectURL(blob);
         this.isOpenFileView = true;
-        return;
+        return
       } else {
         throw new Error();
       }
@@ -434,10 +188,10 @@ class NewStore {
 
   uploadFile(service_document_id: number, upload_id: number, step_id?: number, onUploadSaved?: () => void) {
     this.service_document_id = service_document_id;
-    this.currentId = upload_id;
+    this.currentId = upload_id
     this.openPanel = true;
-    this.step_id = step_id;
-    this.onUploadSaved = onUploadSaved;
+    this.step_id = step_id
+    this.onUploadSaved = onUploadSaved
   }
 
   async loaduploaded_application_documents() {
@@ -445,7 +199,7 @@ class NewStore {
       MainStore.changeLoader(true);
       const response = await getuploaded_application_documentsBy(this.idMain);
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
-        this.data = response.data;
+        this.data = response.data
         const out_doc = response.data.filter(el => el.is_outcome === true);
         this.outgoingData = out_doc;
         const inc_doc = response.data.filter(el => el.is_outcome === false || el.is_outcome === null);
@@ -458,7 +212,7 @@ class NewStore {
     } finally {
       MainStore.changeLoader(false);
     }
-  }
+  };
 
   async loadGetSignByFileId(id) {
     try {
@@ -474,13 +228,14 @@ class NewStore {
     } finally {
       MainStore.changeLoader(false);
     }
-  }
+  };
 
   async uploadHtmlString(code) {
     try {
       MainStore.changeLoader(true);
-      const response = await uploadTemplate({ html: this.htmlContent, application_id: this.idMain, template_code: code });
+      const response = await uploadTemplate({html: this.htmlContent, application_id: this.idMain, template_code: code });
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
+        // this.signData = response.data;
         this.docPreviewOpen = false;
         this.loaduploaded_application_documents();
       } else {
@@ -491,7 +246,7 @@ class NewStore {
     } finally {
       MainStore.changeLoader(false);
     }
-  }
+  };
 
   async getHtmlTemplate(templateCode: string, parameters: {}, lang?: string) {
     try {
@@ -500,6 +255,7 @@ class NewStore {
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
         this.htmlContent = response.data;
         this.docPreviewOpen = true;
+
       } else {
         throw new Error();
       }
@@ -509,6 +265,7 @@ class NewStore {
       MainStore.changeLoader(false);
     }
   }
+
 
   deleteuploaded_application_document(id: number) {
     MainStore.openErrorConfirm(
@@ -534,7 +291,7 @@ class NewStore {
       },
       () => MainStore.onCloseConfirm()
     );
-  }
+  };
 
   async rejectDocument(upl_id: number) {
     try {
@@ -542,7 +299,7 @@ class NewStore {
       let response;
       response = await deleteuploaded_application_document(upl_id);
       if (response.status === 201 || response.status === 200) {
-        this.loaduploaded_application_documents();
+        this.loaduploaded_application_documents()
         MainStore.setSnackbar(i18n.t("message:snackbar.successDelete"), "success");
       } else {
         throw new Error();
@@ -572,7 +329,7 @@ class NewStore {
       let response;
       response = await acceptuploaded_application_document(data);
       if (response.status === 201 || response.status === 200) {
-        this.loaduploaded_application_documents();
+        this.loaduploaded_application_documents()
         MainStore.setSnackbar(i18n.t("message:snackbar.successSave"), "success");
       } else {
         throw new Error();
@@ -593,17 +350,8 @@ class NewStore {
       this.idMain = 0;
       this.isEdit = false;
       this.openPanelNew = false;
-      
-      // Очистка новых полей
-      this.availableRoles = [];
-      this.selectedRole = null;
-      this.roleSelectionDialogOpen = false;
-      this.roleDialogMode = 'sign';
-      this.currentFileIdForSigning = null;
-      this.currentUplIdForSigning = null;
-      this.currentOnSuccessCallback = null;
     });
-  }
+  };
 }
 
 export default new NewStore();

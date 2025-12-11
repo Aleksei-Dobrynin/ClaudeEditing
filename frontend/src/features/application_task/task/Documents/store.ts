@@ -30,7 +30,6 @@ import {
 import { downloadFile, getSignByFileId } from "api/File";
 import { getapplication_paymentsByapplication_id } from "api/application_payment";
 import { createStepStatusLog } from "api/stepstatuslog";
-import {getCurrentUser} from "api/Employee/useGetEmployee"
 // Types
 interface Department {
   id: number;
@@ -139,8 +138,7 @@ class ApplicationStepsStore {
 
   // UI State
   expandedStepId: number | null = null;
-  // currentUser = { user_id: 103, department_id: 2 };
-  currentUserId = 0;
+  currentUser = { user_id: 103, department_id: 2 };
   loading = false;
   pauseDialogOpen = false;
   pauseReason = "";
@@ -206,7 +204,6 @@ class ApplicationStepsStore {
       this.pauseDialogOpen = false;
       this.pauseReason = "";
       this.currentStepToPause = null;
-      this.currentUserId = 0;
     });
   }
 
@@ -224,7 +221,6 @@ class ApplicationStepsStore {
       // await this.loaduploaded_application_documents();
       // this.getStepsWithInfo()
       await this.getStepDocuments()
-      await this.loadCurrentUserId()
 
       // Load application data
       const [docsRes] = await Promise.all([
@@ -364,22 +360,6 @@ class ApplicationStepsStore {
       const response = await getSignByFileId(id);
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
         this.signData = response.data;
-      } else {
-        throw new Error();
-      }
-    } catch (err) {
-      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
-    } finally {
-      MainStore.changeLoader(false);
-    }
-  };
-
-  async loadCurrentUserId(){
-    try {
-      MainStore.changeLoader(true);
-      const response = await getCurrentUser();
-      if ((response.status === 201 || response.status === 200) && response?.data !== null) {
-        this.currentUserId = response.data;
       } else {
         throw new Error();
       }

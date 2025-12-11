@@ -8,6 +8,10 @@ import {
   Language 
 } from '../../types/dashboard';
 import { DEFAULT_WIDGET_CONFIG } from '../../constants/dashboard';
+import MainStore from "../../../../MainStore";
+import { getApplicationDocuments } from "../../../../api/ApplicationDocument/useGetApplicationDocuments";
+import i18n from "i18next";
+import { completeComment, getMyAssigned } from "../../../../api/ApplicationComments/useGetAllApplicationComments";
 
 export class DashboardStore {
   widgets: WidgetConfig[] = [];
@@ -16,6 +20,7 @@ export class DashboardStore {
   language: Language = 'ru';
   isLoading = false;
   error: Error | null = null;
+  assignedComments  = [];
 
   constructor() {
     makeAutoObservable(this);
@@ -173,6 +178,38 @@ export class DashboardStore {
       this.setLoading(false);
     }
   }
+
+  loadAssignedComments = async () => {
+    try {
+      MainStore.changeLoader(true);
+      const response = await getMyAssigned();
+      if ((response.status === 201 || response.status === 200) && response?.data !== null) {
+        this.assignedComments = response.data;
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      MainStore.changeLoader(false);
+    }
+  };
+
+  completeComment = async (id: number) => {
+    try {
+      MainStore.changeLoader(true);
+      const response = await completeComment(id);
+      if ((response.status === 201 || response.status === 200) && response?.data !== null) {
+        this.loadAssignedComments();
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      MainStore.changeLoader(false);
+    }
+  };
 }
 
 export const dashboardStore = new DashboardStore();

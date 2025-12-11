@@ -13,7 +13,6 @@ import FileViewer from "components/FileViewer";
 import CloseIcon from '@mui/icons-material/Close';
 import i18n from "i18next";
 import VisibilityIcon from "@mui/icons-material/Visibility";
-import { common } from "@mui/material/colors";
 
 type ApplicationStepsProps = {
   appId: number;
@@ -55,13 +54,6 @@ const ApplicationStepsView: FC<ApplicationStepsProps> = observer((props) => {
       minute: '2-digit',
       second: '2-digit'
     });
-  };
-
-    const formatBoolean = (bool) => {
-    if(bool){
-      return t("common:yes")
-    }
-    return ""
   };
 
 
@@ -130,9 +122,6 @@ const ApplicationStepsView: FC<ApplicationStepsProps> = observer((props) => {
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
                       Дата подписания
                     </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                      Подпись отозванна
-                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -155,11 +144,6 @@ const ApplicationStepsView: FC<ApplicationStepsProps> = observer((props) => {
                       <td className="px-4 py-4 border-b border-gray-200">
                         <span className="text-sm font-mono text-gray-800">
                           {formatDateTime(row.timestamp)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 border-b border-gray-200">
-                        <span className="text-sm font-mono text-gray-800">
-                          {formatBoolean(row.is_called_out)}
                         </span>
                       </td>
                     </tr>
@@ -195,53 +179,53 @@ const ApplicationStepsView: FC<ApplicationStepsProps> = observer((props) => {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-100 border-b">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                      {i18n.t("label:UploadedApplicationDocumentListView.view_history")}
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                      {i18n.t("label:UploadedApplicationDocumentListView.file_name_history")}
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                      {i18n.t("label:UploadedApplicationDocumentListView.created_at_history")}
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                      {i18n.t("label:UploadedApplicationDocumentListView.created_by_name_history")}
-                    </th>
-                  </tr>
+                <tr>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                    {i18n.t("label:UploadedApplicationDocumentListView.view_history")}
+                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                    {i18n.t("label:UploadedApplicationDocumentListView.file_name_history")}
+                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                    {i18n.t("label:UploadedApplicationDocumentListView.created_at_history")}
+                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                    {i18n.t("label:UploadedApplicationDocumentListView.created_by_name_history")}
+                  </th>
+                </tr>
                 </thead>
                 <tbody>
-                  {store.fileHistory?.filter(d => d.file_id != null).map((doc, index) => (
-                    <tr
-                      key={doc.id}
-                      className={`hover:bg-blue-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
-                    >
-                      <td className="px-4 py-4 border-b border-gray-200">
-                        {(doc.file_id && store.checkFile(doc?.file_name)) && <Tooltip title={i18n.t("label:UploadedApplicationDocumentListView.view_history")}>
-                          <IconButton size="small" onClick={() => {
-                            store.OpenFileFile(doc.file_id, doc.file_name)
-                          }}>
-                            <VisibilityIcon />
-                          </IconButton>
-                        </Tooltip>}
-                      </td>
-                      <td className="px-4 py-4 border-b border-gray-200">
-                        <span className="text-sm font-medium text-gray-900">
-                          {doc.file_name}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 border-b border-gray-200">
-                        <span className="text-sm font-mono text-gray-800">
-                          {formatDateTime(doc.created_at)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 border-b border-gray-200">
-                        <span className="text-sm text-gray-700">
-                          {doc.created_by_name} \ {doc.structure_name}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                {store.fileHistory?.filter(d => d.file_id != null).map((doc, index) => (
+                  <tr
+                    key={doc.id}
+                    className={`hover:bg-blue-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                  >
+                    <td className="px-4 py-4 border-b border-gray-200">
+                      {(doc.file_id && store.checkFile(doc?.file_name)) && <Tooltip title={i18n.t("label:UploadedApplicationDocumentListView.view_history")}>
+                        <IconButton size="small" onClick={() => {
+                          store.OpenFileFile(doc.file_id, doc.file_name)
+                        }}>
+                          <VisibilityIcon />
+                        </IconButton>
+                      </Tooltip>}
+                    </td>
+                    <td className="px-4 py-4 border-b border-gray-200">
+                <span className="text-sm font-medium text-gray-900">
+                  {doc.file_name}
+                </span>
+                    </td>
+                    <td className="px-4 py-4 border-b border-gray-200">
+                <span className="text-sm font-mono text-gray-800">
+                  {formatDateTime(doc.created_at)}
+                </span>
+                    </td>
+                    <td className="px-4 py-4 border-b border-gray-200">
+                <span className="text-sm text-gray-700">
+                  {doc.created_by_name} \ {doc.structure_name}
+                </span>
+                    </td>
+                  </tr>
+                ))}
                 </tbody>
               </table>
             </div>

@@ -2476,44 +2476,29 @@
     "cancel": "Cancel"
   },
   "ArchiveObjectsEventsListView": {
-    "entityTitle": "Archive Objects Events",
-    "description": "Description",
-    "employee": "Employee",
-    "head_structure": "Head Structure",
-    "archive_object": "Archive Object",
-    "event_type": "Event Type",
-    "event_date": "Event Date",
-    "structure": "Structure",
-    "application": "Application",
-    "created_at": "Created At",
-    "updated_at": "Updated At"
-  },
-  "ArchiveObjectsEventsAddEditView": {
-    "entityTitle": "Archive Object Event",
-    "description": "Description",
-    "employee_id": "Employee",
-    "head_structure_id": "Head Structure",
-    "archive_object_id": "Archive Object",
-    "event_type_id": "Event Type",
-    "event_date": "Event Date",
-    "structure_id": "Structure",
-    "application_id": "Application",
-    "save": "Save",
-    "cancel": "Cancel"
-  },
-  "roleSelection": {
-    "title": "Select role for signing",
-    "titleRevoke": "Select signature to revoke",
-    "selectRole": "Select position",
-    "alreadySigned": "Signed",
-    "required": "Required",
-    "confirm": "Sign",
-    "revoke": "Revoke",
-    "cancel": "Cancel",
-    "allRolesSigned": "You have already signed this document with all available roles",
-    "noSignaturesToRevoke": "You have no signatures to revoke",
-    "warningAlreadySigned": "Warning! You have already signed this document as {position}. Confirm that you want to sign it again in a different role.",
-    "confirmMultipleSignatures": "Are you sure you want to sign this document in multiple roles?",
-    "noActiveRoles": "You have no active roles for signing"
-  }
+      "entityTitle": "Archive Objects Events",
+      "description": "Description",
+      "employee": "Employee",
+      "head_structure": "Head Structure",
+      "archive_object": "Archive Object",
+      "event_type": "Event Type",
+      "event_date": "Event Date",
+      "structure": "Structure",
+      "application": "Application",
+      "created_at": "Created At",
+      "updated_at": "Updated At"
+    },
+    "ArchiveObjectsEventsAddEditView": {
+      "entityTitle": "Archive Object Event",
+      "description": "Description",
+      "employee_id": "Employee",
+      "head_structure_id": "Head Structure",
+      "archive_object_id": "Archive Object",
+      "event_type_id": "Event Type",
+      "event_date": "Event Date",
+      "structure_id": "Structure",
+      "application_id": "Application",
+      "save": "Save",
+      "cancel": "Cancel"
+    }
 }

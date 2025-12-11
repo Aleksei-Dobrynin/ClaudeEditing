@@ -7,7 +7,7 @@
         public string? path { get; set; }
         public byte[] body { get; set; }
     }
-
+    
     public class FileHistoryLog : BaseLogDomain
     {
         public int id { get; set; }
@@ -39,78 +39,19 @@
         public string? file_name { get; set; }
         public string? application_number { get; set; }
         public string? file_type { get; set; }
-        public bool? is_called_out { get; set; }
     }
-
+    
     public class FileSignInfo
     {
         public string? employee_fullname { get; set; }
         public string? structure_fullname { get; set; }
         public DateTime? timestamp { get; set; }
     }
-
+    
     public class FilesSignInfo
     {
         public int service_document_id { get; set; }
         public int? file_id { get; set; }
         public int? employee_id { get; set; }
     }
-
-
-    /// <summary>
-    /// Доступная роль для подписи
-    /// </summary>
-    public class AvailableSigningRoleDto
-    {
-        /// <summary>
-        /// ID должности
-        /// </summary>
-        public int PositionId { get; set; }
-
-        /// <summary>
-        /// Название должности
-        /// </summary>
-        public string PositionName { get; set; }
-
-        /// <summary>
-        /// ID отдела
-        /// </summary>
-        public int DepartmentId { get; set; }
-
-        /// <summary>
-        /// Название отдела
-        /// </summary>
-        public string DepartmentName { get; set; }
-
-        /// <summary>
-        /// ID записи в employee_in_structure
-        /// </summary>
-        public int StructureEmployeeId { get; set; }
-
-        /// <summary>
-        /// Документ уже подписан этой ролью
-        /// </summary>
-        public bool AlreadySigned { get; set; }
-
-        /// <summary>
-        /// Требуется подпись этой роли для согласования
-        /// </summary>
-        public bool IsRequired { get; set; }
-
-        /// <summary>
-        /// Роль активна (не завершена)
-        /// </summary>
-        public bool IsActive { get; set; }
-
-        /// <summary>
-        /// Дата начала работы в этой роли
-        /// </summary>
-        public DateTime DateStart { get; set; }
-
-        /// <summary>
-        /// Дата окончания работы в этой роли (если есть)
-        /// </summary>
-        public DateTime? DateEnd { get; set; }
-    }
 }
-

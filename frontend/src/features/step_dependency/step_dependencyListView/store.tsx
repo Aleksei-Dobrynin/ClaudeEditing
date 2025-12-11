@@ -12,6 +12,8 @@ class NewStore {
   filter = {
     service_path_id: 0
   };
+  dependent_step_id = 0;
+  prerequisite_step_id = 0;
   openPanel = false;
   currentId = 0;
   idMain = 0;
@@ -64,6 +66,12 @@ class NewStore {
       const response = await getstep_dependenciesByFilter(this.filter);
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
         this.data = response.data;
+        if (this.dependent_step_id && this.dependent_step_id !== 0) {
+          this.data = response.data.filter(item => item.dependent_step_id === this.dependent_step_id);
+        }
+        if (this.prerequisite_step_id && this.prerequisite_step_id !== 0) {
+          this.data = this.data.filter(item => item.prerequisite_step_id === this.prerequisite_step_id);
+        }
       } else {
         throw new Error();
       }
@@ -127,6 +135,8 @@ class NewStore {
       this.filter = {
         service_path_id: 0
       };
+      this.dependent_step_id = 0;
+      this.prerequisite_step_id = 0;
     });
   };
 }

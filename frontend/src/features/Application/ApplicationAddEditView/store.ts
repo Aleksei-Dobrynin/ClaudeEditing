@@ -14,7 +14,7 @@ import ApplicationCommentsStore from "../../ApplicationComments/ApplicationComme
 import { getApplicationStatuss } from "api/ApplicationStatus/useGetApplicationStatuses";
 import { getApplicationRoads } from "../../../api/ApplicationRoad/useGetApplicationRoads";
 import { ErrorResponseCode, SelectOrgStructureForWorklofw, APPLICATION_STATUSES, ContactTypes } from "constants/constant";
-import { getCustomer } from "api/Customer/useGetCustomer";
+import { getCompanyByPin, getCustomer } from "api/Customer/useGetCustomer";
 import { getcustomer_contactsBycustomer_id } from "api/customer_contact";
 import { Customer } from "constants/Customer";
 import { getorganization_types } from "api/organization_type";
@@ -36,6 +36,19 @@ import { getuploaded_application_documentsBy } from "api/uploaded_application_do
 import { sendApplicationDocumentToemail } from "api/ApplicationWorkDocument/useCreateApplicationWorkDocument";
 //   224 id единое окно 
 
+interface TundukData {
+  fullNameOl: string;
+  street: string;
+  house: string;
+  chief: string;
+  categorySystemId: number;
+  categorySystemName: string;
+  statSubCode: string;
+  registrCode: string;
+  phones: string;
+  email1: string;
+  email2: string;
+}
 
 class NewStore {
   id = 0;
@@ -166,6 +179,21 @@ class NewStore {
   selectedOutgoingDocuments = [];
   selectedWorkDocuments = [];
   favorite = [];
+  tundukData: TundukData;
+  fields = [
+    { key: "full_name", tunduk: "fullNameOl", label: "label:CustomerAddEditView.full_name" },
+    { key: "address", tunduk: "street", label: "label:CustomerAddEditView.address" },
+    { key: "director", tunduk: "chief", label: "label:CustomerAddEditView.director" },
+    { key: "organization_type_id", tunduk: "categorySystemId", label: "label:CustomerAddEditView.organization_type_id" },
+    { key: "ugns", tunduk: "statSubCode", label: "label:CustomerAddEditView.ugns" },
+    { key: "registration_number", tunduk: "registrCode", label: "label:CustomerAddEditView.registration_number" },
+    { key: "sms_1", tunduk: "phones", label: "label:CustomerAddEditView.sms_1" },
+    { key: "sms_2", tunduk: "phones", label: "label:CustomerAddEditView.sms_2" },
+    { key: "email_1", tunduk: "email1", label: "label:CustomerAddEditView.email_1" },
+    { key: "email_2", tunduk: "email2", label: "label:CustomerAddEditView.email_2" },
+  ];
+  isOpenTundukData = false;
+  isTundukError = false;
 
   constructor() {
     makeAutoObservable(this);
@@ -1317,6 +1345,54 @@ class NewStore {
     const favs = this.Services.filter(s => this.favorite.includes(s.id));
     const rest = this.Services.filter(s => !this.favorite.includes(s.id));
     return [...favs, ...rest];
+  }
+
+  async findCompanyByPin(pin: string) {
+    try {
+      const response = await getCompanyByPin(pin);
+      if ((response.status === 201 || response.status === 200) && response?.data !== null) {
+        this.tundukData = response.data;
+        this.isOpenTundukData = true;
+      } else {
+        this.isTundukError = true;
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      this.customerLoading = false;
+    }
+  }
+
+  keepCurrentData() {
+    this.isOpenTundukData = false;
+  }
+
+  applyTundukData() {
+    const phones = this.tundukData.phones
+      ? this.tundukData.phones.split(',').map(p => p.trim()).filter(Boolean)
+      : [];
+    this.customer.is_organization = true;
+    this.customer.full_name = this.tundukData.fullNameOl;
+    this.customer.address = `${this.tundukData.street} ${this.tundukData.house}`;
+    this.customer.director = this.tundukData.chief;
+    this.customer.organization_type_id = this.tundukData.categorySystemId;
+    this.customer.ugns = this.tundukData.statSubCode;
+    this.customer.registration_number = this.tundukData.registrCode;
+    this.customer.sms_1 = phones[0] || "";
+    this.customer.sms_2 = phones[1] || "";
+    this.customer.email_1 = this.tundukData.email1;
+    this.customer.email_2 = this.tundukData.email2;
+    this.isOpenTundukData = false;
+  }
+
+  retryTunduk() {
+    this.isTundukError = false;
+    this.findCompanyByPin(this.customer.pin);
+  }
+
+  continueWithoutTunduk() {
+    this.isTundukError = false;
   }
 }
 

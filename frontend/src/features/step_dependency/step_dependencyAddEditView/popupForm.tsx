@@ -9,6 +9,10 @@ import CustomButton from 'components/Button';
 type PopupFormProps = {
   openPanel: boolean;
   id: number;
+  service_path_id?: number;
+  dependent_step_id?: number;
+  prerequisite_step_id?: number;
+  hideCircle?: boolean;
   onBtnCancelClick: () => void;
   onSaveClick: (id: number) => void;
 }
@@ -31,6 +35,10 @@ const step_dependencyPopupForm: FC<PopupFormProps> = observer((props) => {
       <DialogContent>
         <Step_dependencyAddEditBaseView
           isPopup={true}
+          service_path_id={props.service_path_id}
+          dependent_step_id={props.dependent_step_id}
+          prerequisite_step_id={props.prerequisite_step_id}
+          hideCircle={props.hideCircle}
         >
         </Step_dependencyAddEditBaseView>
       </DialogContent>

@@ -28,6 +28,7 @@ import dayjs from "dayjs";
 import store from "../Application/ApplicationsFromCabinet/store";
 import { useTranslation } from "react-i18next";
 import Button from "@mui/material/Button";
+import AssignedCommentsBlock from "./widgets/AssignedComments";
 
 const DashboardContainer: React.FC<DashboardContainerProps> = observer(({
   layout = 'grid',
@@ -257,7 +258,10 @@ const DashboardContainer: React.FC<DashboardContainerProps> = observer(({
           </Stack>
         );
       case 'reference':
-        return <TimeControlWidget />
+        return <>
+        <AssignedCommentsBlock />
+        <TimeControlWidget />
+        </>
       default:
         return null;
     }

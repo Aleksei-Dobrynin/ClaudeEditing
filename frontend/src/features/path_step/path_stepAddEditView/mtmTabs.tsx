@@ -8,6 +8,7 @@ import store from './store';
 import { useTranslation } from 'react-i18next';
 import Step_required_documentListView from 'features/step_required_document/step_required_documentListView';
 import Step_partnerListView from 'features/step_partner/step_partnerListView';
+import Step_dependencyListView from "../../step_dependency/step_dependencyListView";
 
 
 const path_stepMtmTabs = observer(() => {
@@ -25,7 +26,8 @@ const path_stepMtmTabs = observer(() => {
         <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
           <Tab data-testid={"step_required_document_tab_title"} label={translate("label:step_required_documentListView.entityTitle")} {...a11yProps(0)} />
           <Tab data-testid={"step_required_document_tab_title"} label={translate("label:step_partnerListView.entityTitle")} {...a11yProps(1)} />
-
+          <Tab data-testid={"step_required_document_tab_title"} label={translate('label:service_pathAddEditView.dependent_steps')} {...a11yProps(2)} />
+          <Tab data-testid={"step_required_document_tab_title"} label={translate('label:service_pathAddEditView.prerequisite_steps')} {...a11yProps(3)} />
         </Tabs>
       </Box>
       <CustomTabPanel value={value} index={0}>
@@ -34,6 +36,13 @@ const path_stepMtmTabs = observer(() => {
 
       <CustomTabPanel value={value} index={1}>
         <Step_partnerListView idMain={store.id} />
+      </CustomTabPanel>
+
+      <CustomTabPanel value={value} index={2}>
+        <Step_dependencyListView isTab={true} service_path_id={store.path_id} dependent_step_id={store.id} />
+      </CustomTabPanel>
+      <CustomTabPanel value={value} index={3}>
+        <Step_dependencyListView isTab={true} service_path_id={store.path_id} prerequisite_step_id={store.id} />
       </CustomTabPanel>
     </Box>
   );

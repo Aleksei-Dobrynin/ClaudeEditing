@@ -40,7 +40,16 @@ const CommentItem: FC<Props> = observer((props) => {
             </ListItemAvatar>
             <ListItemText
               secondary={
-                <Box>
+                <Box
+                  sx={{
+                    borderLeft: item.button_color
+                      ? `4px solid ${item.button_color}`
+                      : "4px solid transparent",
+                    paddingLeft: 2,
+                    borderRadius: "4px",
+                    backgroundColor: `${item.button_color}20`,
+                    mb: 1,
+                  }}>
                   <Box style={{ display: "flex", width: "100%", justifyContent: "space-between" }}>
                     <Typography
                       component="span"

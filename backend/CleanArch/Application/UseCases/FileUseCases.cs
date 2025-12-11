@@ -1,18 +1,17 @@
-﻿using Application.Repositories;
-using DocumentFormat.OpenXml.InkML;
+﻿using System.Net;
+using Application.Repositories;
 using Domain.Entities;
 using HTMLQuestPDF.Extensions;
 using Messaging.Services;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
-using Org.BouncyCastle.Cms;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
 using System.IO.Compression;
-using System.Net;
-using System.Security.Cryptography;
+using Org.BouncyCastle.Cms;
 using System.Text;
+using Newtonsoft.Json;
+using System.Security.Cryptography;
+using Microsoft.Extensions.DependencyInjection;
 using File = Domain.Entities.File;
 
 namespace Application.UseCases
@@ -85,24 +84,16 @@ namespace Application.UseCases
             }
         }
 
-        // Путь: backend/CleanArch/Application/UseCases/FileUseCases.cs
-        // Метод: SignDocument (ЗАМЕНА существующего метода)
-
-        public async Task<int> SignDocument(int id, int? uplId, string pin, string code,
-            int? selectedPositionId = null, int? selectedDepartmentId = null)
+        public async Task<int> SignDocument(int id, int? uplId, string pin, string code)
         {
-            // Валидация входных параметров
-            if (id == 0 && uplId == 0)
-                return 1;
-
-            // Получение базовых данных
+            if (id == 0 && uplId == 0) return 1;
             var signs = await unitOfWork.FileRepository.GetSignByFileIds(new int[] { id });
             var userId = await _userRepository.GetUserID();
             var userGuid = await _userRepository.GetUserUID();
             var docType = 0;
 
-            // Получение информации о документе
             var uploaded_document = await unitOfWork.uploaded_application_documentRepository.GetByfile_id(id);
+
             var doc = uploaded_document.FirstOrDefault()?.service_document_id;
             if (doc != null)
             {
@@ -113,100 +104,52 @@ namespace Application.UseCases
                 }
             }
 
-            // Получение информации о сотруднике и его должностях
-            var employee = await unitOfWork.EmployeeRepository.GetByUserId(userGuid);
-            if (employee == null)
+
+            if (signs.Any(x => x.user_id == userId))
             {
-                throw new Exception("Сотрудник не найден");
-            }
-
-            var structures = await unitOfWork.EmployeeInStructureRepository.GetByidEmployee(employee.id);
-
-            // Фильтруем только активные записи
-            var activeStructures = structures.Where(x =>
-                x.date_start <= DateTime.Now &&
-                (x.date_end == null || x.date_end > DateTime.Now)
-            ).ToList();
-
-            if (!activeStructures.Any())
-            {
-                throw new Exception("У сотрудника нет активных должностей");
-            }
-
-            // Определение выбранной структуры
-            EmployeeInStructure selectedStructure = null;
-
-            if (selectedPositionId.HasValue && selectedDepartmentId.HasValue)
-            {
-                // Если роль явно указана - используем её
-                selectedStructure = activeStructures.FirstOrDefault(x =>
-                    x.post_id == selectedPositionId.Value &&
-                    x.structure_id == selectedDepartmentId.Value
-                );
-
-                if (selectedStructure == null)
-                {
-                    throw new Exception("Выбранная роль не найдена или не активна для текущего пользователя");
-                }
-            }
-            else
-            {
-                // Если роль не указана - выбираем первую (по умолчанию)
-                // Если ролей несколько - все равно берем первую, но в будущем фронтенд будет передавать выбор
-                selectedStructure = activeStructures.First();
-            }
-
-            // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Проверка существующей подписи по композитному ключу
-            // (user_id + structure_employee_id) вместо только user_id
-            var existingSign = signs.FirstOrDefault(x =>
-                x.user_id == userId &&
-                x.structure_employee_id == selectedStructure.id
-            );
-
-            if (existingSign != null)
-            {
-                var sign_id = existingSign.id;
-
-                // Обновление согласования если нужно
+                var sign_id = signs.Find(x => x.user_id == userId)?.id;
                 if (uplId != null && uplId != 0)
                 {
-                    var item = (await unitOfWork.document_approvalRepository.GetByapp_document_id(uplId.Value))
-                        .FirstOrDefault(x =>
-                            x.position_id == selectedStructure.post_id &&
-                            x.department_id == selectedStructure.structure_id &&
-                            x.status == "waiting"
-                        );
+                    var roles = await _authRepository.GetMyRoleIds();
+                    var user_id = await unitOfWork.UserRepository.GetUserID();
+
+                    var orgs = await unitOfWork.EmployeeInStructureRepository.GetInMyStructure(user_id);
+                    var role_id = roles?.FirstOrDefault() ?? 0;
+                    var org_id = orgs?.FirstOrDefault()?.structure_id ?? 0;
+
+                    var item = (await unitOfWork.document_approvalRepository.GetByapp_document_id(uplId ?? 0))
+                        .FirstOrDefault(x => x.position_id == role_id 
+                                             && x.department_id == org_id 
+                                             && x.status == "waiting");
 
                     if (item != null)
                     {
                         item.file_sign_id = sign_id;
                         item.status = "signed";
                         item.approval_date = DateTime.Now;
-                        item.updated_by = userId;
+                        item.updated_by = user_id;
                         item.updated_at = DateTime.Now;
                         await unitOfWork.document_approvalRepository.Update(item);
                     }
                     unitOfWork.Commit();
                 }
 
-                return sign_id;
+                return sign_id ?? 1; //todo
             }
 
-            // ============================================
-            // СОЗДАНИЕ НОВОЙ ПОДПИСИ
-            // ============================================
 
             var userToken = "";
             var personFio = "";
-
-            // TODO: Раскомментировать для работы с реальной ЭЦП
             //try
             //{
             //    using var client = new HttpClient();
             //    string token = "ZH75XQXnVwhDSxC2iFhz3FMjC9kW__1adROKUua6e3s";
             //    client.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
             //    client.DefaultRequestHeaders.Add("User-Agent", "bga");
-            //
+
+
+            //    var employee = await unitOfWork.EmployeeRepository.GetByUserId(userGuid);
+
             //    var obj = new SendAuth
             //    {
             //        personIdnp = pin,
@@ -217,14 +160,16 @@ namespace Application.UseCases
             //    {
             //        obj.organizationInn = null;
             //    }
-            //
+
+
             //    var request = new HttpRequestMessage(HttpMethod.Post, "https://cdsapi.srs.kg/api/account/auth");
             //    var json = JsonConvert.SerializeObject(obj);
+
             //    var content = new StringContent(json, Encoding.UTF8, "application/json");
             //    request.Content = content;
             //    var response = await client.SendAsync(request);
             //    response.EnsureSuccessStatusCode();
-            //
+
             //    var responseJson = await response.Content.ReadAsStringAsync();
             //    var result = JsonConvert.DeserializeObject<TokenResponse>(responseJson);
             //    userToken = result.Token;
@@ -232,58 +177,76 @@ namespace Application.UseCases
             //}
             //catch (Exception ex)
             //{
-            //    throw new Exception("Ошибка аутентификации в системе ЭЦП: " + ex.Message);
+            //    throw;
             //}
 
-            var signResult = "";
-            var signTime = 0L;
 
-            // TODO: Раскомментировать для работы с реальной ЭЦП
+            var signResult = "";
+            var signTime = 0l;
             //try
             //{
             //    var file = await unitOfWork.FileRepository.GetOne(id);
             //    var fullPath = unitOfWork.FileRepository.GetFullPath(file.path);
             //    var hash = GetFileSHA256Hash(fullPath);
-            //
+
             //    using var client = new HttpClient();
             //    string token = "ZH75XQXnVwhDSxC2iFhz3FMjC9kW__1adROKUua6e3s";
             //    client.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
             //    client.DefaultRequestHeaders.Add("User-Agent", "bga");
-            //
+
             //    var request = new HttpRequestMessage(HttpMethod.Post, "https://cdsapi.srs.kg/api/get-sign/for-hash");
             //    var json = JsonConvert.SerializeObject(new
             //    {
             //        hash = hash,
             //        userToken = userToken
             //    });
-            //
+
             //    var content = new StringContent(json, Encoding.UTF8, "application/json");
             //    request.Content = content;
             //    var response = await client.SendAsync(request);
             //    response.EnsureSuccessStatusCode();
-            //
+
             //    var responseJson = await response.Content.ReadAsStringAsync();
             //    var result = JsonConvert.DeserializeObject<SignResponse>(responseJson);
-            //
+
             //    if (result.IsSuccesfull != true)
             //    {
-            //        throw new Exception("Ошибка получения электронной подписи");
+            //        throw new Exception("Failed sign");
             //    }
             //    signResult = result.Sign;
             //    signTime = result.Timestamp;
+
             //}
             //catch (Exception ex)
             //{
-            //    throw new Exception("Ошибка при формировании ЭЦП: " + ex.Message);
+            //    throw;
             //}
 
-            // Формирование данных о подписанте с использованием выбранной роли
-            var fullname = $"{employee.last_name} {employee.first_name} {employee.second_name}".Trim();
-            var structure_name = selectedStructure.structure_name;
-            var post_name = selectedStructure.post_name;
-            var whoSigned = $"{fullname} - {structure_name} - {post_name}";
 
-            // Создание новой записи подписи
+
+            int? employee_id = null;
+            int? structure_id = null;
+            var fullname = "";
+            var structure_name = "";
+            var post_name = "";
+            try
+            {
+                var employee = await unitOfWork.EmployeeRepository.GetByUserId(userGuid);
+                var structures = await unitOfWork.EmployeeInStructureRepository.GetByidEmployee(employee.id);
+                var structure = structures.OrderByDescending(x => x.id).FirstOrDefault(); //TODO
+
+                fullname = employee?.last_name + " " + employee?.first_name + " " + employee?.second_name;
+                employee_id = employee?.id;
+                structure_id = structure?.id;
+                structure_name = structure?.structure_name;
+                post_name = structure?.post_name;
+            }
+            catch (Exception ex)
+            {
+            }
+
+            var whoSigned = fullname + " - " + structure_name + " - " + post_name;
+
             var res = await unitOfWork.FileRepository.AddSign(new FileSign
             {
                 sign_hash = signResult,
@@ -292,123 +255,47 @@ namespace Application.UseCases
                 user_id = userId,
                 user_full_name = whoSigned,
                 pin_organization = personFio,
-                employee_id = employee.id,
+                employee_id = employee_id,
                 employee_fullname = fullname,
-                structure_employee_id = selectedStructure.id, // КРИТИЧЕСКИ ВАЖНО: ID конкретной должности
+                structure_employee_id = structure_id,
                 structure_fullname = structure_name,
-                timestamp = DateTime.UtcNow.AddHours(6), //TODO: Убрать хардкод часового пояса
+                timestamp = DateTime.UtcNow.AddHours(6), //TODO
                 file_id = id,
-                file_type_id = docType != 0 ? docType : null,
-                is_called_out = false
+                file_type_id = docType != 0 ? docType : null
             });
 
-            // Обновление согласования если нужно
+
             if (uplId != null && uplId != 0)
             {
-                var item = (await unitOfWork.document_approvalRepository.GetByapp_document_id(uplId.Value))
-                    .FirstOrDefault(x =>
-                        x.position_id == selectedStructure.post_id &&
-                        x.department_id == selectedStructure.structure_id &&
-                        x.status == "waiting"
-                    );
+                var roles = await _authRepository.GetMyRoleIds();
+                var user_id = await unitOfWork.UserRepository.GetUserID();
+
+                var orgs = await unitOfWork.EmployeeInStructureRepository.GetInMyStructure(user_id);
+                var role_id = roles?.FirstOrDefault() ?? 0;
+                var org_id = orgs?.FirstOrDefault()?.structure_id ?? 0;
+
+                var item = (await unitOfWork.document_approvalRepository.GetByapp_document_id(uplId ?? 0))
+                    .FirstOrDefault(x => x.position_id == role_id 
+                                         && x.department_id == org_id 
+                                         && x.status == "waiting");
 
                 if (item != null)
                 {
                     item.file_sign_id = res;
                     item.status = "signed";
                     item.approval_date = DateTime.Now;
-                    item.updated_by = userId;
+                    item.updated_by = user_id;
                     item.updated_at = DateTime.Now;
                     await unitOfWork.document_approvalRepository.Update(item);
                 }
+                unitOfWork.Commit();
             }
 
             await CheckSingFiles(uploaded_document.FirstOrDefault()?.application_document_id);
             unitOfWork.Commit();
-
-            return res;
+            return res; //todo
         }
 
-        // Путь: backend/CleanArch/Application/UseCases/FileUseCases.cs
-        // Метод: GetAvailableSigningRoles (НОВЫЙ метод - добавить в класс FileUseCases)
-
-        public async Task<List<AvailableSigningRoleDto>> GetAvailableSigningRoles(int fileId)
-        {
-            var userId = await _userRepository.GetUserID();
-            var userGuid = await _userRepository.GetUserUID();
-
-            // Получить все роли пользователя
-            var employee = await unitOfWork.EmployeeRepository.GetByUserId(userGuid);
-            if (employee == null)
-            {
-                return new List<AvailableSigningRoleDto>();
-            }
-
-            var structures = await unitOfWork.EmployeeInStructureRepository.GetByidEmployee(employee.id);
-
-            // Фильтруем только активные записи
-            var activeStructures = structures.Where(x =>
-                x.date_start <= DateTime.Now &&
-                (x.date_end == null || x.date_end > DateTime.Now)
-            ).ToList();
-
-            // Получить существующие подписи для этого файла
-            var existingSigns = await unitOfWork.FileRepository.GetSignByFileIds(new[] { fileId });
-
-            // Получить требуемые согласования для документа
-            var uploadedDoc = await unitOfWork.uploaded_application_documentRepository.GetByfile_id(fileId);
-            var approvals = new List<document_approval>();
-
-            if (uploadedDoc.Any())
-            {
-                var uplId = uploadedDoc.FirstOrDefault()?.id ?? 0;
-                if (uplId > 0)
-                {
-                    approvals = await unitOfWork.document_approvalRepository.GetByapp_document_id(uplId);
-                }
-            }
-
-            var result = activeStructures.Select(s => new AvailableSigningRoleDto
-            {
-                PositionId = s.post_id,
-                PositionName = s.post_name,
-                DepartmentId = s.structure_id,
-                DepartmentName = s.structure_name,
-                StructureEmployeeId = s.id,
-                AlreadySigned = existingSigns.Any(sign =>
-                    sign.user_id == userId &&
-                    sign.structure_employee_id == s.id
-                ),
-                IsRequired = approvals.Any(a =>
-                    a.position_id == s.post_id &&
-                    a.department_id == s.structure_id &&
-                    a.status == "waiting"
-                ),
-                IsActive = true,
-                DateStart = s.date_start,
-                DateEnd = s.date_end
-            }).ToList();
-
-            return result;
-        }
-
-        public async Task<int> CallOutSignDocument(int id)
-        {
-            var signs = await unitOfWork.FileRepository.GetSignByFileIds(new int[] { id });
-            var userId = await _userRepository.GetUserID();
-            var userGuid = await _userRepository.GetUserUID();
-            int res = 0;
-
-            var sign = signs.Find(x => x.user_id == userId);
-            if(sign != null)
-            {
-                sign.is_called_out = true;
-                res = await unitOfWork.FileRepository.UpdateSign(sign);
-            }
-
-            return res;
-
-        }
         private async Task CheckSingFiles(int? id)
         {
             if (id == null)

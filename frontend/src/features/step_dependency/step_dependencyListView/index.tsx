@@ -19,9 +19,14 @@ import styled from 'styled-components';
 import AutocompleteCustom from "components/Autocomplete";
 import CustomButton from "components/Button";
 import ClearIcon from "@mui/icons-material/Clear";
+import { popup } from "leaflet";
 
 
 type step_dependencyListViewProps = {
+  isTab?: boolean;
+  service_path_id?: number;
+  dependent_step_id?: number;
+  prerequisite_step_id?: number;
 };
 
 
@@ -31,8 +36,15 @@ const step_dependencyListView: FC<step_dependencyListViewProps> = observer((prop
 
 
   useEffect(() => {
+    if (props.service_path_id) {
+      store.filter.service_path_id = props.service_path_id;
+      store.dependent_step_id = props.dependent_step_id;
+      store.prerequisite_step_id = props.prerequisite_step_id;
+      store.loadstep_dependenciesByFilter();
+    } else {
     store.loadservice_paths();
     store.loadstep_dependencies();
+  }
     return () => {
       store.clearStore()
     }
@@ -72,7 +84,7 @@ const step_dependencyListView: FC<step_dependencyListViewProps> = observer((prop
     },
   ];
 
-  let type1: string = 'form';
+  let type1: string = props.isTab ? 'popup' : 'form';
   let component = null;
   switch (type1) {
     case 'form':
@@ -90,6 +102,7 @@ const step_dependencyListView: FC<step_dependencyListViewProps> = observer((prop
         onEditClicked={(id: number) => store.onEditClicked(id)}
         columns={columns}
         data={store.data}
+        hideAddButton={props.isTab}
         tableName="step_dependency" />
       break
   }
@@ -97,6 +110,7 @@ const step_dependencyListView: FC<step_dependencyListViewProps> = observer((prop
 
   return (
     <Container maxWidth='xl' sx={{ mt: 4 }}>
+      {props.isTab ? <></> :
       <Paper elevation={5} style={{ width: "100%", padding: 20, marginBottom: 20 }}>
         <Box sx={{ display: { sm: "flex" } }} justifyContent={"space-between"}>
           <Grid container spacing={2}>
@@ -139,17 +153,25 @@ const step_dependencyListView: FC<step_dependencyListViewProps> = observer((prop
             }
           </Box>
         </Box>
-      </Paper>
+      </Paper>}
       
       {component}
 
       <Step_dependencyPopupForm
         openPanel={store.openPanel}
         id={store.currentId}
+        service_path_id={props.service_path_id}
+        dependent_step_id={props.dependent_step_id}
+        prerequisite_step_id={props.prerequisite_step_id}
+        hideCircle={props.isTab}
         onBtnCancelClick={() => store.closePanel()}
         onSaveClick={() => {
           store.closePanel()
-          store.loadstep_dependencies()
+          if (props.service_path_id) {
+            store.loadstep_dependenciesByFilter();
+          } else {
+            store.loadstep_dependencies()
+          }
         }}
       />
 

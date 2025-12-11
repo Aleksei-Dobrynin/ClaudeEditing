@@ -60,8 +60,7 @@ import { APPLICATION_STATUSES } from 'constants/constant';
 import { useNavigate } from 'react-router-dom';
 import StepStatusHistoryGrid from './StepStatusHistoryGrid';
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import RoleSelectionDialog from 'components/RoleSelectionDialog';
-import uploadedDocStore from 'features/UploadedApplicationDocument/uploaded_application_documentListView/store';
+
 interface ApplicationStepsBaseViewProps {
   children?: ReactNode;
   service_id: number;
@@ -224,73 +223,73 @@ const ApplicationStepsBaseView: FC<ApplicationStepsBaseViewProps> = observer(({ 
       <Stack spacing={2}>
         {store.data.map((step) => (
           <div key={step.id} id={`step-${step.id}`}>
-            <Accordion
-              key={step.id}
-              expanded={store.expandedStepId === step.id}
-              onChange={() => {
-                store.toggleStep(step.id)
-                navigate(`/user/application_task/addedit?id=${taskId}&tab_id=${1}&app_step_id=${step.id}&back=${taskStore.backUrl}`);
+          <Accordion
+            key={step.id}
+            expanded={store.expandedStepId === step.id}
+            onChange={() => {
+              store.toggleStep(step.id)
+              navigate(`/user/application_task/addedit?id=${taskId}&tab_id=${1}&app_step_id=${step.id}&back=${taskStore.backUrl}`);
+            }}
+
+          >
+            <AccordionSummary
+              expandIcon={<ExpandMore />}
+              sx={{
+                '& .MuiAccordionSummary-content': {
+                  alignItems: 'center',
+                },
               }}
-
             >
-              <AccordionSummary
-                expandIcon={<ExpandMore />}
-                sx={{
-                  '& .MuiAccordionSummary-content': {
+              <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                <Box
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: '50%',
+                    bgcolor: 'grey.300',
+                    display: 'flex',
                     alignItems: 'center',
-                  },
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                  <Box
-                    sx={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: '50%',
-                      bgcolor: 'grey.300',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      mr: 2,
-                    }}
-                  >
-                    <Typography variant="body2" fontWeight="bold">
-                      {step.order_number}
+                    justifyContent: 'center',
+                    mr: 2,
+                  }}
+                >
+                  <Typography variant="body2" fontWeight="bold">
+                    {step.order_number}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ flexGrow: 1 }}>
+                  <Typography variant="h3" component="div">
+                    {step.name} {declineDays(step.planned_duration)}
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 0.5 }}>
+                    <Typography variant="h4" color="text.primary">
+                      {store.departments[step.responsible_department_id]?.name}
                     </Typography>
                   </Box>
-
-                  <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="h3" component="div">
-                      {step.name} {declineDays(step.planned_duration)}
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 0.5 }}>
-                      <Typography variant="h4" color="text.primary">
-                        {store.departments[step.responsible_department_id]?.name}
-                      </Typography>
-                    </Box>
-                    <Box m={1}>
-                      {renderStatusChip(step.status)}
-                    </Box>
+                  <Box m={1}>
+                    {renderStatusChip(step.status)}
                   </Box>
+                </Box>
 
-                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, mr: 2 }}>
-                    {step.status === "in_progress" && store.canCompleteStep(step.step_id) && (
-                      <Button
-                        variant="contained"
-                        color="success"
-                        size="small"
-                        disabled={!hasAccessToStepStatuses(step.responsible_department_id)}
-                        startIcon={<Check />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          store.completeStep(step.id, step.responsible_department_id);
-                        }}
-                      >
-                        Завершить
-                      </Button>
-                    )}
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, mr: 2 }}>
+                  {step.status === "in_progress" && store.canCompleteStep(step.step_id) && (
+                    <Button
+                      variant="contained"
+                      color="success"
+                      size="small"
+                      disabled={!hasAccessToStepStatuses(step.responsible_department_id)}
+                      startIcon={<Check />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        store.completeStep(step.id, step.responsible_department_id);
+                      }}
+                    >
+                      Завершить
+                    </Button>
+                  )}
 
-                    {/* {step.status === "in_progress" && (
+                  {/* {step.status === "in_progress" && (
                     <Button
                       variant="contained"
                       color="warning"
@@ -305,54 +304,54 @@ const ApplicationStepsBaseView: FC<ApplicationStepsBaseViewProps> = observer(({ 
                       Приостановить
                     </Button>
                   )} */}
-                    {step.status === "paused" && (
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        size="small"
-                        disabled={!hasAccessToStepStatuses(step.responsible_department_id)}
-                        startIcon={<PlayArrow />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          store.resumeStep(step.id);
-                        }}
-                      >
-                        Возобновить
-                      </Button>
-                    )}
-                    {step.status === "completed" && (
-                      <Button
-                        variant="contained"
-                        color="warning"
-                        size="small"
-                        disabled={!hasAccessToStepToReturn(step.responsible_department_id)}
-                        startIcon={<ArrowBack />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          store.returnStep(step.id);
-                        }}
-                      >
-                        Вернуть
-                      </Button>
-                    )}
-                    {step.status === "waiting" && (
-                      <Button
-                        variant="contained"
-                        color="warning"
-                        size="small"
-                        disabled={!hasAccessToStepStatuses(step.responsible_department_id) || !store.canStartStep(step.step_id)}
-                        // disabled={!store.hasAccess || !store.canStartStep(step.step_id)}
-                        startIcon={<ArrowBack />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          store.toProgress(step.id);
-                        }}
-                      >
-                        В работу
-                      </Button>
-                    )}
-                  </Box>
-                  {/* <Button
+                  {step.status === "paused" && (
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      size="small"
+                      disabled={!hasAccessToStepStatuses(step.responsible_department_id)}
+                      startIcon={<PlayArrow />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        store.resumeStep(step.id);
+                      }}
+                    >
+                      Возобновить
+                    </Button>
+                  )}
+                  {step.status === "completed" && (
+                    <Button
+                      variant="contained"
+                      color="warning"
+                      size="small"
+                      disabled={!hasAccessToStepToReturn(step.responsible_department_id)}
+                      startIcon={<ArrowBack />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        store.returnStep(step.id);
+                      }}
+                    >
+                      Вернуть
+                    </Button>
+                  )}
+                  {step.status === "waiting" && (
+                    <Button
+                      variant="contained"
+                      color="warning"
+                      size="small"
+                      disabled={!hasAccessToStepStatuses(step.responsible_department_id) || !store.canStartStep(step.step_id)}
+                      // disabled={!store.hasAccess || !store.canStartStep(step.step_id)}
+                      startIcon={<ArrowBack />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        store.toProgress(step.id);
+                      }}
+                    >
+                      В работу
+                    </Button>
+                  )}
+                </Box>
+                {/* <Button
                   variant="outlined"
                   color="info"
                   size="small"
@@ -364,25 +363,25 @@ const ApplicationStepsBaseView: FC<ApplicationStepsBaseViewProps> = observer(({ 
                 >
                   История
                 </Button> */}
-                  <Tooltip title="Просмотр истории статусов">
-                    <IconButton
-                      color="info"
-                      size="large"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        store.showHistoryDialog(step.id);
-                      }}
-                    >
-                      <History />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-              </AccordionSummary>
+                <Tooltip title="Просмотр истории статусов">
+                  <IconButton
+                    color="info"
+                    size="large"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      store.showHistoryDialog(step.id);
+                    }}
+                  >
+                    <History />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            </AccordionSummary>
 
-              <AccordionDetails>
-                <Box sx={{ bgcolor: 'grey.50', p: 2, borderRadius: 1 }}>
-                  {/* Step Description */}
-                  {/* <Box sx={{ mb: 3 }}>
+            <AccordionDetails>
+              <Box sx={{ bgcolor: 'grey.50', p: 2, borderRadius: 1 }}>
+                {/* Step Description */}
+                {/* <Box sx={{ mb: 3 }}>
                   <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
                     Описание шага
                   </Typography>
@@ -393,234 +392,233 @@ const ApplicationStepsBaseView: FC<ApplicationStepsBaseViewProps> = observer(({ 
 
                 <Divider sx={{ my: 2 }} /> */}
 
-                  {/* Dates */}
-                  <Box sx={{ mb: 3 }}>
-                    <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
-                      Сроки
-                    </Typography>
-                    <Grid container spacing={2}>
-                      <Grid item xs={4}>
-                        <Typography variant="body2" color="text.secondary">
-                          Дата начала
-                        </Typography>
-                        <Typography variant="body2" fontWeight="medium">
-                          {store.formatDate(step.start_date)}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={4}>
-                        <Typography variant="body2" color="text.secondary">
-                          {"Срок выполнения"}
-                        </Typography>
-                        <Typography variant="body2" fontWeight="medium">
-                          {store.formatDate(step.due_date)}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={4}>
-                        <Typography variant="body2" color="text.secondary">
-                          {"Дата завершения"}
-                        </Typography>
-                        <Typography variant="body2" fontWeight="medium">
-                          {store.formatDate(step.completion_date)}
-                        </Typography>
-                      </Grid>
-                    </Grid>
-                  </Box>
-
-                  <Divider sx={{ my: 2 }} />
-
-                  {/* Dependencies */}
-                  <Box sx={{ mb: 3 }}>
-                    <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
-                      Зависимости с другими этапами
-                    </Typography>
-
-                    {step.dependencies?.length > 0 ? (
-                      <Box sx={{ mb: 2 }}>
-                        <Typography variant="body2" color="text.secondary" gutterBottom>
-                          Предшествующие шаги:
-                        </Typography>
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                          {step.dependencies.map((depId) => {
-                            const depStep = store.data.find((s) => s.step_id === depId);
-                            return (
-                              <Chip
-                                key={`dep-${depId}`}
-                                label={depStep?.name}
-                                size="small"
-                                icon={store.isStepCompleted(depStep?.step_id || 0) ? <Check /> : <Warning />}
-                                color={store.isStepCompleted(depStep?.step_id || 0) ? "success" : "info"}
-                                variant="outlined"
-                              />
-                            );
-                          })}
-                        </Box>
-                      </Box>
-                    ) : (
+                {/* Dates */}
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
+                    Сроки
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={4}>
                       <Typography variant="body2" color="text.secondary">
-                        Нет предшествующих шагов
+                        Дата начала
                       </Typography>
-                    )}
-
-                    {step.blocks?.length > 0 && (
-                      <Box>
-                        <Typography variant="body2" color="text.secondary" gutterBottom>
-                          Следующие шаги:
-                        </Typography>
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                          {step.blocks.map((blockId) => {
-                            const blockedStep = store.data.find((s) => s.step_id === blockId);
-                            return (
-                              <Chip
-                                key={`block-${blockId}`}
-                                label={blockedStep?.name}
-                                size="small"
-                                icon={blockedStep?.status === "waiting" ? <Schedule /> : <ArrowForward />}
-                                variant="outlined"
-                              />
-                            );
-                          })}
-                        </Box>
-                      </Box>
-                    )}
-                  </Box>
-
-
-                  <Divider sx={{ my: 2 }} />
-
-                  {/* Documents */}
-                  {
-                    step.workDocuments?.length > 0 &&
-                    <Box>
-                      <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
-                        Рабочие документы:
+                      <Typography variant="body2" fontWeight="medium">
+                        {store.formatDate(step.start_date)}
                       </Typography>
-                      <Box>
-                        {step.workDocuments?.map(doc => {
-                          return <>
-                            <WorkDocumentCard
-                              document={doc}
-                              t={t}
-                              hasAccess={true}
-                              step_id={step.id}
-                              step={step}
-                              onOpenFileHistory={(step: number) => {
-                                store.loadGetApplicationWorkDocumentByStepID(step);
-                                store.isOpenFileHistory = true;
-                              }}
+                    </Grid>
+                    <Grid item xs={4}>
+                      <Typography variant="body2" color="text.secondary">
+                        {"Срок выполнения"}
+                      </Typography>
+                      <Typography variant="body2" fontWeight="medium">
+                        {store.formatDate(step.due_date)}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={4}>
+                      <Typography variant="body2" color="text.secondary">
+                        {"Дата завершения"}
+                      </Typography>
+                      <Typography variant="body2" fontWeight="medium">
+                        {store.formatDate(step.completion_date)}
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                </Box>
+
+                <Divider sx={{ my: 2 }} />
+
+                {/* Dependencies */}
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
+                    Зависимости с другими этапами
+                  </Typography>
+
+                  {step.dependencies?.length > 0 ? (
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        Предшествующие шаги:
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                        {step.dependencies.map((depId) => {
+                          const depStep = store.data.find((s) => s.step_id === depId);
+                          return (
+                            <Chip
+                              key={`dep-${depId}`}
+                              label={depStep?.name}
+                              size="small"
+                              icon={store.isStepCompleted(depStep?.step_id || 0) ? <Check /> : <Warning />}
+                              color={store.isStepCompleted(depStep?.step_id || 0) ? "success" : "info"}
+                              variant="outlined"
                             />
-                          </>
+                          );
                         })}
                       </Box>
                     </Box>
-                  }
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      Нет предшествующих шагов
+                    </Typography>
+                  )}
 
-                  <Divider sx={{ my: 2 }} />
-
-                  {/* Documents */}
-                  <Box>
-                    {step.documents?.length > 0 &&
-                      <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
-                        Документы на подпись
-                      </Typography>
-                    }
+                  {step.blocks?.length > 0 && (
                     <Box>
-                      {step.documents?.map(doc => {
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        Следующие шаги:
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                        {step.blocks.map((blockId) => {
+                          const blockedStep = store.data.find((s) => s.step_id === blockId);
+                          return (
+                            <Chip
+                              key={`block-${blockId}`}
+                              label={blockedStep?.name}
+                              size="small"
+                              icon={blockedStep?.status === "waiting" ? <Schedule /> : <ArrowForward />}
+                              variant="outlined"
+                            />
+                          );
+                        })}
+                      </Box>
+                    </Box>
+                  )}
+                </Box>
+
+
+                <Divider sx={{ my: 2 }} />
+
+                {/* Documents */}
+                {
+                  step.workDocuments?.length > 0 &&
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
+                      Рабочие документы:
+                    </Typography>
+                    <Box>
+                      {step.workDocuments?.map(doc => {
                         return <>
-                          <DocumentCard
-                            onSigned={() => {
-                              store.loadApplication(store.application_id)
-                            }}
+                          <WorkDocumentCard
                             document={doc}
-                            onUploadFile={() => {
-                              store.onUploadFile(doc.service_document_id ?? 0, doc.upl?.id, step.id);
-                            }}
-                            //hasAccess={hasAccessToStepToReturn(step.responsible_department_id)}
+                            t={t}
                             hasAccess={true}
-                            onOpenSigners={() => {
-                              store.ecpListOpen = true;
-                              store.loadGetSignByFileId(doc.upl?.file_id)
-                            }}
-                            onOpenFileHistory={() => {
-                              store.isOpenFileHistory = true;
-                              store.loadGetUploaded_application_documentsByApplicationIdAndStepId(doc.upl?.application_document_id, doc.upl?.app_step_id)
-                            }}
-                            onDocumentPreview={() => {
-                              store.OpenFileFile(doc.upl?.file_id, doc.upl?.file_name)
-                            }}
-                            onAddSigner={() => {
-                              store.currentStepId = step.id
-                              documentFormsStore.openSignerDialog(doc.document_type_id)
-                            }}
                             step_id={step.id}
                             step={step}
-                            t={t}
-                            documentApprovers={store.documentApprovers}
-                            userId={store.currentUserId}
+                            onOpenFileHistory={(step: number) => {
+                              store.loadGetApplicationWorkDocumentByStepID(step);
+                              store.isOpenFileHistory = true;
+                            }}
                           />
-
                         </>
                       })}
-
-                      <Typography variant="subtitle2" fontWeight="medium" gutterBottom>
-                        Для запроса подписания других документов на текущем этапе нажмите здесь
-                        <IconButton
-                          disabled={!store.hasAccess || step?.status !== "in_progress"}
-                          onClick={() => {
-                            store.currentStepId = step.id
-                            documentFormsStore.openDocumentDialog(service_id)
-                          }}
-                        >
-                          <Add />
-                        </IconButton>
-                      </Typography>
-
-
-
                     </Box>
+                  </Box>
+                }
+
+                <Divider sx={{ my: 2 }} />
+
+                {/* Documents */}
+                <Box>
+                  {step.documents?.length > 0 &&
+                    <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
+                      Документы на подпись
+                    </Typography>
+                  }
+                  <Box>
+                    {step.documents?.map(doc => {
+                      return <>
+                        <DocumentCard
+                          onSigned={() => {
+                            store.loadApplication(store.application_id)
+                          }}
+                          document={doc}
+                          onUploadFile={() => {
+                            store.onUploadFile(doc.service_document_id ?? 0, doc.upl?.id, step.id);
+                          }}
+                          //hasAccess={hasAccessToStepToReturn(step.responsible_department_id)}
+                          hasAccess={true}
+                          onOpenSigners={() => {
+                            store.ecpListOpen = true;
+                            store.loadGetSignByFileId(doc.upl?.file_id)
+                          }}
+                          onOpenFileHistory={() => {
+                            store.isOpenFileHistory = true;
+                            store.loadGetUploaded_application_documentsByApplicationIdAndStepId(doc.upl?.application_document_id, doc.upl?.app_step_id)
+                          }}
+                          onDocumentPreview={() => {
+                            store.OpenFileFile(doc.upl?.file_id, doc.upl?.file_name)
+                          }}
+                          onAddSigner={() => {
+                            store.currentStepId = step.id
+                            documentFormsStore.openSignerDialog(doc.document_type_id)
+                          }}
+                          step_id={step.id}
+                          step={step}
+                          t={t}
+                          documentApprovers={store.documentApprovers}
+                        />
+
+                      </>
+                    })}
+
+                    <Typography variant="subtitle2" fontWeight="medium" gutterBottom>
+                      Для запроса подписания других документов на текущем этапе нажмите здесь
+                      <IconButton
+                        disabled={!store.hasAccess || step?.status !== "in_progress"}
+                        onClick={() => {
+                          store.currentStepId = step.id
+                          documentFormsStore.openDocumentDialog(service_id)
+                        }}
+                      >
+                        <Add />
+                      </IconButton>
+                    </Typography>
+
 
 
                   </Box>
 
-                  {step.requiredCalcs?.length > 0 && (
-                    <Box>
-                      <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
-                        {t("label:application_taskAddEditView.mandatory_calculations_title")}
-                      </Typography>
-                      {step.requiredCalcs.map(calc => (
-                        <Box
-                          key={calc.id}
-                          sx={{
-                            backgroundColor: "#fff3cd",
-                            border: "1px solid #ffeeba",
-                            borderRadius: "8px",
-                            padding: "8px 12px",
-                            marginBottom: "8px",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 1,
-                            justifyContent: "space-between"
-                          }}
-                        >
-                          <Box display="flex" alignItems="center" gap={1}>
-                            <WarningAmberIcon color="error" fontSize="small" />
-                            <Typography variant="body2">
-                              {`${calc.structure_name} — ${t("label:application_taskAddEditView.calculation_required")}`}
-                            </Typography>
-                          </Box>
-                          {accessPaymentDialog && (LayoutStore.my_structures?.find(x => x.structure_id == calc.structure_id) != null) && <Button
-                            variant="outlined"
-                            size="small"
-                            onClick={() => { onPaymentDialogOpen() }}
-                          >
-                            {t("add")}
-                          </Button>}
-                        </Box>
-                      ))}
-                    </Box>)}
 
                 </Box>
-              </AccordionDetails>
-            </Accordion>
+
+                {step.requiredCalcs?.length > 0 && (
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
+                      {t("label:application_taskAddEditView.mandatory_calculations_title")}
+                    </Typography>
+                    {step.requiredCalcs.map(calc => (
+                      <Box
+                        key={calc.id}
+                        sx={{
+                          backgroundColor: "#fff3cd",
+                          border: "1px solid #ffeeba",
+                          borderRadius: "8px",
+                          padding: "8px 12px",
+                          marginBottom: "8px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1,
+                          justifyContent: "space-between"
+                        }}
+                      >
+                        <Box display="flex" alignItems="center" gap={1}>
+                        <WarningAmberIcon color="error" fontSize="small" />
+                        <Typography variant="body2">
+                          {`${calc.structure_name} — ${t("label:application_taskAddEditView.calculation_required")}`}
+                        </Typography>
+                        </Box>
+                        { accessPaymentDialog && (LayoutStore.my_structures?.find(x => x.structure_id == calc.structure_id) != null) && <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => { onPaymentDialogOpen() }}
+                        >
+                          {t("add")}
+                        </Button>}
+              </Box>
+                    ))}
+                  </Box>)}
+
+              </Box>
+            </AccordionDetails>
+          </Accordion>
           </div>
         ))}
         {/* Диалоги */}
@@ -737,15 +735,6 @@ const ApplicationStepsBaseView: FC<ApplicationStepsBaseViewProps> = observer(({ 
           </Button>
         </DialogActions>
       </Dialog>
-      <RoleSelectionDialog
-        open={uploadedDocStore.roleSelectionDialogOpen}
-        roles={uploadedDocStore.availableRoles}
-        selectedRole={uploadedDocStore.selectedRole}
-        mode={uploadedDocStore.roleDialogMode}
-        onRoleSelect={(role) => uploadedDocStore.setSelectedRole(role)}
-        onConfirm={() => uploadedDocStore.handleRoleDialogConfirm()}
-        onCancel={() => uploadedDocStore.closeRoleSelectionDialog()}
-      />
     </Box>
   );
 });

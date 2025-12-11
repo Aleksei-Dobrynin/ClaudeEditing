@@ -312,7 +312,6 @@ namespace WebApi.Controllers
             var response = await _uploaded_application_documentUseCases.GetStepsWithInfo(app_id);
             return Ok(response);
         }
-
         [HttpGet]
         [Route("GetStepDocuments")]
         public async Task<IActionResult> GetStepDocuments(int app_id)

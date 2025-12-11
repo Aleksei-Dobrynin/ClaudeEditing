@@ -10,6 +10,8 @@ import {deleteComments} from "../../../api/ApplicationComments/useDeleteApplicat
 import dayjs from "dayjs";
 import relativeTime from 'dayjs/plugin/relativeTime';
 import storeApplication from "../../Application/ApplicationAddEditView/store";
+import { getEmployees } from "../../../api/Employee/useGetEmployees";
+import { getCommentType } from "../../../api/ApplicationComments/useGetAllApplicationComments";
 
 class NewStore { 
     dataAll = [];
@@ -22,7 +24,10 @@ class NewStore {
     updated_at = null;
     created_by = "";
     updated_by = "";
-
+    comment_types = [];
+    comment_type_id = 0;
+    employees = [];
+    employee_id = 0;
     isOpenComment = false;
     isEdit = 0;
 
@@ -112,7 +117,9 @@ class NewStore {
               updated_at: this.updated_at,
               created_by: this.created_by,
               updated_by: this.updated_by,
-              userEmail: localStorage.getItem("currentUser")
+              userEmail: localStorage.getItem("currentUser"),
+              comment_type_id: this.comment_type_id,
+              employee_id: this.employee_id,
             };
             
             const response = data.id === 0
@@ -186,6 +193,32 @@ class NewStore {
           () => MainStore.onCloseConfirm()
         );
       };
+
+  loadEmployees = async () => {
+    try {
+      const response = await getEmployees();
+      if ((response.status === 201 || response.status === 200) && response?.data !== null) {
+        this.employees = response.data
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    }
+  };
+
+  loadCommentType = async () => {
+    try {
+      const response = await getCommentType();
+      if ((response.status === 201 || response.status === 200) && response?.data !== null) {
+        this.comment_types = response.data
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    }
+  };
 }
 
 export default new NewStore();
