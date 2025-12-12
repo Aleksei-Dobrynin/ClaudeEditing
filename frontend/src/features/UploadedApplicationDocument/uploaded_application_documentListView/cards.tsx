@@ -6,6 +6,7 @@ import {
   Box,
   IconButton,
   Tooltip,
+  Chip,
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DownloadIcon from '@mui/icons-material/Download';
@@ -16,10 +17,13 @@ import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import HistoryIcon from '@mui/icons-material/History';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import InfoIcon from '@mui/icons-material/Info';
 import i18n from "i18next";
 
 type DocumentCardProps = {
-  document: any, t: any,
+  document: any, 
+  t: any,
   documentApprovers?: any,
   onSigned: () => void,
   step_id: number,
@@ -32,7 +36,19 @@ type DocumentCardProps = {
   hasAccess: boolean,
 }
 
-export const DocumentCard: FC<DocumentCardProps> = ({ document, t, onDocumentPreview, onOpenSigners, onOpenFileHistory, onSigned, onUploadFile, step_id, step, onAddSigner, hasAccess }) => {
+export const DocumentCard: FC<DocumentCardProps> = ({ 
+  document, 
+  t, 
+  onDocumentPreview, 
+  onOpenSigners, 
+  onOpenFileHistory, 
+  onSigned, 
+  onUploadFile, 
+  step_id, 
+  step, 
+  onAddSigner, 
+  hasAccess 
+}) => {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
 
   const formatDate = (date) => {
@@ -54,6 +70,9 @@ export const DocumentCard: FC<DocumentCardProps> = ({ document, t, onDocumentPre
     ? "только начальник и админ могут заменить документ" 
     : document.upl?.id ? "Заменить файл" : "Загрузить файл";
 
+  // НОВОЕ: Проверяем, является ли шаг динамическим
+  const isDynamicStep = step?.is_dynamically_added || false;
+
   return (
     <Card>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -62,16 +81,31 @@ export const DocumentCard: FC<DocumentCardProps> = ({ document, t, onDocumentPre
             {document.is_required && (
               <Tooltip title={t("mandatory_documents")}>
                 <WarningAmberIcon color="error" fontSize="small" />
-              </Tooltip>)}
+              </Tooltip>
+            )}
             <DocumentTitle>{document.document_type_name}</DocumentTitle>
+            
+            {/* НОВОЕ: Бейдж для документа из динамического шага */}
+            {isDynamicStep && (
+              <Chip
+                label="Доп. услуга"
+                size="small"
+                icon={<InfoIcon />}
+                color="info"
+                variant="outlined"
+                sx={{ ml: 1, height: '20px', fontSize: '0.7rem' }}
+              />
+            )}
           </Box>
           <FileInfo>{getFileInfo()}</FileInfo>
 
-          {document.upl?.created_at && <InfoRow>
-            <Label>Загружен:</Label>
-            <Value />
-            <DateValue>{formatDate(document.upl?.created_at)}</DateValue>
-          </InfoRow>}
+          {document.upl?.created_at && (
+            <InfoRow>
+              <Label>Загружен:</Label>
+              <Value />
+              <DateValue>{formatDate(document.upl?.created_at)}</DateValue>
+            </InfoRow>
+          )}
 
           {/* Согласования */}
           {document.approvals && document.approvals.length > 0 && (
@@ -98,12 +132,28 @@ export const DocumentCard: FC<DocumentCardProps> = ({ document, t, onDocumentPre
                   {signer.is_required && (
                     <Tooltip title={t("mandatory_sign")}>
                       <WarningAmberIcon color="error" fontSize="small" />
-                    </Tooltip>)}
+                    </Tooltip>
+                  )}
                   <span style={{ flex: 1, marginLeft: "8px", fontSize: "13px" }}>
                     {signer.department_name} <br />
                     <strong>{signer.signInfo?.employee_fullname}</strong> {" "} ({signer.position_name}) {" "}
-                    {signer.status === "signed" ? ` - ${t("signed")}` : ` - ${t("waiting")}`}
+                    {signer.status === "signed" ?
+                      <span style={{ color: '#4caf50' }}>{i18n.t("label:uploaded_application_documentListView.signed_info")}</span> :
+                      <span style={{ color: '#ff9800' }}>{i18n.t("label:uploaded_application_documentListView.not_signed_info")}</span>
+                    }
                   </span>
+                  <IconButton
+                    size="small"
+                    onClick={() => {
+                      if (signer.status !== "signed") {
+                        onSigned();
+                      }
+                    }}
+                    disabled={signer.status === "signed"}
+                    sx={{ padding: '4px' }}
+                  >
+                    <CheckCircleIcon fontSize="small" />
+                  </IconButton>
                 </InfoRow>
               ))}
             </div>
@@ -113,83 +163,78 @@ export const DocumentCard: FC<DocumentCardProps> = ({ document, t, onDocumentPre
 
       <ActionsRow>
         <ActionsLeft>
-
-          <MoreActionsWrapper>
-
-            {(document.upl?.file_id && store.checkFile(document.upl?.file_name)) && <Tooltip title={"Просмотр"}>
-              <IconButton size="small" onClick={() => {
-                onDocumentPreview()
-                setShowMoreMenu(false);
-              }}>
-                <VisibilityIcon />
-              </IconButton>
-            </Tooltip>}
-
-            <Tooltip title={uploadTooltipTitle}>
-              <span>
-                <IconButton 
-                  disabled={!hasAccess || step?.status !== "in_progress"} 
-                  size="small" 
-                  onClick={() => {
-                    onUploadFile()
-                    setShowMoreMenu(false);
-                  }}
+          {document.upl?.file_id && (
+            <>
+              <Tooltip title="Посмотреть документ">
+                <IconButton
+                  size="small"
+                  onClick={onDocumentPreview}
+                  sx={{ padding: '4px' }}
                 >
-                  <FileUploadIcon />
+                  <VisibilityIcon fontSize="small" />
                 </IconButton>
-              </span>
-            </Tooltip>
+              </Tooltip>
 
-            {document.upl?.file_id && <Tooltip title="Скачать файл">
-              <IconButton size="small" onClick={() => {
-                store.downloadFile(document.upl?.file_id, document.upl?.file_name);
-                setShowMoreMenu(false);
-              }}>
-                <DownloadIcon />
+              <Tooltip title="Скачать документ">
+                <IconButton
+                  size="small"
+                  onClick={() => store.downloadFile(document.upl?.file_id, document.upl?.file_name)}
+                  sx={{ padding: '4px' }}
+                >
+                  <DownloadIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+
+              <Tooltip title="Подписавшие">
+                <IconButton
+                  size="small"
+                  onClick={onOpenSigners}
+                  sx={{ padding: '4px' }}
+                >
+                  <FormatListBulletedIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+
+              <Tooltip title="История">
+                <IconButton
+                  size="small"
+                  onClick={onOpenFileHistory}
+                  sx={{ padding: '4px' }}
+                >
+                  <HistoryIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </>
+          )}
+
+          <Tooltip title={uploadTooltipTitle}>
+            <span>
+              <IconButton
+                size="small"
+                onClick={onUploadFile}
+                disabled={shouldShowUploadTooltip}
+                sx={{ padding: '4px' }}
+              >
+                <FileUploadIcon fontSize="small" />
               </IconButton>
-            </Tooltip>}
+            </span>
+          </Tooltip>
 
-            <Tooltip title="Добавить подписанта">
-              <IconButton disabled={!hasAccess || step?.status !== "in_progress"} size="small" onClick={() => {
-                onAddSigner();
-                setShowMoreMenu(false);
-              }}>
-                <AddIcon />
-              </IconButton>
-            </Tooltip>
-
-            {document.upl?.file_id && <Tooltip title="Список подписавших">
-              <IconButton size="small" onClick={() => {
-                onOpenSigners()
-              }}>
-                <FormatListBulletedIcon />
-              </IconButton>
-            </Tooltip>}
-
-            {document.upl?.file_id && <Tooltip title={i18n.t("label:UploadedApplicationDocumentListView.document_download_history")}>
-              <IconButton size="small" onClick={() => {
-                onOpenFileHistory()
-              }}>
-                <HistoryIcon />
-              </IconButton>
-            </Tooltip>}
-
-          </MoreActionsWrapper>
+          <Tooltip title={t("label:uploaded_application_documentListView.add_signer_info")}>
+            <IconButton
+              size="small"
+              onClick={onAddSigner}
+              disabled={!hasAccess}
+              sx={{ padding: '4px' }}
+            >
+              <AddIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
         </ActionsLeft>
-
-        <PrimaryButton
-          onClick={() => store.signApplicationPayment(document.upl?.file_id, document.upl?.id, () => {
-            onSigned()
-          })}
-          // disabled={step?.status !== "in_progress"} //TODO
-        >
-          Подписать ЭЦП
-        </PrimaryButton>
       </ActionsRow>
     </Card>
   );
 };
-
 
 const Card = styled.div`
   background-color: #fff;
@@ -197,6 +242,7 @@ const Card = styled.div`
   padding: 24px;
   margin-bottom: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  position: relative;
 `;
 
 const DocumentTitle = styled.h3`

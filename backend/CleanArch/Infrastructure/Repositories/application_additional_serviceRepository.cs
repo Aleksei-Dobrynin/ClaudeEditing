@@ -75,19 +75,19 @@ namespace Infrastructure.Repositories
             try
             {
                 var sql = @"
-                    SELECT aas.*, 
-                           sp.name as service_path_name,
-                           s.name as service_name,
-                           e.full_name as requested_by_name,
-                           ps.name as added_at_step_name
-                    FROM ""application_additional_service"" aas
-                    LEFT JOIN service_path sp ON sp.id = aas.additional_service_path_id
-                    LEFT JOIN service s ON s.id = sp.service_id
-                    LEFT JOIN employee e ON e.id = aas.requested_by
-                    LEFT JOIN application_step app_step ON app_step.id = aas.added_at_step_id
-                    LEFT JOIN path_step ps ON ps.id = app_step.step_id
-                    WHERE aas.application_id = @applicationId
-                    ORDER BY aas.requested_at DESC";
+            SELECT aas.*, 
+                   sp.name as service_path_name,
+                   s.name as service_name,
+                   CONCAT(e.last_name, ' ', e.first_name, ' ', COALESCE(e.second_name, '')) as requested_by_name,
+                   ps.name as added_at_step_name
+            FROM ""application_additional_service"" aas
+            LEFT JOIN service_path sp ON sp.id = aas.additional_service_path_id
+            LEFT JOIN service s ON s.id = sp.service_id
+            LEFT JOIN employee e ON e.id = aas.requested_by
+            LEFT JOIN application_step app_step ON app_step.id = aas.added_at_step_id
+            LEFT JOIN path_step ps ON ps.id = app_step.step_id
+            WHERE aas.application_id = @applicationId
+            ORDER BY aas.requested_at DESC";
 
                 var result = await _dbConnection.QueryAsync<application_additional_service>(
                     sql,

@@ -28,8 +28,23 @@ namespace Infrastructure.Repositories
         {
             try
             {
-                var sql = @"SELECT * FROM ""service_path""";
-                var models = await _dbConnection.QueryAsync<service_path>(sql, transaction: _dbTransaction);
+                var sql = @"
+                    SELECT 
+                        sp.*,
+                        s.name as service_name,
+                        COUNT(ps.id) as steps_count
+                    FROM ""service_path"" sp
+                    LEFT JOIN service s ON s.id = sp.service_id
+                    LEFT JOIN path_step ps ON ps.path_id = sp.id
+                    WHERE sp.is_active = true
+                    GROUP BY sp.id, s.name
+                    ORDER BY s.name, sp.name";
+
+                var models = await _dbConnection.QueryAsync<service_path>(
+                    sql,
+                    transaction: _dbTransaction
+                );
+
                 return models.ToList();
             }
             catch (Exception ex)
@@ -44,7 +59,6 @@ namespace Infrastructure.Repositories
             {
                 var model = new service_pathModel
                 {
-                    
                     id = domain.id,
                     updated_by = domain.updated_by,
                     service_id = domain.service_id,
@@ -73,7 +87,6 @@ namespace Infrastructure.Repositories
             {
                 var model = new service_pathModel
                 {
-                    
                     id = domain.id,
                     updated_by = domain.updated_by,
                     service_id = domain.service_id,
@@ -102,8 +115,25 @@ namespace Infrastructure.Repositories
         {
             try
             {
-                var sql = @"SELECT * FROM ""service_path"" OFFSET @pageSize * (@pageNumber - 1) Limit @pageSize;";
-                var models = await _dbConnection.QueryAsync<service_path>(sql, new { pageSize, pageNumber }, transaction: _dbTransaction);
+                // Добавлены JOIN'ы для получения service_name и steps_count
+                var sql = @"
+                    SELECT 
+                        sp.*,
+                        s.name as service_name,
+                        COUNT(ps.id) as steps_count
+                    FROM ""service_path"" sp
+                    LEFT JOIN service s ON s.id = sp.service_id
+                    LEFT JOIN path_step ps ON ps.path_id = sp.id
+                    GROUP BY sp.id, s.name
+                    ORDER BY sp.id
+                    OFFSET @pageSize * (@pageNumber - 1) 
+                    LIMIT @pageSize";
+
+                var models = await _dbConnection.QueryAsync<service_path>(
+                    sql,
+                    new { pageSize, pageNumber },
+                    transaction: _dbTransaction
+                );
 
                 var sqlCount = @"SELECT Count(*) FROM ""service_path""";
                 var totalItems = await _dbConnection.ExecuteScalarAsync<int>(sqlCount, transaction: _dbTransaction);
@@ -117,6 +147,7 @@ namespace Infrastructure.Repositories
                 throw new RepositoryException("Failed to get service_paths", ex);
             }
         }
+
         public async Task Delete(int id)
         {
             try
@@ -131,15 +162,33 @@ namespace Infrastructure.Repositories
             }
             catch (Exception ex)
             {
-                throw new RepositoryException("Failed to update service_path", ex);
+                throw new RepositoryException("Failed to delete service_path", ex);
             }
         }
+
         public async Task<service_path> GetOne(int id)
         {
             try
             {
-                var sql = @"SELECT * FROM ""service_path"" WHERE id = @id LIMIT 1";
-                var models = await _dbConnection.QueryAsync<service_path>(sql, new { id }, transaction: _dbTransaction);
+                // Добавлены JOIN'ы для получения service_name и steps_count
+                var sql = @"
+                    SELECT 
+                        sp.*,
+                        s.name as service_name,
+                        COUNT(ps.id) as steps_count
+                    FROM ""service_path"" sp
+                    LEFT JOIN service s ON s.id = sp.service_id
+                    LEFT JOIN path_step ps ON ps.path_id = sp.id
+                    WHERE sp.id = @id
+                    GROUP BY sp.id, s.name
+                    LIMIT 1";
+
+                var models = await _dbConnection.QueryAsync<service_path>(
+                    sql,
+                    new { id },
+                    transaction: _dbTransaction
+                );
+
                 return models.FirstOrDefault();
             }
             catch (Exception ex)
@@ -148,20 +197,35 @@ namespace Infrastructure.Repositories
             }
         }
 
-        
         public async Task<List<service_path>> GetByservice_id(int service_id)
         {
             try
             {
-                var sql = "SELECT * FROM \"service_path\" WHERE \"service_id\" = @service_id";
-                var models = await _dbConnection.QueryAsync<service_path>(sql, new { service_id }, transaction: _dbTransaction);
+                // Добавлены JOIN'ы для получения service_name и steps_count
+                var sql = @"
+                    SELECT 
+                        sp.*,
+                        s.name as service_name,
+                        COUNT(ps.id) as steps_count
+                    FROM ""service_path"" sp
+                    LEFT JOIN service s ON s.id = sp.service_id
+                    LEFT JOIN path_step ps ON ps.path_id = sp.id
+                    WHERE sp.service_id = @service_id
+                    GROUP BY sp.id, s.name
+                    ORDER BY sp.name";
+
+                var models = await _dbConnection.QueryAsync<service_path>(
+                    sql,
+                    new { service_id },
+                    transaction: _dbTransaction
+                );
+
                 return models.ToList();
             }
             catch (Exception ex)
             {
-                throw new RepositoryException("Failed to get service_path", ex);
+                throw new RepositoryException("Failed to get service_path by service_id", ex);
             }
         }
-        
     }
 }
