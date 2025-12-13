@@ -11,7 +11,7 @@ namespace Application.Repositories
         Task Update(organization_type domain);
         Task<organization_type> GetOne(int id);
         Task Delete(int id);
-        
+        Task<organization_type> GetOneByName(string name);
         
     }
 }

@@ -7,7 +7,12 @@ using Application.Exceptions;
 using Application.Models;
 using System;
 using System.Globalization;
+using FluentResults;
+using Flurl;
+using Flurl.Http;
 using Infrastructure.FillLogData;
+using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
 
 namespace Infrastructure.Repositories
 {
@@ -16,11 +21,14 @@ namespace Infrastructure.Repositories
         private readonly IDbConnection _dbConnection;
         private IDbTransaction? _dbTransaction;
         private IUserRepository _userRepository;
+        private readonly string _apiTundukClient;
 
-        public CustomerRepository(IDbConnection dbConnection, IUserRepository userRepository)
+        public CustomerRepository(IDbConnection dbConnection, IUserRepository userRepository, IConfiguration configuration)
         {
             _dbConnection = dbConnection;
             _userRepository = userRepository;
+            _apiTundukClient = configuration.GetValue<string>("ExternalApi:TundukClient") ??
+                               throw new ArgumentNullException(nameof(configuration), "API TundukClient not configured");
         }
 
         public void SetTransaction(IDbTransaction dbTransaction)
@@ -277,6 +285,27 @@ OFFSET @pageSize * @pageNumber Limit @pageSize";
             catch (Exception ex)
             {
                 throw new RepositoryException("Failed to delete Customer", ex);
+            }
+        }
+        
+        public async Task<Result<CompanyInfo>> findCompanyByPin(string pin)
+        {
+            try
+            {
+                var response = await _apiTundukClient
+                    .AppendPathSegment("TundukClient")
+                    .AppendPathSegment("GetCompanyByPin")
+                    .SetQueryParam("pin", pin)
+                    .GetStringAsync();
+
+                var document = JsonConvert.DeserializeObject<CompanyInfo>(response);
+                return Result.Ok(document);
+            }
+            catch (Exception ex)
+            {
+                return Result.Fail(new Error("Failed to send application data")
+                    .WithMetadata("ErrorCode", "EXTERNAL_API_ERROR")
+                    .WithMetadata("Details", ex.Message));
             }
         }
     }

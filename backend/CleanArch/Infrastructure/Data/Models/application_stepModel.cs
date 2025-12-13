@@ -25,6 +25,7 @@ namespace Infrastructure.Data.Models
 		public DateTime? completion_date { get; set; }
 		public int? planned_duration { get; set; }
 		public int? actual_duration { get; set; }
+		public int? order_number { get; set; }
 		
     }
 }

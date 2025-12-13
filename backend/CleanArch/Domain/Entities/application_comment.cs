@@ -16,5 +16,10 @@ namespace Domain.Entities
         public int? created_by { get; set; }
         public int? updated_by { get; set; }
         public string? full_name { get; set; }
+        public int? type_id { get; set; }
+        public int? employee_id { get; set; }
+        public string? button_label { get; set; }
+        public string? button_color { get; set; }
+        public bool? is_completed { get; set; }
     }
 }

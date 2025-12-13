@@ -18,7 +18,7 @@ namespace Domain.Entities
         public int? responsible_org_id { get; set; }
         public string name { get; set; }
         public string description { get; set; }
-        public int? order_number { get; set; }
+        public int order_number { get; set; }
         public bool? is_required { get; set; }
         public int? estimated_days { get; set; }
         public bool? wait_for_previous_steps { get; set; }

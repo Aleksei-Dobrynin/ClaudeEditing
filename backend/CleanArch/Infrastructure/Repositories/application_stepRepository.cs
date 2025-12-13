@@ -25,11 +25,14 @@ namespace Infrastructure.Repositories
             _dbTransaction = dbTransaction;
         }
 
+        /// <summary>
+        /// ИЗМЕНЕНО: Добавлен фильтр is_deleted = false
+        /// </summary>
         public async Task<List<application_step>> GetAll()
         {
             try
             {
-                var sql = @"SELECT * FROM ""application_step""";
+                var sql = @"SELECT * FROM ""application_step"" WHERE is_deleted = false OR is_deleted IS NULL";
                 var models = await _dbConnection.QueryAsync<application_step>(sql, transaction: _dbTransaction);
                 return models.ToList();
             }
@@ -39,34 +42,65 @@ namespace Infrastructure.Repositories
             }
         }
 
+        /// <summary>
+        /// ИЗМЕНЕНО: Добавлены новые поля для динамических шагов + is_deleted
+        /// </summary>
         public async Task<int> Add(application_step domain)
         {
             try
             {
-                var model = new application_stepModel
-                {
+                var sql = @"
+                    INSERT INTO ""application_step""(
+                        ""is_overdue"", 
+                        ""overdue_days"", 
+                        ""is_paused"", 
+                        ""comments"", 
+                        ""created_at"", 
+                        ""created_by"", 
+                        ""updated_at"", 
+                        ""updated_by"", 
+                        ""application_id"", 
+                        ""step_id"", 
+                        ""order_number"",
+                        ""status"", 
+                        ""start_date"", 
+                        ""due_date"", 
+                        ""completion_date"", 
+                        ""planned_duration"", 
+                        ""actual_duration"",
+                        ""is_dynamically_added"",
+                        ""additional_service_path_id"",
+                        ""original_step_order"",
+                        ""added_by_link_id"",
+                        ""is_deleted""
+                    ) 
+                    VALUES (
+                        @is_overdue, 
+                        @overdue_days, 
+                        @is_paused, 
+                        @comments, 
+                        @created_at, 
+                        @created_by, 
+                        @updated_at, 
+                        @updated_by, 
+                        @application_id, 
+                        @step_id, 
+                        @order_number,
+                        @status, 
+                        @start_date, 
+                        @due_date, 
+                        @completion_date, 
+                        @planned_duration, 
+                        @actual_duration,
+                        @is_dynamically_added,
+                        @additional_service_path_id,
+                        @original_step_order,
+                        @added_by_link_id,
+                        COALESCE(@is_deleted, false)
+                    ) 
+                    RETURNING id";
 
-                    id = domain.id,
-                    is_overdue = domain.is_overdue,
-                    overdue_days = domain.overdue_days,
-                    is_paused = domain.is_paused,
-                    comments = domain.comments,
-                    created_at = domain.created_at,
-                    created_by = domain.created_by,
-                    updated_at = domain.updated_at,
-                    updated_by = domain.updated_by,
-                    application_id = domain.application_id,
-                    step_id = domain.step_id,
-                    status = domain.status,
-                    start_date = domain.start_date,
-                    due_date = domain.due_date,
-                    completion_date = domain.completion_date,
-                    planned_duration = domain.planned_duration,
-                    actual_duration = domain.actual_duration,
-                };
-                var sql = @"INSERT INTO ""application_step""(""is_overdue"", ""overdue_days"", ""is_paused"", ""comments"", ""created_at"", ""created_by"", ""updated_at"", ""updated_by"", ""application_id"", ""step_id"", ""status"", ""start_date"", ""due_date"", ""completion_date"", ""planned_duration"", ""actual_duration"") 
-                VALUES (@is_overdue, @overdue_days, @is_paused, @comments, @created_at, @created_by, @updated_at, @updated_by, @application_id, @step_id, @status, @start_date, @due_date, @completion_date, @planned_duration, @actual_duration) RETURNING id";
-                var result = await _dbConnection.ExecuteScalarAsync<int>(sql, model, transaction: _dbTransaction);
+                var result = await _dbConnection.ExecuteScalarAsync<int>(sql, domain, transaction: _dbTransaction);
                 return result;
             }
             catch (Exception ex)
@@ -75,33 +109,41 @@ namespace Infrastructure.Repositories
             }
         }
 
+        /// <summary>
+        /// ИЗМЕНЕНО: Добавлены новые поля для динамических шагов + is_deleted
+        /// </summary>
         public async Task Update(application_step domain)
         {
             try
             {
-                var model = new application_stepModel
-                {
+                var sql = @"
+                    UPDATE ""application_step"" 
+                    SET 
+                        ""is_overdue"" = @is_overdue, 
+                        ""overdue_days"" = @overdue_days, 
+                        ""is_paused"" = @is_paused, 
+                        ""comments"" = @comments, 
+                        ""created_at"" = @created_at, 
+                        ""created_by"" = @created_by, 
+                        ""updated_at"" = @updated_at, 
+                        ""updated_by"" = @updated_by, 
+                        ""application_id"" = @application_id, 
+                        ""step_id"" = @step_id, 
+                        ""order_number"" = @order_number,
+                        ""status"" = @status, 
+                        ""start_date"" = @start_date, 
+                        ""due_date"" = @due_date, 
+                        ""completion_date"" = @completion_date, 
+                        ""planned_duration"" = @planned_duration, 
+                        ""actual_duration"" = @actual_duration,
+                        ""is_dynamically_added"" = @is_dynamically_added,
+                        ""additional_service_path_id"" = @additional_service_path_id,
+                        ""original_step_order"" = @original_step_order,
+                        ""added_by_link_id"" = @added_by_link_id,
+                        ""is_deleted"" = @is_deleted
+                    WHERE id = @id";
 
-                    id = domain.id,
-                    is_overdue = domain.is_overdue,
-                    overdue_days = domain.overdue_days,
-                    is_paused = domain.is_paused,
-                    comments = domain.comments,
-                    created_at = domain.created_at,
-                    created_by = domain.created_by,
-                    updated_at = domain.updated_at,
-                    updated_by = domain.updated_by,
-                    application_id = domain.application_id,
-                    step_id = domain.step_id,
-                    status = domain.status,
-                    start_date = domain.start_date,
-                    due_date = domain.due_date,
-                    completion_date = domain.completion_date,
-                    planned_duration = domain.planned_duration,
-                    actual_duration = domain.actual_duration,
-                };
-                var sql = @"UPDATE ""application_step"" SET ""id"" = @id, ""is_overdue"" = @is_overdue, ""overdue_days"" = @overdue_days, ""is_paused"" = @is_paused, ""comments"" = @comments, ""created_at"" = @created_at, ""created_by"" = @created_by, ""updated_at"" = @updated_at, ""updated_by"" = @updated_by, ""application_id"" = @application_id, ""step_id"" = @step_id, ""status"" = @status, ""start_date"" = @start_date, ""due_date"" = @due_date, ""completion_date"" = @completion_date, ""planned_duration"" = @planned_duration, ""actual_duration"" = @actual_duration WHERE id = @id";
-                var affected = await _dbConnection.ExecuteAsync(sql, model, transaction: _dbTransaction);
+                var affected = await _dbConnection.ExecuteAsync(sql, domain, transaction: _dbTransaction);
                 if (affected == 0)
                 {
                     throw new RepositoryException("Not found", null);
@@ -113,14 +155,25 @@ namespace Infrastructure.Repositories
             }
         }
 
+        /// <summary>
+        /// ИЗМЕНЕНО: Добавлен фильтр is_deleted = false
+        /// </summary>
         public async Task<PaginatedList<application_step>> GetPaginated(int pageSize, int pageNumber)
         {
             try
             {
-                var sql = @"SELECT * FROM ""application_step"" OFFSET @pageSize * (@pageNumber - 1) Limit @pageSize;";
+                var sql = @"
+                    SELECT * FROM ""application_step"" 
+                    WHERE is_deleted = false OR is_deleted IS NULL
+                    OFFSET @pageSize * (@pageNumber - 1) 
+                    LIMIT @pageSize";
+
                 var models = await _dbConnection.QueryAsync<application_step>(sql, new { pageSize, pageNumber }, transaction: _dbTransaction);
 
-                var sqlCount = @"SELECT Count(*) FROM ""application_step""";
+                var sqlCount = @"
+                    SELECT COUNT(*) FROM ""application_step"" 
+                    WHERE is_deleted = false OR is_deleted IS NULL";
+
                 var totalItems = await _dbConnection.ExecuteScalarAsync<int>(sqlCount, transaction: _dbTransaction);
 
                 var domainItems = models.ToList();
@@ -132,28 +185,46 @@ namespace Infrastructure.Repositories
                 throw new RepositoryException("Failed to get application_steps", ex);
             }
         }
+
+        /// <summary>
+        /// ИЗМЕНЕНО: Мягкое удаление - устанавливает is_deleted = true
+        /// </summary>
         public async Task Delete(int id)
         {
             try
             {
-                var model = new { id = id };
-                var sql = @"DELETE FROM ""application_step"" WHERE id = @id";
-                var affected = await _dbConnection.ExecuteAsync(sql, model, transaction: _dbTransaction);
+                var sql = @"
+                    UPDATE ""application_step"" 
+                    SET is_deleted = true, 
+                        updated_at = NOW()
+                    WHERE id = @id 
+                      AND (is_deleted = false OR is_deleted IS NULL)";
+
+                var affected = await _dbConnection.ExecuteAsync(sql, new { id }, transaction: _dbTransaction);
                 if (affected == 0)
                 {
-                    throw new RepositoryException("Not found", null);
+                    throw new RepositoryException("Not found or already deleted", null);
                 }
             }
             catch (Exception ex)
             {
-                throw new RepositoryException("Failed to update application_step", ex);
+                throw new RepositoryException("Failed to delete application_step", ex);
             }
         }
+
+        /// <summary>
+        /// ИЗМЕНЕНО: Добавлен фильтр is_deleted = false
+        /// </summary>
         public async Task<application_step> GetOne(int id)
         {
             try
             {
-                var sql = @"SELECT * FROM ""application_step"" WHERE id = @id LIMIT 1";
+                var sql = @"
+                    SELECT * FROM ""application_step"" 
+                    WHERE id = @id 
+                      AND (is_deleted = false OR is_deleted IS NULL)
+                    LIMIT 1";
+
                 var models = await _dbConnection.QueryAsync<application_step>(sql, new { id }, transaction: _dbTransaction);
                 return models.FirstOrDefault();
             }
@@ -163,16 +234,26 @@ namespace Infrastructure.Repositories
             }
         }
 
-
+        /// <summary>
+        /// ИЗМЕНЕНО: Добавлен фильтр is_deleted = false
+        /// </summary>
         public async Task<List<application_step>> GetByapplication_id(int application_id)
         {
             try
             {
-                var sql = @"SELECT st.*, ps.path_id, ps.name, ps.order_number, ps.responsible_org_id as responsible_department_id 
-FROM application_step st
-left join path_step ps on ps.id = st.step_id
-WHERE application_id = @application_id
-order by ps.order_number";
+                var sql = @"
+                    SELECT 
+                        st.*, 
+                        ps.path_id, 
+                        ps.name, 
+                        COALESCE(st.order_number, ps.order_number) as order_number,
+                        ps.responsible_org_id as responsible_department_id 
+                    FROM application_step st
+                    LEFT JOIN path_step ps ON ps.id = st.step_id
+                    WHERE st.application_id = @application_id
+                      AND (st.is_deleted = false OR st.is_deleted IS NULL)
+                    ORDER BY COALESCE(st.order_number, ps.order_number)";
+
                 var models = await _dbConnection.QueryAsync<application_step>(sql, new { application_id }, transaction: _dbTransaction);
                 return models.ToList();
             }
@@ -182,11 +263,18 @@ order by ps.order_number";
             }
         }
 
+        /// <summary>
+        /// ИЗМЕНЕНО: Добавлен фильтр is_deleted = false
+        /// </summary>
         public async Task<List<application_step>> GetBystep_id(int step_id)
         {
             try
             {
-                var sql = "SELECT * FROM \"application_step\" WHERE \"step_id\" = @step_id";
+                var sql = @"
+                    SELECT * FROM ""application_step"" 
+                    WHERE ""step_id"" = @step_id 
+                      AND (is_deleted = false OR is_deleted IS NULL)";
+
                 var models = await _dbConnection.QueryAsync<application_step>(sql, new { step_id }, transaction: _dbTransaction);
                 return models.ToList();
             }
@@ -195,6 +283,10 @@ order by ps.order_number";
                 throw new RepositoryException("Failed to get application_step", ex);
             }
         }
+
+        /// <summary>
+        /// ИЗМЕНЕНО: Добавлен фильтр is_deleted = false в WHERE для apps.status
+        /// </summary>
         public async Task<List<UnsignedDocumentsModel>> GetUnsignedDocuments(List<int> post_ids, List<int> structure_ids, string search, bool isDeadline, string user_id)
         {
             try
@@ -235,6 +327,7 @@ WHERE
     val.department_id = ANY(@structure_ids)
     AND val.position_id = ANY(@post_ids)
     AND (apps.status IS NULL OR apps.status != 'completed')
+    AND (apps.is_deleted = false OR apps.is_deleted IS NULL)
 ";
                 if (isDeadline)
                 {
@@ -266,39 +359,52 @@ ORDER BY
             }
             catch (Exception ex)
             {
-                throw new RepositoryException("Failed to get application_step", ex);
+                throw new RepositoryException("Failed to get unsigned documents", ex);
             }
         }
 
+        /// <summary>
+        /// ИЗМЕНЕНО: Мягкое удаление вместо физического
+        /// </summary>
         public async Task DeleteByApplicationId(int application_id)
         {
             try
             {
-                var model = new { id = application_id };
-                var sql = @"DELETE FROM application_step WHERE application_id = @id";
-                var affected = await _dbConnection.ExecuteAsync(sql, model, transaction: _dbTransaction);
+                var sql = @"
+                    UPDATE application_step 
+                    SET is_deleted = true, 
+                        updated_at = NOW()
+                    WHERE application_id = @id 
+                      AND (is_deleted = false OR is_deleted IS NULL)";
+
+                await _dbConnection.ExecuteAsync(sql, new { id = application_id }, transaction: _dbTransaction);
             }
             catch (Exception ex)
             {
-                throw new RepositoryException("Failed to update application_step", ex);
+                throw new RepositoryException("Failed to delete application_step by application_id", ex);
             }
         }
 
+        /// <summary>
+        /// ИЗМЕНЕНО: Добавлен фильтр is_deleted = false
+        /// </summary>
         public async Task<List<application_step>> GetDynamicallyAddedSteps(int applicationId, int additionalServiceLinkId)
         {
             try
             {
                 var sql = @"
-            SELECT st.*, 
-                   ps.name, 
-                   ps.order_number as path_order,
-                   ps.responsible_org_id as responsible_department_id 
-            FROM ""application_step"" st
-            LEFT JOIN path_step ps ON ps.id = st.step_id
-            WHERE st.application_id = @applicationId
-            AND st.added_by_link_id = @additionalServiceLinkId
-            AND st.is_dynamically_added = true
-            ORDER BY st.order_number";
+                    SELECT 
+                        st.*, 
+                        ps.name, 
+                        ps.order_number as path_order,
+                        ps.responsible_org_id as responsible_department_id 
+                    FROM ""application_step"" st
+                    LEFT JOIN path_step ps ON ps.id = st.step_id
+                    WHERE st.application_id = @applicationId
+                      AND st.added_by_link_id = @additionalServiceLinkId
+                      AND st.is_dynamically_added = true
+                      AND (st.is_deleted = false OR st.is_deleted IS NULL)
+                    ORDER BY st.order_number";
 
                 var result = await _dbConnection.QueryAsync<application_step>(
                     sql,
@@ -314,16 +420,20 @@ ORDER BY
             }
         }
 
+        /// <summary>
+        /// ИЗМЕНЕНО: Добавлен фильтр is_deleted = false
+        /// </summary>
         public async Task<int> ShiftOrderNumbers(int applicationId, int afterOrderNumber, int shiftBy)
         {
             try
             {
                 var sql = @"
-            UPDATE ""application_step"" 
-            SET order_number = order_number + @shiftBy,
-                updated_at = NOW()
-            WHERE application_id = @applicationId
-            AND order_number > @afterOrderNumber";
+                    UPDATE ""application_step"" 
+                    SET order_number = order_number + @shiftBy,
+                        updated_at = NOW()
+                    WHERE application_id = @applicationId
+                      AND order_number > @afterOrderNumber
+                      AND (is_deleted = false OR is_deleted IS NULL)";
 
                 var affected = await _dbConnection.ExecuteAsync(
                     sql,
@@ -339,22 +449,26 @@ ORDER BY
             }
         }
 
+        /// <summary>
+        /// ИЗМЕНЕНО: Добавлен фильтр is_deleted = false
+        /// </summary>
         public async Task ReorderSteps(int applicationId)
         {
             try
             {
                 var sql = @"
-            WITH numbered AS (
-                SELECT id, 
-                       ROW_NUMBER() OVER (ORDER BY order_number) as new_order
-                FROM ""application_step""
-                WHERE application_id = @applicationId
-            )
-            UPDATE ""application_step"" 
-            SET order_number = numbered.new_order,
-                updated_at = NOW()
-            FROM numbered
-            WHERE ""application_step"".id = numbered.id";
+                    WITH numbered AS (
+                        SELECT id, 
+                               ROW_NUMBER() OVER (ORDER BY order_number) as new_order
+                        FROM ""application_step""
+                        WHERE application_id = @applicationId
+                          AND (is_deleted = false OR is_deleted IS NULL)
+                    )
+                    UPDATE ""application_step"" 
+                    SET order_number = numbered.new_order,
+                        updated_at = NOW()
+                    FROM numbered
+                    WHERE ""application_step"".id = numbered.id";
 
                 await _dbConnection.ExecuteAsync(
                     sql,
@@ -368,16 +482,20 @@ ORDER BY
             }
         }
 
+        /// <summary>
+        /// ИЗМЕНЕНО: Добавлен фильтр is_deleted = false
+        /// </summary>
         public async Task<bool> AreAllDynamicStepsCompleted(int additionalServiceLinkId)
         {
             try
             {
                 var sql = @"
-            SELECT COUNT(*) 
-            FROM ""application_step""
-            WHERE added_by_link_id = @additionalServiceLinkId
-            AND is_dynamically_added = true
-            AND status != 'completed'";
+                    SELECT COUNT(*) 
+                    FROM ""application_step""
+                    WHERE added_by_link_id = @additionalServiceLinkId
+                      AND is_dynamically_added = true
+                      AND status != 'completed'
+                      AND (is_deleted = false OR is_deleted IS NULL)";
 
                 var incompleteCount = await _dbConnection.ExecuteScalarAsync<int>(
                     sql,
@@ -393,16 +511,20 @@ ORDER BY
             }
         }
 
+        /// <summary>
+        /// ИЗМЕНЕНО: Добавлен фильтр is_deleted = false
+        /// </summary>
         public async Task<bool> AreAnyDynamicStepsStarted(int additionalServiceLinkId)
         {
             try
             {
                 var sql = @"
-            SELECT COUNT(*) 
-            FROM ""application_step""
-            WHERE added_by_link_id = @additionalServiceLinkId
-            AND is_dynamically_added = true
-            AND status != 'pending'";
+                    SELECT COUNT(*) 
+                    FROM ""application_step""
+                    WHERE added_by_link_id = @additionalServiceLinkId
+                      AND is_dynamically_added = true
+                      AND status NOT IN ('waiting', 'pending')
+                      AND (is_deleted = false OR is_deleted IS NULL)";
 
                 var startedCount = await _dbConnection.ExecuteScalarAsync<int>(
                     sql,
@@ -418,14 +540,20 @@ ORDER BY
             }
         }
 
+        /// <summary>
+        /// ИЗМЕНЕНО: Мягкое удаление вместо физического
+        /// </summary>
         public async Task DeleteDynamicSteps(int additionalServiceLinkId)
         {
             try
             {
                 var sql = @"
-            DELETE FROM ""application_step""
-            WHERE added_by_link_id = @additionalServiceLinkId
-            AND is_dynamically_added = true";
+                    UPDATE ""application_step""
+                    SET is_deleted = true,
+                        updated_at = NOW()
+                    WHERE added_by_link_id = @additionalServiceLinkId
+                      AND is_dynamically_added = true
+                      AND (is_deleted = false OR is_deleted IS NULL)";
 
                 await _dbConnection.ExecuteAsync(
                     sql,
@@ -436,6 +564,64 @@ ORDER BY
             catch (Exception ex)
             {
                 throw new RepositoryException("Failed to delete dynamic steps", ex);
+            }
+        }
+
+        // ============ МЕТОДЫ ДЛЯ СИСТЕМНОЙ ОТЛАДКИ ============
+
+        /// <summary>
+        /// ОТЛАДКА: Получить все удаленные записи
+        /// </summary>
+        public async Task<List<application_step>> GetAllDeleted()
+        {
+            try
+            {
+                var sql = @"SELECT * FROM ""application_step"" WHERE is_deleted = true ORDER BY id";
+                var models = await _dbConnection.QueryAsync<application_step>(sql, transaction: _dbTransaction);
+                return models.ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to get deleted application_steps", ex);
+            }
+        }
+
+        /// <summary>
+        /// ОТЛАДКА: Получить все записи включая удаленные
+        /// </summary>
+        public async Task<List<application_step>> GetAllIncludingDeleted()
+        {
+            try
+            {
+                var sql = @"SELECT * FROM ""application_step"" ORDER BY id";
+                var models = await _dbConnection.QueryAsync<application_step>(sql, transaction: _dbTransaction);
+                return models.ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to get all application_steps including deleted", ex);
+            }
+        }
+
+        /// <summary>
+        /// ОТЛАДКА: Получить удаленную запись по ID
+        /// </summary>
+        public async Task<application_step> GetDeletedById(int id)
+        {
+            try
+            {
+                var sql = @"
+                    SELECT * FROM ""application_step"" 
+                    WHERE id = @id 
+                      AND is_deleted = true
+                    LIMIT 1";
+
+                var models = await _dbConnection.QueryAsync<application_step>(sql, new { id }, transaction: _dbTransaction);
+                return models.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to get deleted application_step by id", ex);
             }
         }
     }

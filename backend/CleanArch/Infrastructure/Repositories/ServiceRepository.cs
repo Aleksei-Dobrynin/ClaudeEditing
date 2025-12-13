@@ -31,6 +31,73 @@ namespace Infrastructure.Repositories
             _dbTransaction = dbTransaction;
         }
 
+        // НОВЫЕ МЕТОДЫ - ДОБАВИТЬ В КЛАСС ServiceRepository
+
+        /// <summary>
+        /// Получает все активные услуги (у которых есть хотя бы один активный service_path)
+        /// </summary>
+        public async Task<List<Service>> GetAllActive()
+        {
+            try
+            {
+                var sql = @"SELECT DISTINCT 
+                           service.id, service.name, service.name_kg, service.name_long, service.name_long_kg, 
+                           service.name_statement, service.name_statement_kg, service.name_confirmation, service.name_confirmation_kg,
+                           service.short_name, service.code, service.description, service.description_kg, service.day_count, 
+                           service.workflow_id, service.price, service.is_active, service.date_start, service.date_end, 
+                           service.law_document_id, service.text_color, service.background_color, service.structure_id,
+                           service.created_at, service.created_by, service.updated_at, service.updated_by,
+                           workflow.name as workflow_name, ld.name as law_document_name, os.name as structure_name
+                    FROM service 
+                        INNER JOIN service_path sp ON sp.service_id = service.id AND sp.is_active = true
+                        LEFT JOIN workflow ON workflow.id = service.workflow_id
+                        LEFT JOIN law_document ld ON service.law_document_id = ld.id
+                        LEFT JOIN org_structure os ON service.structure_id = os.id
+                    ORDER BY service.name";
+
+                var models = await _dbConnection.QueryAsync<Service>(sql, transaction: _dbTransaction);
+                return models.ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to get active services", ex);
+            }
+        }
+
+        /// <summary>
+        /// Получает активные услуги для структуры пользователя (у которых есть хотя бы один активный service_path)
+        /// </summary>
+        public async Task<List<Service>> GetMyStructureActive(string user_id)
+        {
+            try
+            {
+                var sql = @"SELECT DISTINCT 
+                           service.id, service.name, service.name_kg, service.name_long, service.name_long_kg, 
+                           service.name_statement, service.name_statement_kg, service.name_confirmation, service.name_confirmation_kg,
+                           service.short_name, service.code, service.description, service.description_kg, service.day_count, 
+                           service.workflow_id, service.price, service.is_active, service.date_start, service.date_end, 
+                           service.law_document_id, service.text_color, service.background_color, service.structure_id,
+                           service.created_at, service.created_by, service.updated_at, service.updated_by,
+                           workflow.name as workflow_name, os.name as structure_name
+                    FROM service 
+                        INNER JOIN service_path sp ON sp.service_id = service.id AND sp.is_active = true
+                        LEFT JOIN workflow ON workflow.id = service.workflow_id
+                        LEFT JOIN workflow_task_template wtt ON wtt.workflow_id = service.workflow_id
+                        LEFT JOIN org_structure os ON wtt.structure_id = os.id
+                        LEFT JOIN employee_in_structure eis ON os.id = eis.structure_id
+                        LEFT JOIN employee e ON eis.employee_id = e.id 
+                    WHERE e.user_id = @user_id
+                    ORDER BY service.name";
+
+                var models = await _dbConnection.QueryAsync<Service>(sql, new { user_id }, transaction: _dbTransaction);
+                return models.ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to get active services for user structure", ex);
+            }
+        }
+
         public async Task<List<Service>> GetAll()
         {
             try

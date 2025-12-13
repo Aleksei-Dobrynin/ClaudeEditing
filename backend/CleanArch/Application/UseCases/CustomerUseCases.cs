@@ -123,5 +123,63 @@ namespace Application.UseCases
         {
             return await unitOfWork.CustomerRepository.GetOneByPin(pin, customer_id);
         }
+        
+        public async Task<object> findCompanyByPin(string pin)
+        {
+            var data = await unitOfWork.CustomerRepository.findCompanyByPin(pin);
+            var result = data.Value;
+            switch (result.category)
+            {
+                case 5:
+                    result.categorySystemName ="ОсОО"; // Общество с ограниченной ответственностью
+                    break;
+                // case 0:
+                //     result.categorySystemName = "ИП";
+                //     break;                
+                case 206:
+                    result.categorySystemName = "ЗАО"; // Закрытое акционерное общество
+                    break;
+                case 7:
+                    result.categorySystemName = "ОАО"; // Открытое акционерное общество
+                    break;
+                case 14:
+                    result.categorySystemName = "РО"; // Религиозная организация
+                    break;
+                // case 0:
+                //     result.Value.categorySystemName = "ОКПО"; // Объединение коммерческих предприятий
+                //     break;
+                case 15:
+                    result.categorySystemName = "ТСЖ"; // Товарищество собственников жилья
+                    break;
+                case 1:
+                    result.categorySystemName = "ГП"; // Государственное предприятие
+                    break;  
+                // case 0:
+                //     result.Value.categorySystemName = "ОК"; // Обслуживающий кооператив
+                //     break;  
+                case 11:
+                    result.categorySystemName = "ОО"; // Общественное объединение
+                    break;
+                case 12:
+                    result.categorySystemName = "ОБФ"; // Общественный благотворительный фонд
+                    break;
+                // case 0:
+                //     result.Value.categorySystemName = "СОШ"; // 
+                //     break;  
+                case 2:
+                    result.categorySystemName = "МП"; // Муниципальное предприятие
+                    break;
+                default:
+                    result.categorySystemName = "";
+                    break;
+            }
+
+            if (result.categorySystemName != "")
+            {
+                var type = await unitOfWork.organization_typeRepository.GetOneByName(result.categorySystemName);
+                result.categorySystemId =  type.id;
+            }
+            return result;
+        }
     }
 }

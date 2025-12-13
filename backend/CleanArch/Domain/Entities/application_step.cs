@@ -9,28 +9,34 @@ namespace Domain.Entities
     public class application_step
     {
         public int id { get; set; }
-		public bool? is_overdue { get; set; }
-		public int? overdue_days { get; set; }
-		public bool? is_paused { get; set; }
-		public string name { get; set; }
-		public string comments { get; set; }
-		public DateTime? created_at { get; set; }
-		public int? created_by { get; set; }
-		public DateTime? updated_at { get; set; }
-		public int? updated_by { get; set; }
-		public int? application_id { get; set; }
-		public int? step_id { get; set; }
-		public int? order_number { get; set; }
-		public int? path_id { get; set; }
-		public int? responsible_department_id { get; set; }
-		public string status { get; set; }
-		public DateTime? start_date { get; set; }
-		public DateTime? due_date { get; set; }
-		public DateTime? completion_date { get; set; }
-		public int? planned_duration { get; set; }
-		public int? actual_duration { get; set; }
-		public int[] dependencies { get; set; }
-		public int[] blocks { get; set; }
+        public bool? is_overdue { get; set; }
+        public int? overdue_days { get; set; }
+        public bool? is_paused { get; set; }
+        public string name { get; set; }
+        public string comments { get; set; }
+        public DateTime? created_at { get; set; }
+        public int? created_by { get; set; }
+        public DateTime? updated_at { get; set; }
+        public int? updated_by { get; set; }
+        public int? application_id { get; set; }
+        public int? step_id { get; set; }
+
+        /// <summary>
+        /// КРИТИЧНО: order_number теперь int (не nullable!)
+        /// Обязательное поле после миграции
+        /// </summary>
+        public int order_number { get; set; }
+
+        public int? path_id { get; set; }
+        public int? responsible_department_id { get; set; }
+        public string status { get; set; }
+        public DateTime? start_date { get; set; }
+        public DateTime? due_date { get; set; }
+        public DateTime? completion_date { get; set; }
+        public int? planned_duration { get; set; }
+        public int? actual_duration { get; set; }
+        public int[] dependencies { get; set; }
+        public int[] blocks { get; set; }
         public List<FileSign> signs { get; set; }
         public List<step_required_document> docs { get; set; }
         public List<StepDocument> documents { get; set; }
@@ -61,6 +67,13 @@ namespace Domain.Entities
         /// Используется для группировки всех шагов одной добавленной услуги
         /// </summary>
         public int? added_by_link_id { get; set; }
+
+        /// <summary>
+        /// Флаг мягкого удаления
+        /// TRUE = запись удалена (скрыта из обычных выборок)
+        /// FALSE/NULL = активная запись
+        /// </summary>
+        public bool? is_deleted { get; set; }
     }
 
     public class StepDocument
@@ -73,7 +86,7 @@ namespace Domain.Entities
         public int? service_document_id { get; set; }
         public bool can_assign { get; set; }
         public string assign_status { get; set; }
-        public List<document_approval>  approvals { get; set; }
+        public List<document_approval> approvals { get; set; }
         public bool? is_required { get; set; }
     }
 
@@ -94,6 +107,7 @@ namespace Domain.Entities
         public int? task_id { get; set; }
         public int? app_step_id { get; set; }
     }
+
     public class ApplicationUnsignedDocumentsModel
     {
         public int app_id { get; set; }

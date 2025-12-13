@@ -74,12 +74,13 @@ namespace Infrastructure.Repositories
                     id = domain.id,
                     application_id = domain.application_id,
                     comment = domain.comment,
+                    type_id = domain.type_id
                 };
                 
                 await FillLogDataHelper.FillLogDataCreate(model, userId);
                 
-                var sql = "INSERT INTO \"application_comment\"(\"application_id\", \"comment\", \"created_at\", \"updated_at\", \"created_by\", \"updated_by\") " +
-                    "VALUES (@application_id, @comment, @created_at, @updated_at, @created_by, @updated_by) RETURNING id";
+                var sql = "INSERT INTO \"application_comment\"(\"application_id\", \"comment\", \"created_at\", \"updated_at\", \"created_by\", \"updated_by\", type_id) " +
+                    "VALUES (@application_id, @comment, @created_at, @updated_at, @created_by, @updated_by, @type_id) RETURNING id";
                 var result = await _dbConnection.ExecuteScalarAsync<int>(sql, model, transaction: _dbTransaction);
                 return result;
             }
@@ -137,7 +138,7 @@ namespace Infrastructure.Repositories
         {
             try
             {
-                var sql = "SELECT a.*, e.first_name || ' ' || e.last_name || ' ' || e.second_name AS full_name FROM \"application_comment\" a  JOIN \"User\" u ON a.created_by = u.id JOIN \"employee\" e ON u.\"userId\" = e.user_id WHERE a.application_id = @Id ORDER BY a.created_at";
+                var sql = "SELECT a.*, e.first_name || ' ' || e.last_name || ' ' || e.second_name AS full_name, ct.button_label, ct.button_color FROM \"application_comment\" a  JOIN \"User\" u ON a.created_by = u.id JOIN \"employee\" e ON u.\"userId\" = e.user_id LEFT JOIN \"comment_type\" ct ON ct.id = a.type_id WHERE a.application_id = @Id ORDER BY a.created_at";
 
                 var models = await _dbConnection.QueryAsync<application_comment>(sql, new { Id = id }, transaction: _dbTransaction);
                 return models.ToList();
@@ -164,6 +165,21 @@ namespace Infrastructure.Repositories
             catch (Exception ex)
             {
                 throw new RepositoryException("Failed to get User", ex);
+            }
+        }
+
+        public async Task<List<application_comment>> MyAssigned(int id)
+        {
+            try
+            {
+                var sql = "SELECT a.*, e.first_name || ' ' || e.last_name || ' ' || e.second_name AS full_name, ct.button_label, ct.button_color, aca.is_completed FROM \"application_comment\" a  JOIN \"User\" u ON a.created_by = u.id JOIN \"employee\" e ON u.\"userId\" = e.user_id LEFT JOIN \"comment_type\" ct ON ct.id = a.type_id LEFT JOIN \"application_comment_assignee\" aca ON a.id = aca.comment_id WHERE aca.employee_id = @Id ORDER BY a.created_at";
+
+                var models = await _dbConnection.QueryAsync<application_comment>(sql, new { Id = id }, transaction: _dbTransaction);
+                return models.ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to get application_comment", ex);
             }
         }
     }

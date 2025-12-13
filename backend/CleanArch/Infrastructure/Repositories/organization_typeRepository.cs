@@ -135,6 +135,21 @@ namespace Infrastructure.Repositories
                 throw new RepositoryException("Failed to update organization_type", ex);
             }
         }
+
+        public async Task<organization_type> GetOneByName(string name)
+        {
+            try
+            {
+                var sql = "SELECT * FROM \"organization_type\" WHERE name = @name LIMIT 1";
+                var models = await _dbConnection.QueryAsync<organization_type>(sql, new { name }, transaction: _dbTransaction);
+                return models.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to get organization_type", ex);
+            }
+        }
+
         public async Task<organization_type> GetOne(int id)
         {
             try

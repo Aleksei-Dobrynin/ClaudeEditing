@@ -52,4 +52,73 @@ namespace Domain.Entities
         
                 
     }
+    
+    public class CompanyInfo
+    {
+        public string fullNameGl { get; set; }
+
+        public string shortNameGl { get; set; }
+
+        public string fullNameOl { get; set; }
+
+        public string shortNameOl { get; set; }
+
+        public bool foreignPart { get; set; }
+
+        public string registrCode { get; set; }
+
+        public string statSubCode { get; set; }
+
+        public string tin { get; set; }
+
+        public string region { get; set; }
+
+        public string district { get; set; }
+
+        public string city { get; set; }
+
+        public string village { get; set; }
+
+        public string microdistrict { get; set; }
+
+        public string street { get; set; }
+
+        public string house { get; set; }
+
+        public string room { get; set; }
+
+        public string phones { get; set; }
+
+        public string email1 { get; set; }
+
+        public string email2 { get; set; }
+
+        public DateTime? orderDate { get; set; }
+
+        public string firstOrderDate { get; set; }
+
+        public int category { get; set; }
+        public int categorySystemId { get; set; }
+        public string categorySystemName { get; set; }
+
+        public int ownership { get; set; }
+
+        public string chief { get; set; }
+
+        public string chiefTin { get; set; }
+
+        public string baseBus { get; set; }
+
+        public string baseBusCode { get; set; }
+
+        public string indFounders { get; set; }
+
+        public string jurFounders { get; set; }
+
+        public string totalFounders { get; set; }
+
+        public string description { get; set; }
+        
+        public string founders { get; set; }
+    }
 }

@@ -142,12 +142,23 @@ namespace WebApi.Controllers
             var response = await _serviceUseCases.DashboardGetCountTasks(date_start, date_end, structure_id);
             return Ok(response);
         }
-        
+
         [HttpGet]
         [Route("DashboardGetCountTasksForMyStructure")]
         public async Task<IActionResult> DashboardGetCountTasksForMyStructure(DateTime date_start, DateTime date_end)
         {
             var response = await _serviceUseCases.DashboardGetCountTasksForMyStructure(date_start, date_end);
+            return Ok(response);
+        }
+
+        /// <summary>
+        /// Получает все активные услуги (у которых есть хотя бы один активный service_path)
+        /// </summary>
+        [HttpGet]
+        [Route("GetAllActive")]
+        public async Task<IActionResult> GetAllActive()
+        {
+            var response = await _serviceUseCases.GetAllActive();
             return Ok(response);
         }
 

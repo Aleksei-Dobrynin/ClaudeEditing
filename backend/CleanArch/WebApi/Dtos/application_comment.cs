@@ -5,6 +5,8 @@
         public int id { get; set; }
         public int? application_id { get; set; }
         public string? comment { get; set; }
+        public int? comment_type_id { get; set; }
+        public int? employee_id { get; set; }
 
   
         public string? userEmail { get; set; }

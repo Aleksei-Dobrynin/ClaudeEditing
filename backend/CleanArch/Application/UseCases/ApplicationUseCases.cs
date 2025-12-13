@@ -391,6 +391,7 @@ namespace Application.UseCases
                             application_id = result,
                             step_id = steps[i].id,
                             status = "waiting",
+                            order_number = steps[i].order_number,
                             planned_duration = steps[i].estimated_days,
                             start_date = DateTime.UtcNow.AddHours(6), //todo
                         };

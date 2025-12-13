@@ -46,7 +46,7 @@ namespace Infrastructure.Repositories
                     SELECT aas.*, 
                            sp.name as service_path_name,
                            s.name as service_name,
-                           e.full_name as requested_by_name,
+                           (e.last_name || ' ' || e.first_name) as requested_by_name,
                            ps.name as added_at_step_name
                     FROM ""application_additional_service"" aas
                     LEFT JOIN service_path sp ON sp.id = aas.additional_service_path_id

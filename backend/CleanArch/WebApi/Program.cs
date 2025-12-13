@@ -364,6 +364,7 @@ namespace WebApi
             builder.Services.AddScoped<IEmployeeSavedFiltersRepository, EmployeeSavedFiltersRepository>();
             builder.Services.AddScoped<ISmejPortalApiRepository, SmejPortalApiRepository>();
             builder.Services.AddScoped<Iapplication_additional_serviceRepository , application_additional_serviceRepository>();
+            builder.Services.AddScoped<ICommentTypeRepository, CommentTypeRepository>();
 
             builder.Services.AddScoped<EventTypeUseCases>();
             builder.Services.AddScoped<ArchiveObjectsEventsUseCases>();
@@ -559,6 +560,7 @@ namespace WebApi
             builder.Services.AddScoped<StreetTypeUseCases>();
             builder.Services.AddScoped<StreetUseCases>();
             builder.Services.AddScoped<SmejPortalUseCases>();
+            builder.Services.AddScoped<CommentTypeUseCases>();
 
             builder.Services.AddScoped<EmployeeSavedFiltersUseCases>();
             builder.Services.AddScoped<application_additional_serviceUseCases>();

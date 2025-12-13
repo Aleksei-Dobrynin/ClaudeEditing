@@ -1,5 +1,6 @@
 ﻿using Application.Models;
 using Domain.Entities;
+using FluentResults;
 
 namespace Application.Repositories
 {
@@ -13,5 +14,6 @@ namespace Application.Repositories
         Task Update(Customer domain);
         Task Delete(int id);
         Task<Customer> GetOneByPin(string pin, int customer_id);
+        Task<Result<CompanyInfo>> findCompanyByPin(string pin);
     }
 }

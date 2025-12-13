@@ -134,5 +134,13 @@ namespace WebApi.Controllers
             await _customerUseCases.Delete(id);
             return Ok();
         }
+        
+        [HttpGet]
+        [Route("findCompanyByPin")]
+        public async Task<IActionResult> findCompanyByPin(string pin)
+        {
+            var response = await _customerUseCases.findCompanyByPin(pin);
+            return Ok(response);
+        }
     }
 }

@@ -52,7 +52,6 @@ namespace Application.UseCases
             var user_guid = await unitOfWork.UserRepository.GetUserUID();
 
             var orgs = await unitOfWork.EmployeeInStructureRepository.GetInMyStructure(user_id);
-            //var role_ids = roles.Select(x=>x);
             var org_ids = orgs.Select(x => x.structure_id).ToList();
 
             var res = await unitOfWork.application_stepRepository.GetUnsignedDocuments(roles, org_ids, search, isDeadline, user_guid);
@@ -347,6 +346,32 @@ namespace Application.UseCases
         public Task<List<application_step>> GetBystep_id(int step_id)
         {
             return unitOfWork.application_stepRepository.GetBystep_id(step_id);
+        }
+
+        // ============ МЕТОДЫ ДЛЯ СИСТЕМНОЙ ОТЛАДКИ ============
+
+        /// <summary>
+        /// ОТЛАДКА: Получить все удаленные шаги
+        /// </summary>
+        public Task<List<application_step>> GetAllDeleted()
+        {
+            return unitOfWork.application_stepRepository.GetAllDeleted();
+        }
+
+        /// <summary>
+        /// ОТЛАДКА: Получить все шаги включая удаленные
+        /// </summary>
+        public Task<List<application_step>> GetAllIncludingDeleted()
+        {
+            return unitOfWork.application_stepRepository.GetAllIncludingDeleted();
+        }
+
+        /// <summary>
+        /// ОТЛАДКА: Получить удаленный шаг по ID
+        /// </summary>
+        public Task<application_step> GetDeletedById(int id)
+        {
+            return unitOfWork.application_stepRepository.GetDeletedById(id);
         }
     }
 }

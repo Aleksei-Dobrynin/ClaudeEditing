@@ -1,5 +1,6 @@
 using Application.Models;
 using Domain.Entities;
+using Infrastructure.Data.Models;
 
 namespace Application.Repositories
 {
@@ -11,8 +12,8 @@ namespace Application.Repositories
         Task Update(service_path domain);
         Task<service_path> GetOne(int id);
         Task Delete(int id);
-        
-        
+        Task<ServiceWithPathAndSignersModel?> GetServiceWithPathAndSigners(int serviceId);
+        Task<List<ServiceWithPathAndSignersModel>> GetAllServicesWithPathsAndSigners();
         Task<List<service_path>> GetByservice_id(int service_id);
     }
 }

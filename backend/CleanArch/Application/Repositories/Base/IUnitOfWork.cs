@@ -207,5 +207,7 @@ namespace Application.Repositories
         IEmployeeSavedFiltersRepository EmployeeSavedFiltersRepository { get; }
         ISmejPortalApiRepository SmejPortalApiRepository { get; }
         Iapplication_additional_serviceRepository application_additional_serviceRepository { get; }
-    }
+        ICommentTypeRepository CommentTypeRepository { get; }
+        IApplicationCommentAssigneeRepository ApplicationCommentAssigneeRepository { get; }
+        }
 }

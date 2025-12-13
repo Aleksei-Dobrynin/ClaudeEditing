@@ -6,7 +6,9 @@ namespace Application.Repositories
     public interface IServiceRepository : BaseRepository
     {
         Task<List<Service>> GetAll();
+        Task<List<Service>> GetAllActive(); // НОВЫЙ МЕТОД
         Task<List<Service>> GetMyStructure(string user_id);
+        Task<List<Service>> GetMyStructureActive(string user_id); // НОВЫЙ МЕТОД
         Task<Service> GetOneByID(int id);
         Task<PaginatedList<Service>> GetPaginated(int pageSize, int pageNumber);
         Task<int> Add(Service domain);
@@ -16,7 +18,6 @@ namespace Application.Repositories
         Task<ResultDashboard> DashboardGetAppsByStatusAndStructure(DateTime date_start, DateTime date_end, int structure_id, string status_name);
         Task<ResultDashboard> DashboardGetFinance(DateTime date_start, DateTime date_end, int structure_id);
         Task<ResultDashboard> DashboardGetPaymentFinance(DateTime date_start, DateTime date_end, int structure_id);
-
         Task<ResultDashboard> DashboardGetAppCount(DateTime date_start, DateTime date_end, int service_id, int status_id);
         Task<ResultDashboard> DashboardGetAppCount(DateTime date_start, DateTime date_end, int service_id, int status_id, string user_id);
         Task<ResultDashboard> GetForFinanceInvoice(DateTime date_start, DateTime date_end);
@@ -43,7 +44,7 @@ namespace Application.Repositories
         Task<List<ChartTableDataDashboard>> DashboardGetEmployeesToDutyPlan(DateTime date_start, DateTime date_end);
         Task<List<ChartTableDataDashboard>> DashboardGetAppsFromRegister(DateTime date_start, DateTime date_end);
         Task<AppCountDashboradData> GetAppCountDashboardByStructure(DateTime date_start, DateTime date_end, int structure_id);
-        Task<object> GetApplicationsCategoryCount(DateTime date_start, DateTime date_end, 
+        Task<object> GetApplicationsCategoryCount(DateTime date_start, DateTime date_end,
             int? district_id, bool? is_paid);
         Task<object> GetApplicationsCategoryCountForMyStructure(DateTime date_start, DateTime date_end, int? district_id, bool? is_paid, string user_id, List<int> ids);
         Task<ResultDashboard> DashboardGetCountObjectsMyStructure(int district_id, string user_id);

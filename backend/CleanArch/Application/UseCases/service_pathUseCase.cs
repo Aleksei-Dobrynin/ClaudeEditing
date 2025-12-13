@@ -1,6 +1,7 @@
 using Application.Models;
 using Application.Repositories;
 using Domain.Entities;
+using Infrastructure.Data.Models;
 
 namespace Application.UseCases
 {
@@ -57,5 +58,20 @@ namespace Application.UseCases
             return unitOfWork.service_pathRepository.GetByservice_id(service_id);
         }
         
+        /// <summary>
+        /// Получить услугу с активным путем, шагами, документами и подписантами
+        /// </summary>
+        public async Task<ServiceWithPathAndSignersModel?> GetServiceWithPathAndSigners(int serviceId)
+        {
+            return await unitOfWork.service_pathRepository.GetServiceWithPathAndSigners(serviceId);
+        }
+
+        /// <summary>
+        /// Получить все активные услуги с путями и подписантами
+        /// </summary>
+        public async Task<List<ServiceWithPathAndSignersModel>> GetAllServicesWithPathsAndSigners()
+        {
+            return await unitOfWork.service_pathRepository.GetAllServicesWithPathsAndSigners();
+        }
     }
 }

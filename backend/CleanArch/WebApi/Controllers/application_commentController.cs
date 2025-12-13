@@ -48,6 +48,8 @@ namespace WebApi.Controllers
                 id = requestDto.id,
                 application_id = requestDto.application_id,
                 comment = requestDto.comment,
+                type_id = requestDto.comment_type_id != 0 ? requestDto.comment_type_id : null,
+                employee_id = requestDto.employee_id,
             };
             var response = await _application_commentUseCases.Create(request);
             return Ok(response);
@@ -85,6 +87,22 @@ namespace WebApi.Controllers
         {
             var response = await _application_commentUseCases.GetByapplication_id(application_id);
             return Ok(response);
+        } 
+        
+        [HttpGet]
+        [Route("MyAssigned")]
+        public async Task<IActionResult> MyAssigned()
+        {
+            var response = await _application_commentUseCases.MyAssigned();
+            return Ok(response);
         }
+        
+        [HttpGet]
+        [Route("CompleteComment")]
+        public async Task<IActionResult> CompleteComment(int id)
+        {
+            var response = await _application_commentUseCases.CompleteComment(id);
+            return Ok(response);
+        } 
     }
 }

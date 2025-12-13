@@ -11,6 +11,10 @@ namespace Application.Repositories
         Task<int> Add(application_step domain);
         Task Update(application_step domain);
         Task<application_step> GetOne(int id);
+
+        /// <summary>
+        /// Мягкое удаление - устанавливает is_deleted = true
+        /// </summary>
         Task Delete(int id);
 
         /// <summary>
@@ -59,16 +63,36 @@ namespace Application.Repositories
         Task<bool> AreAnyDynamicStepsStarted(int additionalServiceLinkId);
 
         /// <summary>
-        /// Удалить динамически добавленные шаги
+        /// Удалить динамически добавленные шаги (мягкое удаление)
         /// ЗАЧЕМ: Очистить шаги при отмене дополнительной услуги
         /// КОГДА: При отмене, если ни один шаг не начат
         /// ВНИМАНИЕ: Перед вызовом нужно удалить связанные document_approval!
         /// </summary>
         Task DeleteDynamicSteps(int additionalServiceLinkId);
 
-
         Task<List<application_step>> GetByapplication_id(int application_id);
         Task<List<application_step>> GetBystep_id(int step_id);
         Task DeleteByApplicationId(int application_id);
+
+        // ============ МЕТОДЫ ДЛЯ СИСТЕМНОЙ ОТЛАДКИ ============
+
+        /// <summary>
+        /// ОТЛАДКА: Получить все удаленные записи (is_deleted = true)
+        /// Используется для аудита и отладки системы
+        /// </summary>
+        Task<List<application_step>> GetAllDeleted();
+
+        /// <summary>
+        /// ОТЛАДКА: Получить все записи включая удаленные (игнорируя is_deleted)
+        /// Используется для полного анализа данных
+        /// </summary>
+        Task<List<application_step>> GetAllIncludingDeleted();
+
+        /// <summary>
+        /// ОТЛАДКА: Получить удаленную запись по ID
+        /// Используется для просмотра деталей удаленной записи
+        /// ВОЗВРАТ: Запись если найдена и is_deleted = true, иначе null
+        /// </summary>
+        Task<application_step> GetDeletedById(int id);
     }
 }

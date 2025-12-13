@@ -46,6 +46,15 @@ namespace Application.UseCases
             return domain;
         }
 
+        /// <summary>
+        /// Получает все активные услуги (у которых есть активный service_path)
+        /// </summary>
+        public Task<List<Service>> GetAllActive()
+        {
+            return unitOfWork.ServiceRepository.GetAllActive();
+        }
+
+
         public async Task<Service> Update(Service domain)
         {
             await unitOfWork.ServiceRepository.Update(domain);

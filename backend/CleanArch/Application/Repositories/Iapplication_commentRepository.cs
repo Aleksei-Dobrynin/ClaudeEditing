@@ -17,5 +17,6 @@ namespace Application.Repositories
         Task Delete(int id);
         Task<List<Domain.Entities.application_comment>> GetByapplication_id(int id);
         Task<int> GetUserByEmail(string email);
+        Task<List<Domain.Entities.application_comment>> MyAssigned(int id);
     }
 }

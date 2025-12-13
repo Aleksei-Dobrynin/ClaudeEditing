@@ -215,8 +215,10 @@ namespace Infrastructure.Data
         private IEventTypeRepository? _eventTypeRepository;
         private IArchiveObjectsEventsRepository? _archiveObjectsEventsRepository;
         private IEmployeeSavedFiltersRepository? _employeeSavedFiltersRepository; 
-        private ISmejPortalApiRepository? _smejPortalApiRepository;
+        private ISmejPortalApiRepository? _smejPortalApiRepository; 
         private Iapplication_additional_serviceRepository? _application_additional_serviceRepository;
+        private ICommentTypeRepository? _commentTypeRepository; 
+        private IApplicationCommentAssigneeRepository? _applicationCommentAssigneeRepository; 
 
         private ILogger<UnitOfWork> _logger;
         private IConfiguration _configuration;
@@ -712,7 +714,7 @@ namespace Infrastructure.Data
             {
                 if (_customerRepository == null)
                 {
-                    _customerRepository = new CustomerRepository(_dbConnection, _userRepository);
+                    _customerRepository = new CustomerRepository(_dbConnection, _userRepository, _configuration);
                     _customerRepository.SetTransaction(_dbTransaction);
                 }
                 return _customerRepository;
@@ -2616,7 +2618,7 @@ namespace Infrastructure.Data
                 return _smejPortalApiRepository;
             }
         }
-
+        
         public Iapplication_additional_serviceRepository application_additional_serviceRepository
         {
             get
@@ -2627,6 +2629,31 @@ namespace Infrastructure.Data
                     _application_additional_serviceRepository.SetTransaction(_dbTransaction);
                 }
                 return _application_additional_serviceRepository;
+            }
+        }
+
+
+        public ICommentTypeRepository CommentTypeRepository
+        {
+            get
+            {
+                if (_commentTypeRepository == null)
+                {
+                    _commentTypeRepository = new CommentTypeRepository(_dbConnection, _userRepository);
+                }
+                return _commentTypeRepository;
+            }
+        }  
+        
+        public IApplicationCommentAssigneeRepository ApplicationCommentAssigneeRepository
+        {
+            get
+            {
+                if (_applicationCommentAssigneeRepository == null)
+                {
+                    _applicationCommentAssigneeRepository = new ApplicationCommentAssigneeRepository(_dbConnection, _userRepository);
+                }
+                return _applicationCommentAssigneeRepository;
             }
         }
 

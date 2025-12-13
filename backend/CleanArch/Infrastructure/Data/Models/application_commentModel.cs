@@ -12,5 +12,6 @@ namespace Infrastructure.Data.Models
         public int id { get; set; }
         public int? application_id { get; set; }
         public string? comment { get; set; }
+        public int? type_id { get; set; }
     }
 }

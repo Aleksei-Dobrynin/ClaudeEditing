@@ -99,6 +99,50 @@ namespace WebApi.Controllers
             return Ok(response);
         }
         
+        /// <summary>
+        /// Получить услугу с активным путем, шагами, документами и подписантами
+        /// Этот endpoint возвращает полную иерархию для отображения на фронтенде
+        /// </summary>
+        /// <param name="serviceId">ID услуги</param>
+        /// <returns>Услуга с полной структурой: путь → шаги → документы → подписанты</returns>
+        [HttpGet]
+        [Route("GetServiceWithPathAndSigners")]
+        public async Task<IActionResult> GetServiceWithPathAndSigners(int serviceId)
+        {
+            try
+            {
+                var response = await _service_pathUseCases.GetServiceWithPathAndSigners(serviceId);
+        
+                if (response == null)
+                {
+                    return NotFound(new { message = $"Service with id {serviceId} not found or inactive" });
+                }
+        
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
+            }
+        }
 
+        /// <summary>
+        /// Получить все активные услуги с путями, шагами, документами и подписантами
+        /// </summary>
+        /// <returns>Список всех активных услуг с полной структурой</returns>
+        [HttpGet]
+        [Route("GetAllServicesWithPathsAndSigners")]
+        public async Task<IActionResult> GetAllServicesWithPathsAndSigners()
+        {
+            try
+            {
+                var response = await _service_pathUseCases.GetAllServicesWithPathsAndSigners();
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
+            }
+        }
     }
 }
