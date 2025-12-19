@@ -214,5 +214,29 @@ namespace Infrastructure.Repositories
             }
         }
 
+        public async Task<List<step_dependency>> GetByservice_path_id(int servicePathId)
+        {
+            try
+            {
+                // Получаем все шаги для service_path
+                var stepsQuery = @"SELECT id FROM ""path_step"" WHERE ""path_id"" = @servicePathId";
+                var stepIds = await _dbConnection.QueryAsync<int>(stepsQuery, new { servicePathId }, transaction: _dbTransaction);
+
+                if (!stepIds.Any())
+                    return new List<step_dependency>();
+
+                // Получаем все зависимости для этих шагов
+                var sql = @"SELECT * FROM ""step_dependency"" 
+                    WHERE ""dependent_step_id"" = ANY(@stepIds) 
+                    OR ""prerequisite_step_id"" = ANY(@stepIds)";
+                var models = await _dbConnection.QueryAsync<step_dependency>(sql, new { stepIds = stepIds.ToArray() }, transaction: _dbTransaction);
+                return models.ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to get step_dependencies by service_path_id", ex);
+            }
+        }
+
     }
 }

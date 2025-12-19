@@ -1,7 +1,8 @@
+using Application.Models;
+using Application.UseCases;
+using Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 using WebApi.Dtos;
-using Application.UseCases;
-using Application.Models;
 
 namespace WebApi.Controllers
 {
@@ -10,10 +11,14 @@ namespace WebApi.Controllers
     public class service_pathController : ControllerBase
     {
         private readonly service_pathUseCases _service_pathUseCases;
+        private readonly ServicePathBulkUseCase _bulkUseCase;
 
-        public service_pathController(service_pathUseCases service_pathUseCases)
+        public service_pathController(
+            service_pathUseCases service_pathUseCases,
+            ServicePathBulkUseCase bulkUseCase) 
         {
             _service_pathUseCases = service_pathUseCases;
+            _bulkUseCase = bulkUseCase; 
         }
 
         [HttpGet]
@@ -99,12 +104,50 @@ namespace WebApi.Controllers
             return Ok(response);
         }
         
+        [HttpPost]
+        [Route("BulkSave")]
+        public async Task<IActionResult> BulkSave(BulkSaveServicePathRequest request)
+        {
+            try
+            {
+                var response = await _bulkUseCase.BulkSave(request);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
+        [HttpGet]
+        [Route("LoadWithChildren/{id:int}")]
+        public async Task<IActionResult> LoadWithChildren(int id)
+        {
+            try
+            {
+                var response = await _bulkUseCase.LoadWithChildren(id);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
+        }
+
+
         /// <summary>
-        /// РџРѕР»СѓС‡РёС‚СЊ СѓСЃР»СѓРіСѓ СЃ Р°РєС‚РёРІРЅС‹Рј РїСѓС‚РµРј, С€Р°РіР°РјРё, РґРѕРєСѓРјРµРЅС‚Р°РјРё Рё РїРѕРґРїРёСЃР°РЅС‚Р°РјРё
-        /// Р­С‚РѕС‚ endpoint РІРѕР·РІСЂР°С‰Р°РµС‚ РїРѕР»РЅСѓСЋ РёРµСЂР°СЂС…РёСЋ РґР»СЏ РѕС‚РѕР±СЂР°Р¶РµРЅРёСЏ РЅР° С„СЂРѕРЅС‚РµРЅРґРµ
+        /// Получить услугу с активным путем, шагами, документами и подписантами
+        /// Этот endpoint возвращает полную иерархию для отображения на фронтенде
         /// </summary>
-        /// <param name="serviceId">ID СѓСЃР»СѓРіРё</param>
-        /// <returns>РЈСЃР»СѓРіР° СЃ РїРѕР»РЅРѕР№ СЃС‚СЂСѓРєС‚СѓСЂРѕР№: РїСѓС‚СЊ в†’ С€Р°РіРё в†’ РґРѕРєСѓРјРµРЅС‚С‹ в†’ РїРѕРґРїРёСЃР°РЅС‚С‹</returns>
+        /// <param name="serviceId">ID услуги</param>
+        /// <returns>Услуга с полной структурой: путь > шаги > документы > подписанты</returns>
         [HttpGet]
         [Route("GetServiceWithPathAndSigners")]
         public async Task<IActionResult> GetServiceWithPathAndSigners(int serviceId)
@@ -127,9 +170,9 @@ namespace WebApi.Controllers
         }
 
         /// <summary>
-        /// РџРѕР»СѓС‡РёС‚СЊ РІСЃРµ Р°РєС‚РёРІРЅС‹Рµ СѓСЃР»СѓРіРё СЃ РїСѓС‚СЏРјРё, С€Р°РіР°РјРё, РґРѕРєСѓРјРµРЅС‚Р°РјРё Рё РїРѕРґРїРёСЃР°РЅС‚Р°РјРё
+        /// Получить все активные услуги с путями, шагами, документами и подписантами
         /// </summary>
-        /// <returns>РЎРїРёСЃРѕРє РІСЃРµС… Р°РєС‚РёРІРЅС‹С… СѓСЃР»СѓРі СЃ РїРѕР»РЅРѕР№ СЃС‚СЂСѓРєС‚СѓСЂРѕР№</returns>
+        /// <returns>Список всех активных услуг с полной структурой</returns>
         [HttpGet]
         [Route("GetAllServicesWithPathsAndSigners")]
         public async Task<IActionResult> GetAllServicesWithPathsAndSigners()

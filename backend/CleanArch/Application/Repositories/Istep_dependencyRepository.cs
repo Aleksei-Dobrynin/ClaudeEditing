@@ -16,5 +16,6 @@ namespace Application.Repositories
         Task<List<step_dependency>> GetBydependent_step_id(int dependent_step_id);
         Task<List<step_dependency>> GetByprerequisite_step_id(int prerequisite_step_id);
         Task<List<step_dependency>> GetByServicePathId(int service_path_id);
+        Task<List<step_dependency>> GetByservice_path_id(int servicePathId);
     }
 }

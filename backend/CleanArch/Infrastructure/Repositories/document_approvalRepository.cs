@@ -44,7 +44,6 @@ namespace Infrastructure.Repositories
             {
                 var model = new document_approvalModel
                 {
-                    
                     id = domain.id,
                     updated_at = domain.updated_at,
                     created_by = domain.created_by,
@@ -61,9 +60,26 @@ namespace Infrastructure.Repositories
                     document_type_id = domain.document_type_id,
                     is_required_approver = domain.is_required_approver,
                     is_required_doc = domain.is_required_doc,
+                    is_final = domain.is_final,
+                    source_approver_id = domain.source_approver_id,
+                    is_manually_modified = domain.is_manually_modified,
+                    last_sync_at = domain.last_sync_at
                 };
-                var sql = @"INSERT INTO ""document_approval""(""updated_at"", ""created_by"", ""updated_by"", ""app_document_id"", ""file_sign_id"", ""department_id"", ""position_id"", ""status"", ""approval_date"", ""comments"", ""created_at"", app_step_id, document_type_id, is_required_approver, is_required_doc) 
-                VALUES (@updated_at, @created_by, @updated_by, @app_document_id, @file_sign_id, @department_id, @position_id, @status, @approval_date, @comments, @created_at, @app_step_id, @document_type_id, @is_required_approver, @is_required_doc) RETURNING id";
+
+                var sql = @"INSERT INTO ""document_approval""
+                    (""updated_at"", ""created_by"", ""updated_by"", ""app_document_id"", 
+                     ""file_sign_id"", ""department_id"", ""position_id"", ""status"", 
+                     ""approval_date"", ""comments"", ""created_at"", ""app_step_id"", 
+                     ""document_type_id"", ""is_required_approver"", ""is_required_doc"",
+                     ""is_final"", ""source_approver_id"", ""is_manually_modified"", ""last_sync_at"") 
+                VALUES 
+                    (@updated_at, @created_by, @updated_by, @app_document_id, 
+                     @file_sign_id, @department_id, @position_id, @status, 
+                     @approval_date, @comments, @created_at, @app_step_id, 
+                     @document_type_id, @is_required_approver, @is_required_doc,
+                     @is_final, @source_approver_id, @is_manually_modified, @last_sync_at) 
+                RETURNING id";
+
                 var result = await _dbConnection.ExecuteScalarAsync<int>(sql, model, transaction: _dbTransaction);
                 return result;
             }
@@ -79,7 +95,6 @@ namespace Infrastructure.Repositories
             {
                 var model = new document_approvalModel
                 {
-                    
                     id = domain.id,
                     updated_at = domain.updated_at,
                     created_by = domain.created_by,
@@ -95,8 +110,34 @@ namespace Infrastructure.Repositories
                     document_type_id = domain.document_type_id,
                     is_required_doc = domain.is_required_doc,
                     is_required_approver = domain.is_required_approver,
+                    is_final = domain.is_final,
+                    source_approver_id = domain.source_approver_id,
+                    is_manually_modified = domain.is_manually_modified,
+                    last_sync_at = domain.last_sync_at
                 };
-                var sql = @"UPDATE ""document_approval"" SET  is_required_approver = @is_required_approver, is_required_doc = @is_required_doc,  ""id"" = @id, ""updated_at"" = @updated_at, ""updated_by"" = @updated_by, ""app_document_id"" = @app_document_id, ""file_sign_id"" = @file_sign_id, ""department_id"" = @department_id, ""position_id"" = @position_id, ""status"" = @status, ""approval_date"" = @approval_date, ""comments"" = @comments, document_type_id = @document_type_id, app_step_id = @app_step_id WHERE id = @id";
+
+                var sql = @"UPDATE ""document_approval"" 
+                SET 
+                    ""is_required_approver"" = @is_required_approver, 
+                    ""is_required_doc"" = @is_required_doc,  
+                    ""id"" = @id, 
+                    ""updated_at"" = @updated_at, 
+                    ""updated_by"" = @updated_by, 
+                    ""app_document_id"" = @app_document_id, 
+                    ""file_sign_id"" = @file_sign_id, 
+                    ""department_id"" = @department_id, 
+                    ""position_id"" = @position_id, 
+                    ""status"" = @status, 
+                    ""approval_date"" = @approval_date, 
+                    ""comments"" = @comments, 
+                    ""document_type_id"" = @document_type_id, 
+                    ""app_step_id"" = @app_step_id,
+                    ""is_final"" = @is_final,
+                    ""source_approver_id"" = @source_approver_id,
+                    ""is_manually_modified"" = @is_manually_modified,
+                    ""last_sync_at"" = @last_sync_at
+                WHERE id = @id";
+
                 var affected = await _dbConnection.ExecuteAsync(sql, model, transaction: _dbTransaction);
                 if (affected == 0)
                 {
@@ -128,6 +169,7 @@ namespace Infrastructure.Repositories
                 throw new RepositoryException("Failed to get document_approvals", ex);
             }
         }
+
         public async Task Delete(int id)
         {
             try
@@ -145,6 +187,7 @@ namespace Infrastructure.Repositories
                 throw new RepositoryException("Failed to update document_approval", ex);
             }
         }
+
         public async Task<document_approval> GetOne(int id)
         {
             try
@@ -159,7 +202,6 @@ namespace Infrastructure.Repositories
             }
         }
 
-        
         public async Task<List<document_approval>> GetByapp_document_id(int app_document_id)
         {
             try
@@ -215,13 +257,12 @@ namespace Infrastructure.Repositories
                 throw new RepositoryException("Failed to get document_approval", ex);
             }
         }
+
         public async Task<List<document_approval>> GetByUplIds(int[] ids)
         {
             try
             {
-                var sql = @"
-SELECT * FROM document_approval WHERE app_document_id = ANY(@ids)
-";
+                var sql = @"SELECT * FROM document_approval WHERE app_document_id = ANY(@ids)";
                 var models = await _dbConnection.QueryAsync<document_approval>(sql, new { ids }, transaction: _dbTransaction);
                 return models.ToList();
             }
@@ -231,18 +272,22 @@ SELECT * FROM document_approval WHERE app_document_id = ANY(@ids)
             }
         }
 
-
         public async Task<List<document_approval>> GetByAppStepIds(int[] ids)
         {
             try
             {
                 var sql = @"
-SELECT vals.*, post.name position_name, org.name department_name, ad.name as document_name FROM document_approval vals
-    left join org_structure org on org.id = vals.department_id
-    left join structure_post post on post.id = vals.position_id
-    left join application_document ad on ad.id = vals.document_type_id
-WHERE app_step_id = ANY(@ids)
-";
+                    SELECT 
+                        vals.*, 
+                        post.name position_name, 
+                        org.name department_name, 
+                        ad.name as document_name 
+                    FROM document_approval vals
+                    LEFT JOIN org_structure org ON org.id = vals.department_id
+                    LEFT JOIN structure_post post ON post.id = vals.position_id
+                    LEFT JOIN application_document ad ON ad.id = vals.document_type_id
+                    WHERE app_step_id = ANY(@ids)";
+
                 var models = await _dbConnection.QueryAsync<document_approval>(sql, new { ids }, transaction: _dbTransaction);
                 return models.ToList();
             }

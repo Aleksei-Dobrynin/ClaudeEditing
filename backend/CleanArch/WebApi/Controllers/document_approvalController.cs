@@ -37,7 +37,6 @@ namespace WebApi.Controllers
         {
             var request = new Domain.Entities.document_approval
             {
-                
                 updated_at = requestDto.updated_at,
                 created_by = requestDto.created_by,
                 updated_by = requestDto.updated_by,
@@ -51,6 +50,10 @@ namespace WebApi.Controllers
                 created_at = requestDto.created_at,
                 app_step_id = requestDto.app_step_id,
                 document_type_id = requestDto.document_type_id,
+                is_final = requestDto.is_final,
+                source_approver_id = requestDto.source_approver_id,
+                is_manually_modified = requestDto.is_manually_modified,
+                last_sync_at = requestDto.last_sync_at
             };
             var response = await _document_approvalUseCases.Create(request);
             return Ok(response);
@@ -63,7 +66,6 @@ namespace WebApi.Controllers
             var request = new Domain.Entities.document_approval
             {
                 id = requestDto.id,
-                
                 updated_at = requestDto.updated_at,
                 created_by = requestDto.created_by,
                 updated_by = requestDto.updated_by,
@@ -77,6 +79,10 @@ namespace WebApi.Controllers
                 created_at = requestDto.created_at,
                 app_step_id = requestDto.app_step_id,
                 document_type_id = requestDto.document_type_id,
+                is_final = requestDto.is_final,
+                source_approver_id = requestDto.source_approver_id,
+                is_manually_modified = requestDto.is_manually_modified,
+                last_sync_at = requestDto.last_sync_at
             };
             var response = await _document_approvalUseCases.Update(request);
             return Ok(response);
@@ -98,7 +104,6 @@ namespace WebApi.Controllers
             return Ok(response);
         }
 
-        
         [HttpGet]
         [Route("GetByapp_document_id")]
         public async Task<IActionResult> GetByapp_document_id(int app_document_id)
@@ -106,7 +111,7 @@ namespace WebApi.Controllers
             var response = await _document_approvalUseCases.GetByapp_document_id(app_document_id);
             return Ok(response);
         }
-        
+
         [HttpGet]
         [Route("GetByfile_sign_id")]
         public async Task<IActionResult> GetByfile_sign_id(int file_sign_id)
@@ -114,7 +119,7 @@ namespace WebApi.Controllers
             var response = await _document_approvalUseCases.GetByfile_sign_id(file_sign_id);
             return Ok(response);
         }
-        
+
         [HttpGet]
         [Route("GetBydepartment_id")]
         public async Task<IActionResult> GetBydepartment_id(int department_id)
@@ -122,7 +127,7 @@ namespace WebApi.Controllers
             var response = await _document_approvalUseCases.GetBydepartment_id(department_id);
             return Ok(response);
         }
-        
+
         [HttpGet]
         [Route("GetByposition_id")]
         public async Task<IActionResult> GetByposition_id(int position_id)
@@ -130,7 +135,5 @@ namespace WebApi.Controllers
             var response = await _document_approvalUseCases.GetByposition_id(position_id);
             return Ok(response);
         }
-        
-
     }
 }

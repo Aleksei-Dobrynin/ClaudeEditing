@@ -363,6 +363,7 @@ namespace WebApi
             builder.Services.AddScoped<IArchiveObjectsEventsRepository, ArchiveObjectsEventsRepository>();
             builder.Services.AddScoped<IEmployeeSavedFiltersRepository, EmployeeSavedFiltersRepository>();
             builder.Services.AddScoped<ISmejPortalApiRepository, SmejPortalApiRepository>();
+            builder.Services.AddScoped<Idocument_approval_sync_logRepository, document_approval_sync_logRepository>();
             builder.Services.AddScoped<Iapplication_additional_serviceRepository , application_additional_serviceRepository>();
             builder.Services.AddScoped<ICommentTypeRepository, CommentTypeRepository>();
 
@@ -560,12 +561,15 @@ namespace WebApi
             builder.Services.AddScoped<StreetTypeUseCases>();
             builder.Services.AddScoped<StreetUseCases>();
             builder.Services.AddScoped<SmejPortalUseCases>();
+            builder.Services.AddScoped<ServicePathBulkUseCase>();
             builder.Services.AddScoped<CommentTypeUseCases>();
 
             builder.Services.AddScoped<EmployeeSavedFiltersUseCases>();
+            builder.Services.AddScoped<document_approval_sync_logUseCases>();
             builder.Services.AddScoped<application_additional_serviceUseCases>();
 
             builder.Services.AddScoped<IWatermarkService, WatermarkService>();
+
 
 
             var app = builder.Build();

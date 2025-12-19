@@ -15,5 +15,6 @@ namespace Application.Repositories
         
         Task<List<step_partner>> GetBystep_id(int step_id);
         Task<List<step_partner>> GetBypartner_id(int partner_id);
+
     }
 }

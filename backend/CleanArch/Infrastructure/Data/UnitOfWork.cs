@@ -216,6 +216,7 @@ namespace Infrastructure.Data
         private IArchiveObjectsEventsRepository? _archiveObjectsEventsRepository;
         private IEmployeeSavedFiltersRepository? _employeeSavedFiltersRepository; 
         private ISmejPortalApiRepository? _smejPortalApiRepository; 
+        private Idocument_approval_sync_logRepository? _document_approval_sync_logRepository;
         private Iapplication_additional_serviceRepository? _application_additional_serviceRepository;
         private ICommentTypeRepository? _commentTypeRepository; 
         private IApplicationCommentAssigneeRepository? _applicationCommentAssigneeRepository; 
@@ -2619,6 +2620,21 @@ namespace Infrastructure.Data
             }
         }
         
+        public Idocument_approval_sync_logRepository document_approval_sync_logRepository
+        {
+            get
+            {
+                if (_document_approval_sync_logRepository == null)
+                {
+                    _document_approval_sync_logRepository = new document_approval_sync_logRepository(_dbConnection);
+                }
+                return _document_approval_sync_logRepository;
+            }
+        }
+
+        
+
+
         public Iapplication_additional_serviceRepository application_additional_serviceRepository
         {
             get

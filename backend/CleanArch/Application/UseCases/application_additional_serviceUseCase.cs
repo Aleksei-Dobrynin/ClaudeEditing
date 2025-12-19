@@ -204,13 +204,14 @@ namespace Application.UseCases
         }
 
         /// <summary>
-        /// Отменить добавленную услугу и удалить её шаги
+        /// ИСПРАВЛЕНО: Отменить добавленную услугу и удалить её шаги
+        /// С ВАЛИДАЦИЕЙ на загруженные и подписанные документы
         /// </summary>
         public async Task<Result> CancelAdditionalService(int additionalServiceId)
         {
             try
             {
-                // ============ ШАГ 1: ПРОВЕРКИ ============
+                // ============ ШАГ 1: БАЗОВЫЕ ПРОВЕРКИ ============
 
                 var service = await unitOfWork.application_additional_serviceRepository.GetOne(additionalServiceId);
 
@@ -230,30 +231,83 @@ namespace Application.UseCases
                 if (anyStarted)
                     return Result.Fail("Невозможно отменить - работа по шагам уже начата");
 
-                // ============ ШАГ 2: УДАЛЯЕМ ШАГИ ============
+                // ============ ШАГ 2: ПОЛУЧАЕМ ШАГИ ДЛЯ ВАЛИДАЦИИ ============
 
                 var steps = await unitOfWork.application_stepRepository
                     .GetDynamicallyAddedSteps(service.application_id.Value, additionalServiceId);
 
-                // Удаляем согласования для каждого шага
-                foreach (var step in steps)
+                if (steps == null || !steps.Any())
                 {
-                    var approvals = await unitOfWork.document_approvalRepository.GetByapp_step_id(step.id);
+                    // Если шагов нет, можно сразу отменить
+                    await unitOfWork.application_additional_serviceRepository.CancelService(additionalServiceId);
+                    unitOfWork.Commit();
+                    return Result.Ok();
+                }
 
-                    foreach (var approval in approvals)
+                var stepIds = steps.Select(s => s.id).ToArray();
+
+                // ============ ШАГ 3: ВАЛИДАЦИЯ - ПРОВЕРЯЕМ ЗАГРУЖЕННЫЕ ДОКУМЕНТЫ ============
+
+                // Проверяем, есть ли загруженные документы для этих шагов
+                var uploadedDocs = new List<uploaded_application_document>();
+                foreach (var stepId in stepIds)
+                {
+                    var docs = await unitOfWork.uploaded_application_documentRepository
+                        .ByApplicationIdAndStepId(service.application_id.Value, stepId);
+
+                    if (docs != null && docs.Any())
                     {
-                        await unitOfWork.document_approvalRepository.Delete(approval.id);
+                        uploadedDocs.AddRange(docs);
                     }
+                }
+
+                if (uploadedDocs.Any())
+                {
+                    return Result.Fail($"Невозможно удалить дополнительную услугу: найдено {uploadedDocs.Count} загруженных документов. Необходимо сначала удалить все документы.");
+                }
+
+                // ============ ШАГ 4: ВАЛИДАЦИЯ - ПРОВЕРЯЕМ ПОДПИСИ ============
+
+                // Получаем все согласования для этих шагов
+                var approvals = await unitOfWork.document_approvalRepository.GetByAppStepIds(stepIds);
+
+                // Проверяем наличие подписей (status = "signed" или file_sign_id != null)
+                var signedApprovals = approvals
+                    .Where(a => a.status == "signed" || a.file_sign_id != null)
+                    .ToList();
+
+                if (signedApprovals.Any())
+                {
+                    var signedCount = signedApprovals.Count;
+                    var departmentNames = signedApprovals
+                        .Select(a => a.department_name)
+                        .Distinct()
+                        .Take(3);
+
+                    var deptList = string.Join(", ", departmentNames);
+
+                    return Result.Fail($"Невозможно удалить дополнительную услугу: найдено {signedCount} подписанных согласований от подразделений: {deptList}");
+                }
+
+                // ============ ШАГ 5: ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ - УДАЛЯЕМ ============
+
+                // Удаляем согласования для каждого шага
+                // Используем GetByAppStepIds для эффективного получения всех согласований
+                var allApprovals = await unitOfWork.document_approvalRepository.GetByAppStepIds(stepIds);
+
+                foreach (var approval in allApprovals)
+                {
+                    await unitOfWork.document_approvalRepository.Delete(approval.id);
                 }
 
                 // Удаляем сами шаги
                 await unitOfWork.application_stepRepository.DeleteDynamicSteps(additionalServiceId);
 
-                // ============ ШАГ 3: ВОССТАНАВЛИВАЕМ НУМЕРАЦИЮ ============
+                // ============ ШАГ 6: ВОССТАНАВЛИВАЕМ НУМЕРАЦИЮ ============
 
                 await unitOfWork.application_stepRepository.ReorderSteps(service.application_id.Value);
 
-                // ============ ШАГ 4: ОТМЕЧАЕМ КАК CANCELLED ============
+                // ============ ШАГ 7: ОТМЕЧАЕМ КАК CANCELLED ============
 
                 await unitOfWork.application_additional_serviceRepository.CancelService(additionalServiceId);
 
@@ -263,7 +317,7 @@ namespace Application.UseCases
             }
             catch (Exception ex)
             {
-                return Result.Fail($"Ошибка при отмене услуги: {ex.Message}");
+                return Result.Fail($"Ошибка при отмене услуги: {ex.Message}. StackTrace: {ex.StackTrace}");
             }
         }
 

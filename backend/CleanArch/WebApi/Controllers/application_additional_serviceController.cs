@@ -127,7 +127,7 @@ namespace WebApi.Controllers
             var result = await _useCases.CancelAdditionalService(request.id);
 
             if (result.IsFailed)
-                return BadRequest(new { error = result.Errors[0].Message });
+                return Ok(new { error = result.Errors[0].Message });
 
             return Ok(new { message = "Дополнительная услуга отменена" });
         }

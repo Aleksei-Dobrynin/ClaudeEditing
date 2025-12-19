@@ -18,5 +18,6 @@ namespace Application.Repositories
         Task<List<document_approver>> GetBydepartment_id(int department_id);
         Task<List<document_approver>> GetByposition_id(int position_id);
         Task<List<document_approver>> GetByPathId(int pathId);
+
     }
 }

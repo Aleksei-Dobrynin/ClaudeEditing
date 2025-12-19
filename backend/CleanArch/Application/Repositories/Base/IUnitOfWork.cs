@@ -206,6 +206,7 @@ namespace Application.Repositories
         IEventTypeRepository EventTypeRepository { get; }
         IEmployeeSavedFiltersRepository EmployeeSavedFiltersRepository { get; }
         ISmejPortalApiRepository SmejPortalApiRepository { get; }
+        Idocument_approval_sync_logRepository document_approval_sync_logRepository { get; }
         Iapplication_additional_serviceRepository application_additional_serviceRepository { get; }
         ICommentTypeRepository CommentTypeRepository { get; }
         IApplicationCommentAssigneeRepository ApplicationCommentAssigneeRepository { get; }
