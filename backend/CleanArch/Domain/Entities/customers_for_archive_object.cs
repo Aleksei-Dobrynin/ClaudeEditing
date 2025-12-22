@@ -20,6 +20,7 @@ namespace Domain.Entities
     public class customers_objects
     {
         public string full_name { get; set; }
+        public string description { get; set; }
         public int? obj_id { get; set; }
 
     }

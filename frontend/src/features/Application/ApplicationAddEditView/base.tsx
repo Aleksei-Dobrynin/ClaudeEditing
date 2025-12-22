@@ -34,6 +34,9 @@ import CustomTextField from "components/TextField";
 import ObjectFormView from "./ObjectForm";
 import mainStore from "../../../MainStore";
 import { SelectOrgStructureForWorklofw } from "constants/constant";
+import Tooltip from "@mui/material/Tooltip";
+import StarIcon from "@mui/icons-material/Star";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
 
 
 type ProjectsTableProps = {
@@ -81,10 +84,22 @@ const BaseView: FC<ProjectsTableProps> = observer((props) => {
                   id="Application_TitleName">{`${translate("label:ApplicationAddEditView.entityTitle")} #${store.number}`}
                 </span>{store.id > 0 && <><small style={{ color: "gray" }}> Регистратор: {store.created_by_name} Время: {store.registration_date ? dayjs(store.registration_date).format("DD.MM.YYYY HH:mm") : ""}</small></>}</>}
                 action={
-                  <>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    {store.id > 0 && (
+                      <Tooltip
+                        title={store.is_favorite ? "Убрать из избранного" : "В избранное"}
+                      >
+                        <IconButton
+                          size="small"
+                          onClick={() => store.setFavorite()}
+                        >
+                          {store.is_favorite ? <StarIcon /> : <StarBorderIcon />}
+                        </IconButton>
+                      </Tooltip>
+                    )}
                     <Chip color={store.is_paid ? "success" : "error"} sx={{ background: store.is_paid ? "#00875a" : "", color: store.is_paid ? "white" : "" }}
                       label={translate(`label:ApplicationAddEditView.paid_${!!store.is_paid}`)} />
-                  </>
+                  </Stack>
                 }
               />
               <Divider />

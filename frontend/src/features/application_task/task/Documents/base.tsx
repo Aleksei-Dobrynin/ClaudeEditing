@@ -24,8 +24,6 @@ import {
   DialogContentText,
   DialogActions,
   TextField,
-  Autocomplete,
-  AlertTitle,
 } from '@mui/material';
 import {
   ExpandMore,
@@ -41,10 +39,6 @@ import {
   Pause,
   PlayArrow,
   History,
-  Add,
-  AddCircleOutline as AddCircleOutlineIcon,
-  CancelOutlined as CancelIcon,
-  Info as InfoIcon,
 } from '@mui/icons-material';
 import { observer } from 'mobx-react';
 import store from './store';
@@ -53,9 +47,11 @@ import { useTranslation } from 'react-i18next';
 import { DocumentCard } from 'features/UploadedApplicationDocument/uploaded_application_documentListView/cards';
 import { WorkDocumentCard } from './WorkDocument/WorkDocumentCard';
 import MainStore from 'MainStore';
+import { Add } from '@mui/icons-material';
 import AddDocumentDialog from './AddDocument/AddDocumentDialog';
 import AddSignerDialog from './AddDocument/AddSignerDialog';
 import documentFormsStore from './AddDocument/documentFormsStore';
+// import ApplicationWorkDocumentPopupForm from "features/ApplicationWorkDocument/ApplicationWorkDocumentAddEditView/popupForm";
 import FileViewer from "components/FileViewer";
 import UploadDocumentModal from './WorkDocument/UploadDocumentModal';
 import taskStore from './../store'
@@ -64,8 +60,15 @@ import { APPLICATION_STATUSES } from 'constants/constant';
 import { useNavigate } from 'react-router-dom';
 import StepStatusHistoryGrid from './StepStatusHistoryGrid';
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import AutocompleteCustom from 'components/Autocomplete';
-import CustomTextField from 'components/TextField';
+import AddIcon from "@mui/icons-material/Add";
+import AddServiceDialog from "../AddServiceDialog/AddServiceDialog";
+import AddServiceDialogStore from "../AddServiceDialog/addServiceDialogStore";
+
+import { NestedStepGroup } from './NestedStepGroup';
+import { groupStepsByNested } from 'utils/nestedStepsHelper';
+
+import { AppStep } from './store';
+import PauseCircleIcon from '@mui/icons-material/PauseCircle';
 
 interface ApplicationStepsBaseViewProps {
   children?: ReactNode;
@@ -86,8 +89,8 @@ const ApplicationStepsBaseView: FC<ApplicationStepsBaseViewProps> = observer(({ 
     if (stepParam && store.data.length > 0) {
       const stepId = parseInt(stepParam, 10);
       const foundStep = store.data.find(s => s.id === stepId);
-      if (foundStep) {
-        store.expandedStepId = foundStep.id;
+      if (foundStep && !store.isStepExpanded(foundStep.id)) {
+        store.toggleStep(foundStep.id);
         setTimeout(() => {
           const el = document.getElementById(`step-${stepId}`);
           if (el) {
@@ -96,16 +99,17 @@ const ApplicationStepsBaseView: FC<ApplicationStepsBaseViewProps> = observer(({ 
         }, 100);
       }
     }
-  }, [store.expandedStepId, store.data]);
+  }, [store.expandedStepIds, store.data]);
 
   const hasAccessToStepStatuses = (structureId: number) => {
-    let str_ids = taskStore.OrgStructures.filter(x => x.parent_id === structureId).map(x => x.id)
+    let str_ids = taskStore.OrgStructures.filter(x => x.parent_id === structureId).map(x => x.id) // children structures
     str_ids.push(structureId);
     let str_ids2 = taskStore.OrgStructures.filter(x => str_ids.includes(x.parent_id)).map(x => x.id)
     str_ids.push(str_ids2)
 
     return (
       taskStore.Application.status_code === APPLICATION_STATUSES.preparation
+      // && (LayoutStore.my_structures?.find(x => str_ids.includes(x.structure_id)) != null)
     )
       || MainStore.isAdmin
   }
@@ -142,7 +146,7 @@ const ApplicationStepsBaseView: FC<ApplicationStepsBaseViewProps> = observer(({ 
         return (
           <Chip
             icon={<Schedule />}
-            label={"Ожидает"}
+            label={"В ожидании"}
             color="default"
             size="small"
             variant="outlined"
@@ -159,381 +163,652 @@ const ApplicationStepsBaseView: FC<ApplicationStepsBaseViewProps> = observer(({ 
           />
         );
       default:
-        return null;
+        return (
+          <Chip
+            label={status}
+            size="small"
+            variant="outlined"
+          />
+        );
     }
   };
 
-  const [expandedPanel, setExpandedPanel] = React.useState<string | false>(false);
+  const declineDays = (number) => {
 
-  const handleChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
-    setExpandedPanel(isExpanded ? panel : false);
-  };
+    if (!number) return null;
+    // Получаем последнюю цифру и последние две цифры числа
+    const lastDigit = number % 10;
+    const lastTwoDigits = number % 100;
 
-  return (
-    <Box sx={{ width: '100%' }}>
-      <Stack spacing={2}>
-        {store.data.map((step, index) => {
-          // Получаем информацию о динамическом шаге
-          const dynamicInfo = store.getDynamicStepInfo(step.id);
+    // Особые случаи для чисел от 11 до 19
+    if (lastTwoDigits >= 11 && lastTwoDigits <= 19) {
+      return <span style={{ color: "grey" }}>({number} дней)</span>;
+    }
 
-          return (
-            <div key={step.id} id={`step-${step.id}`}>
-              <Accordion
-                expanded={expandedPanel === `panel${step.id}`}
-                onChange={handleChange(`panel${step.id}`)}
-                sx={{
-                  // Визуальное выделение динамических шагов
-                  ...(dynamicInfo.isDynamic && {
-                    borderLeft: '4px solid #2196f3',
-                    bgcolor: '#f5f9ff',
-                  })
+    // Для остальных чисел проверяем последнюю цифру
+    switch (lastDigit) {
+      case 1:
+        return <span style={{ color: "grey" }}>({number} день)</span>;
+      case 2:
+      case 3:
+      case 4:
+        return <span style={{ color: "grey" }}>({number} дня)</span>;
+      default:
+        return <span style={{ color: "grey" }}>({number} дней)</span>;
+    }
+  }
+
+
+  // Функция для рендеринга одного шага (используется для обычных и вложенных шагов)
+  const renderSingleStep = (step: any, customStepNumber?: string, isNested: boolean = false) => {
+    // Используем кастомную нумерацию для вложенных шагов (например "3.1")
+    // или обычную для регулярных шагов
+    const displayNumber = customStepNumber || step.order_number;
+
+    // Получаем группы вложенных шагов для этого шага (если это не вложенный шаг)
+    const nestedGroups = !isNested ? groupsByParentId.get(step.id) || [] : [];
+
+    return (
+      <Accordion
+        key={step.id}
+        expanded={store.isStepExpanded(step.id)}
+        onChange={() => {
+          store.toggleStep(step.id)
+              navigate(`/user/application_task/addedit?id=${taskId}&tab_id=${2}&app_step_id=${step.id}&back=${taskStore.backUrl}`);
+        }}
+      >
+        <AccordionSummary
+          expandIcon={<ExpandMore />}
+          sx={{
+            '& .MuiAccordionSummary-content': {
+              alignItems: 'center',
+            },
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+            <Box
+              sx={{
+                width: 32,
+                height: 32,
+                borderRadius: '50%',
+                bgcolor: 'grey.300',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mr: 2,
+              }}
+            >
+              <Typography variant="body2" fontWeight="bold">
+                {displayNumber}
+              </Typography>
+            </Box>
+
+            <Box sx={{ flexGrow: 1 }}>
+              {/* ИНДИКАТОР ПРИОСТАНОВЛЕННОГО ШАГА */}
+              {step.is_paused && (
+                <Box
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    mb: 0.5
+                  }}
+                >
+                  <PauseCircleIcon sx={{ color: '#ff9800', mr: 0.5, fontSize: 16 }} />
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: '#ff9800',
+                      fontWeight: 600
+                    }}
+                  >
+                    Приостановлен
+                  </Typography>
+                </Box>
+              )}
+
+              <Typography variant="h3" component="div">
+                {step.name} {declineDays(step.planned_duration)}
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 0.5 }}>
+                <Typography variant="h4" color="text.primary">
+                  {store.departments[step.responsible_department_id]?.name}
+                </Typography>
+              </Box>
+              <Box m={1}>
+                {renderStatusChip(step.status)}
+              </Box>
+              <Box>
+                {(store.application_additional_service ?? []).filter(x=>x.status == 'active' && x.added_at_step_id == step.id).map((s: any) => (
+                  <Chip
+                    label={s.service_name}
+                    color="success"
+                    size="small"
+                    variant="filled"
+                  />
+                ))}
+              </Box>
+            </Box>
+
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, mr: 2 }}>
+              {step.status === "in_progress" &&
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAddService(step.id);
+                  }}
+                  fullWidth
+                >
+                  Добавить услугу
+                </Button>}
+            </Box>
+
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, mr: 2 }}>
+              {step.status === "in_progress" && (
+                <Button
+                  variant="contained"
+                  color="success"
+                  size="small"
+                  disabled={!hasAccessToStepStatuses(step.responsible_department_id) || !store.canCompleteStep(step.id)}
+                  startIcon={<ArrowForward />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    store.completeStep(step.id, step.responsible_department_id);
+                  }}
+                >
+                  Завершить
+                </Button>
+              )}
+              {step.status === "paused" && (
+                <Button
+                  variant="contained"
+                  color="primary"
+                  size="small"
+                  disabled={!hasAccessToStepStatuses(step.responsible_department_id)}
+                  startIcon={<PlayArrow />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    store.resumeStep(step.id);
+                  }}
+                >
+                  Возобновить
+                </Button>
+              )}
+              {step.status === "completed" && (
+                <Button
+                  variant="contained"
+                  color="warning"
+                  size="small"
+                  disabled={!hasAccessToStepToReturn(step.responsible_department_id)}
+                  startIcon={<ArrowBack />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    store.returnStep(step.id);
+                  }}
+                >
+                  Вернуть
+                </Button>
+              )}
+              {step.status === "waiting" && (
+                <Button
+                  variant="contained"
+                  color="warning"
+                  size="small"
+                  disabled={!hasAccessToStepStatuses(step.responsible_department_id) || !store.canStartStep(step.step_id)}
+                  startIcon={<ArrowBack />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    store.toProgress(step.id);
+                  }}
+                >
+                  В работу
+                </Button>
+              )}
+            </Box>
+
+            <Tooltip title="Просмотр истории статусов">
+              <IconButton
+                color="info"
+                size="large"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  store.showHistoryDialog(step.id);
                 }}
               >
-                <AccordionSummary
-                  expandIcon={<ExpandMore />}
-                  aria-controls={`panel${step.id}-content`}
-                  id={`panel${step.id}-header`}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
-                    <Typography variant="h6" sx={{ flexGrow: 1 }}>
-                      {step.order_number}. {step.name}
-                    </Typography>
-                    {renderStatusChip(step.status)}
-                    {dynamicInfo.isDynamic && (
-                      <Chip
-                        icon={<InfoIcon />}
-                        label="Доп. услуга"
-                        size="small"
-                        color="info"
-                        variant="outlined"
-                      />
-                    )}
-                  </Box>
-                </AccordionSummary>
+                <History />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </AccordionSummary>
 
-                <AccordionDetails>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    
-                    {/* НОВОЕ: Индикатор динамического шага */}
-                    {dynamicInfo.isDynamic && (
-                      <Alert 
-                        severity="info" 
-                        icon={<InfoIcon />}
-                        sx={{ bgcolor: '#e3f2fd' }}
-                      >
-                        <AlertTitle>Динамически добавленный шаг</AlertTitle>
-                        <Typography variant="body2">
-                          <strong>Из услуги:</strong> {dynamicInfo.serviceName} ({dynamicInfo.servicePathName})
-                        </Typography>
-                        <Typography variant="body2" sx={{ mt: 0.5 }}>
-                          <strong>Обоснование:</strong> {dynamicInfo.addReason}
-                        </Typography>
-                        {store.hasAccess && dynamicInfo.canCancel && (
-                          <Button
-                            size="small"
-                            color="error"
-                            startIcon={<CancelIcon />}
-                            onClick={() => store.cancelAddedService(dynamicInfo.linkId!)}
-                            sx={{ mt: 1 }}
-                          >
-                            Отменить добавление услуги
-                          </Button>
-                        )}
-                      </Alert>
-                    )}
+        <AccordionDetails>
+          <Box sx={{ bgcolor: 'grey.50', p: 2, borderRadius: 1 }}>
+            {/* Индикатор причины приостановки */}
+            {step.is_paused && (
+              <Box
+                sx={{
+                  p: 1.5,
+                  mb: 2,
+                  backgroundColor: '#fff3e0',
+                  borderLeft: '4px solid #ff9800',
+                  borderRadius: 1
+                }}
+              >
+                <Typography variant="body2" fontWeight="600" sx={{ color: '#e65100', mb: 0.5 }}>
+                  ⏸️ Шаг приостановлен
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#666' }}>
+                  {step.pause_reason || 'Ожидание завершения добавленных шагов'}
+                </Typography>
+              </Box>
+            )}
 
-                    <Typography variant="body2" color="text.secondary">
-                      {step.description}
-                    </Typography>
+            {/* Dates */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
+                Сроки
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={4}>
+                  <Typography variant="body2" color="text.secondary">
+                    Дата начала
+                  </Typography>
+                  <Typography variant="body2" fontWeight="medium">
+                    {store.formatDate(step.start_date)}
+                  </Typography>
+                </Grid>
+                <Grid item xs={4}>
+                  <Typography variant="body2" color="text.secondary">
+                    {"Срок выполнения"}
+                  </Typography>
+                  <Typography variant="body2" fontWeight="medium">
+                    {store.formatDate(step.due_date)}
+                  </Typography>
+                </Grid>
+                <Grid item xs={4}>
+                  <Typography variant="body2" color="text.secondary">
+                    {"Дата завершения"}
+                  </Typography>
+                  <Typography variant="body2" fontWeight="medium">
+                    {store.formatDate(step.completion_date)}
+                  </Typography>
+                </Grid>
+              </Grid>
+            </Box>
 
-                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, mr: 2 }}>
-                      {step.status === "in_progress" && store.canCompleteStep(step.step_id) && (
-                        <Button
-                          variant="contained"
-                          color="success"
+            <Divider sx={{ my: 2 }} />
+
+            {/* Dependencies */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
+                Зависимости с другими этапами
+              </Typography>
+
+              {step.dependencies?.length > 0 ? (
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    Предшествующие шаги:
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    {step.dependencies.map((depId) => {
+                      const depStep = store.data.find((s) => s.step_id === depId);
+                      return (
+                        <Chip
+                          key={`dep-${depId}`}
+                          label={depStep?.name}
                           size="small"
-                          disabled={!hasAccessToStepStatuses(step.responsible_department_id)}
-                          startIcon={<Check />}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            store.completeStep(step.id, step.responsible_department_id);
-                          }}
-                        >
-                          Завершить
-                        </Button>
-                      )}
-
-                      {step.status === "paused" && (
-                        <Button
-                          variant="contained"
-                          color="primary"
-                          size="small"
-                          disabled={!hasAccessToStepStatuses(step.responsible_department_id)}
-                          startIcon={<PlayArrow />}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            store.resumeStep(step.id);
-                          }}
-                        >
-                          Возобновить
-                        </Button>
-                      )}
-                      
-                      {step.status === "completed" && (
-                        <Button
-                          variant="contained"
-                          color="warning"
-                          size="small"
-                          disabled={!hasAccessToStepToReturn(step.responsible_department_id)}
-                          startIcon={<ArrowBack />}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            store.showReturnDialog(step.id);
-                          }}
-                        >
-                          Вернуть
-                        </Button>
-                      )}
-
-                      {step.status === "waiting" && store.canStartStep(step.step_id) && (
-                        <Button
-                          variant="contained"
-                          color="primary"
-                          size="small"
-                          disabled={!hasAccessToStepStatuses(step.responsible_department_id)}
-                          startIcon={<PlayArrow />}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            store.startStep(step.id, step.responsible_department_id);
-                          }}
-                        >
-                          Запустить
-                        </Button>
-                      )}
-
-                      {/* НОВОЕ: Кнопка добавления шагов из другой услуги */}
-                      {step.status === "in_progress" && store.canAddStepsToStep(step.id) && (
-                        <Button
+                          icon={store.isStepCompleted(depStep?.step_id || 0) ? <Check /> : <Warning />}
+                          color={store.isStepCompleted(depStep?.step_id || 0) ? "success" : "info"}
                           variant="outlined"
-                          color="primary"
+                        />
+                      );
+                    })}
+                  </Box>
+                </Box>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  Нет предшествующих шагов
+                </Typography>
+              )}
+
+              {step.blocks?.length > 0 && (
+                <Box>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    Следующие шаги:
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    {step.blocks.map((blockId) => {
+                      const blockedStep = store.data.find((s) => s.step_id === blockId);
+                      return (
+                        <Chip
+                          key={`block-${blockId}`}
+                          label={blockedStep?.name}
                           size="small"
-                          disabled={!store.hasAccess}
-                          startIcon={<AddCircleOutlineIcon />}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            store.openAddStepsDialog(step.id);
-                          }}
-                          sx={{ mt: 1 }}
-                        >
-                          Добавить шаги из другой услуги
-                        </Button>
-                      )}
+                          icon={blockedStep?.status === "waiting" ? <Schedule /> : <ArrowForward />}
+                          variant="outlined"
+                        />
+                      );
+                    })}
+                  </Box>
+                </Box>
+              )}
+            </Box>
 
+            <Divider sx={{ my: 2 }} />
+
+            {/* Documents */}
+            {step.workDocuments?.length > 0 && (
+              <Box>
+                <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
+                  Рабочие документы:
+                </Typography>
+                <Box>
+                  {step.workDocuments?.map(doc => (
+                    <WorkDocumentCard
+                      key={doc.id}
+                      document={doc}
+                      t={t}
+                      hasAccess={true}
+                      step_id={step.id}
+                      step={step}
+                      onOpenFileHistory={(step: number) => {
+                        store.loadGetApplicationWorkDocumentByStepID(step);
+                        store.isOpenFileHistory = true;
+                      }}
+                    />
+                  ))}
+                </Box>
+              </Box>
+            )}
+
+            <Divider sx={{ my: 2 }} />
+
+            {/* Documents */}
+            <Box>
+              {step.documents?.length > 0 && (
+                <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
+                  Документы на подпись
+                </Typography>
+              )}
+              <Box>
+                {step.documents?.map(doc => (
+                  <DocumentCard
+                    key={doc.id}
+                    onSigned={() => {
+                      store.loadApplication(store.application_id)
+                    }}
+                    document={doc}
+                    onUploadFile={() => {
+                      store.onUploadFile(doc.service_document_id ?? 0, doc.upl?.id, step.id);
+                    }}
+                    hasAccess={true}
+                    onOpenSigners={() => {
+                      store.ecpListOpen = true;
+                      store.loadGetSignByFileId(doc.upl?.file_id)
+                    }}
+                    onOpenFileHistory={() => {
+                      store.isOpenFileHistory = true;
+                      store.loadGetUploaded_application_documentsByApplicationIdAndStepId(doc.upl?.application_document_id, doc.upl?.app_step_id)
+                    }}
+                    onDocumentPreview={() => {
+                      store.OpenFileFile(doc.upl?.file_id, doc.upl?.file_name)
+                    }}
+                    onAddSigner={() => {
+                      store.currentStepId = step.id
+                      documentFormsStore.openSignerDialog(doc.document_type_id)
+                    }}
+                    step_id={step.id}
+                    step={step}
+                    t={t}
+                    documentApprovers={store.documentApprovers}
+                    onDeleteFile={(reason: string) => {
+                      if (!doc.upl?.id) return;
+                      store.handleDeleteUploadedDocument(doc.upl.id, reason);
+                    }}
+                  />
+                ))}
+
+                <Typography variant="subtitle2" fontWeight="medium" gutterBottom>
+                  Для запроса подписания других документов на текущем этапе нажмите здесь
+                  <IconButton
+                    disabled={!store.hasAccess || step?.status !== "in_progress"}
+                    onClick={() => {
+                      store.currentStepId = step.id
+                      documentFormsStore.openDocumentDialog(service_id)
+                    }}
+                  >
+                    <Add />
+                  </IconButton>
+                </Typography>
+              </Box>
+            </Box>
+
+            {step.requiredCalcs?.length > 0 && (
+              <Box>
+                <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
+                  {t("label:application_taskAddEditView.mandatory_calculations_title")}
+                </Typography>
+                {step.requiredCalcs.map(calc => (
+                  <Box
+                    key={calc.id}
+                    sx={{
+                      backgroundColor: "#fff3cd",
+                      border: "1px solid #ffeeba",
+                      borderRadius: "8px",
+                      padding: "8px 12px",
+                      marginBottom: "8px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      justifyContent: "space-between"
+                    }}
+                  >
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <WarningAmberIcon color="error" fontSize="small" />
+                      <Typography variant="body2">
+                        {`${calc.structure_name} — ${t("label:application_taskAddEditView.calculation_required")}`}
+                      </Typography>
+                    </Box>
+                    {accessPaymentDialog && (LayoutStore.my_structures?.find(x => x.structure_id == calc.structure_id) != null) && (
                       <Button
-                        variant="text"
+                        variant="outlined"
                         size="small"
-                        startIcon={<History />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          store.showHistoryDialog(step.id);
-                        }}
+                        onClick={() => { onPaymentDialogOpen() }}
                       >
-                        История
+                        {t("add")}
                       </Button>
-                    </Box>
-
-                    <Box>
-                      {step.dependencies?.length > 0 ? (
-                        <Box>
-                          <Typography variant="body2" color="text.secondary" gutterBottom>
-                            Предшествующие шаги:
-                          </Typography>
-                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                            {step.dependencies.map((depId) => {
-                              const depStep = store.data.find((s) => s.step_id === depId);
-                              return (
-                                <Chip
-                                  key={`dep-${depId}`}
-                                  label={depStep?.name}
-                                  size="small"
-                                  icon={store.isStepCompleted(depStep?.step_id || 0) ?
-                                    <Check /> : <Warning />}
-                                  color={store.isStepCompleted(depStep?.step_id || 0) ? "success" : "info"}
-                                  variant="outlined"
-                                />
-                              );
-                            })}
-                          </Box>
-                        </Box>
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">
-                          Нет предшествующих шагов
-                        </Typography>
-                      )}
-
-                      {step.blocks?.length > 0 && (
-                        <Box>
-                          <Typography variant="body2" color="text.secondary" gutterBottom>
-                            Следующие шаги:
-                          </Typography>
-                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                            {step.blocks.map((blockId) => {
-                              const blockedStep = store.data.find((s) => s.step_id === blockId);
-                              return (
-                                <Chip
-                                  key={`block-${blockId}`}
-                                  label={blockedStep?.name}
-                                  size="small"
-                                  icon={blockedStep?.status === "waiting" ?
-                                    <Schedule /> : <ArrowForward />}
-                                  variant="outlined"
-                                />
-                              );
-                            })}
-                          </Box>
-                        </Box>
-                      )}
-                    </Box>
-
-                    <Divider sx={{ my: 2 }} />
-
-                    {/* Work Documents */}
-                    {step.workDocuments?.length > 0 && (
-                      <Box>
-                        <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
-                          Рабочие документы:
-                        </Typography>
-                        <Box>
-                          {step.workDocuments?.map(doc => {
-                            return (
-                              <WorkDocumentCard
-                                key={doc.id}
-                                document={doc}
-                                t={t}
-                                hasAccess={true}
-                                step_id={step.id}
-                                step={step}
-                                onOpenFileHistory={(step: number) => {
-                                  store.loadGetApplicationWorkDocumentByStepID(step);
-                                  store.isOpenFileHistory = true;
-                                }}
-                              />
-                            );
-                          })}
-                        </Box>
-                      </Box>
-                    )}
-
-                    <Divider sx={{ my: 2 }} />
-
-                    {/* Documents for signing */}
-                    <Box>
-                      {step.documents?.length > 0 && (
-                        <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
-                          Документы на подпись
-                        </Typography>
-                      )}
-                      <Box>
-                        {step.documents?.map(doc => {
-                          return (
-                            <DocumentCard
-                              key={doc.id}
-                              onSigned={() => {
-                                store.loadApplication(store.application_id)
-                              }}
-                              document={doc}
-                              onUploadFile={() => {
-                                store.onUploadFile(doc.service_document_id ?? 0, doc.upl?.id, step.id);
-                              }}
-                              hasAccess={true}
-                              onOpenSigners={() => {
-                                store.ecpListOpen = true;
-                                store.loadGetSignByFileId(doc.upl?.file_id)
-                              }}
-                              onOpenFileHistory={() => {
-                                store.isOpenFileHistory = true;
-                                store.loadGetUploaded_application_documentsByApplicationIdAndStepId(doc.upl?.application_document_id, doc.upl?.app_step_id)
-                              }}
-                              onDocumentPreview={() => {
-                                store.OpenFileFile(doc.upl?.file_id, doc.upl?.file_name)
-                              }}
-                              onAddSigner={() => {
-                                store.currentStepId = step.id
-                                documentFormsStore.openSignerDialog(doc.document_type_id)
-                              }}
-                              step_id={step.id}
-                              step={step}
-                              t={t}
-                              documentApprovers={store.documentApprovers}
-                            />
-                          );
-                        })}
-
-                        <Typography variant="subtitle2" fontWeight="medium" gutterBottom>
-                          Для запроса подписания других документов на текущем этапе нажмите здесь
-                          <IconButton
-                            disabled={!store.hasAccess || step?.status !== "in_progress"}
-                            onClick={() => {
-                              store.currentStepId = step.id
-                              documentFormsStore.openDocumentDialog(service_id)
-                            }}
-                          >
-                            <Add />
-                          </IconButton>
-                        </Typography>
-                      </Box>
-                    </Box>
-
-                    {/* Required calculations warning */}
-                    {step.requiredCalcs?.length > 0 && (
-                      <Box>
-                        <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
-                          {t("label:application_taskAddEditView.mandatory_calculations_title")}
-                        </Typography>
-                        {step.requiredCalcs.map(calc => (
-                          <Box
-                            key={calc.id}
-                            sx={{
-                              backgroundColor: "#fff3cd",
-                              border: "1px solid #ffeeba",
-                              borderRadius: "8px",
-                              padding: "8px 12px",
-                              marginBottom: "8px",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 1,
-                              justifyContent: "space-between"
-                            }}
-                          >
-                            <Box display="flex" alignItems="center" gap={1}>
-                              <WarningAmberIcon color="error" fontSize="small" />
-                              <Typography variant="body2">
-                                {`${calc.structure_name} — ${t("label:application_taskAddEditView.calculation_required")}`}
-                              </Typography>
-                            </Box>
-                            {accessPaymentDialog && (LayoutStore.my_structures?.find(x => x.structure_id == calc.structure_id) != null) && (
-                              <Button
-                                variant="outlined"
-                                size="small"
-                                onClick={() => { onPaymentDialogOpen && onPaymentDialogOpen() }}
-                              >
-                                {t("add")}
-                              </Button>
-                            )}
-                          </Box>
-                        ))}
-                      </Box>
                     )}
                   </Box>
-                </AccordionDetails>
-              </Accordion>
-            </div>
-          )
-        })}
+                ))}
+              </Box>
+            )}
 
-        {/* Existing Dialogs */}
+            {/* ВЛОЖЕННЫЕ ГРУППЫ ШАГОВ - ОТОБРАЖАЮТСЯ ЗДЕСЬ ВНУТРИ АККОРДЕОНА */}
+            {/* ВЛОЖЕННЫЕ ГРУППЫ ШАГОВ - ОТОБРАЖАЮТСЯ ЗДЕСЬ ВНУТРИ АККОРДЕОНА */}
+            {nestedGroups.length > 0 && (
+              <Box sx={{ mt: 3 }}>
+                <Divider sx={{ mb: 3 }} />
+                <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
+                  Добавленные услуги
+                </Typography>
+                {nestedGroups.map((group) => (
+                  <NestedStepGroup
+                    key={`group-${group.linkId}`}
+                    group={group}
+                    parentStepNumber={step.order_number}
+                    renderStep={(nestedStep, stepNumber) => renderSingleStep(nestedStep, stepNumber, true)}
+                    onCancelGroup={handleCancelNestedGroup}
+                    servicename={
+                      (store.application_additional_service ?? [])
+                        .find(x => x.status === "active" && x.id === group.linkId)
+                        ?.service_name ?? "Дополнительная услуга"
+                    }
+                  />
+                ))}
+              </Box>
+            )}
+          </Box>
+        </AccordionDetails>
+      </Accordion>
+    );
+  };
+
+  // ДОБАВИТЬ в компонент, после других обработчиков:
+
+  const handleCancelNestedStep = async (stepId: number) => {
+    // Найти шаг
+    const step = store.data.find(s => s.id === stepId);
+
+    if (!step) {
+      MainStore.setSnackbar("Шаг не найден", "error");
+      return;
+    }
+
+    // Показать диалог подтверждения
+    MainStore.openErrorConfirm(
+      `Вы уверены, что хотите отменить вложенный шаг "${step.step_name || step.name}"?`,
+      "Да, отменить",
+      "Нет",
+      async () => {
+        try {
+          MainStore.changeLoader(true);
+
+          // Вызвать API для отмены шага
+          // TODO: Заменить на реальный API endpoint когда он будет готов
+          // await cancelNestedStep(stepId);
+
+          // Временная заглушка - пока API нет, просто показываем сообщение
+          console.log('Отмена вложенного шага:', stepId);
+
+          // Обновить данные
+          await store.loadApplication(store.application_id || 0);
+
+          MainStore.setSnackbar(`Вложенный шаг отменен`, "success");
+        } catch (err) {
+          MainStore.setSnackbar("Ошибка при отмене шага", "error");
+        } finally {
+          MainStore.changeLoader(false);
+          MainStore.onCloseConfirm();
+        }
+      },
+      () => {
+        MainStore.onCloseConfirm();
+      }
+    );
+  };
+
+  const handleAddService = (stepId: number) => {
+    const currentStep = store.data.find(s => s.id === stepId);
+    if (currentStep) {
+      AddServiceDialogStore.openDialog(
+        currentStep.application_id,
+        currentStep.id,
+        currentStep.order_number
+      );
+    }
+  };
+
+  // Обработчик отмены всей группы вложенных шагов
+  const handleCancelNestedGroup = async (groupLinkId: number) => {
+    // Найти группу
+    const allGroups: any[] = [];
+    groupsByParentId.forEach(groups => allGroups.push(...groups));
+    const group = allGroups.find(g => g.linkId === groupLinkId);
+
+    if (!group) {
+      MainStore.setSnackbar("Группа не найдена", "error");
+      return;
+    }
+
+    store.openCancelServiceDialog(groupLinkId);
+
+    // Показать диалог подтверждения
+    // MainStore.openErrorConfirm(
+    //   `Вы уверены, что хотите отменить всю группу "${group.serviceName}"?\n\nБудут отменены все ${group.steps.length} шагов этой услуги.`,
+    //   "Да, отменить",
+    //   "Нет",
+    //   async () => {
+    //     try {
+    //       MainStore.changeLoader(true);
+
+    //       // TODO: Вызвать API для отмены всей группы когда он будет готов
+    //       // await cancelNestedGroup(groupLinkId);
+
+    //       // Или отменить все шаги группы по отдельности
+    //       // for (const step of group.steps) {
+    //       //   await cancelNestedStep(step.id);
+    //       // }
+
+    //       // Временная заглушка
+    //       console.log('Отмена группы вложенных шагов:', groupLinkId, group.serviceName);
+
+    //       // Обновить данные
+    //       await store.loadApplication(store.application_id || 0);
+
+    //       MainStore.setSnackbar(`Группа "${group.serviceName}" отменена`, "success");
+    //     } catch (err) {
+    //       MainStore.setSnackbar("Ошибка при отмене группы", "error");
+    //     } finally {
+    //       MainStore.changeLoader(false);
+    //       MainStore.onCloseConfirm();
+    //     }
+    //   },
+    //   () => {
+    //     MainStore.onCloseConfirm();
+    //   }
+    // );
+  };
+
+  if (store.loading) {
+    return (
+      <Box sx={{ width: '100%', mt: 2 }}>
+        <LinearProgress />
+      </Box>
+    );
+  }
+
+  const { regularSteps, groupsByParentId } = groupStepsByNested(store.data || []);
+
+
+  return (
+    <Box sx={{ bgcolor: 'grey.50', minHeight: '100vh', p: 3 }}>
+      {/* Application Header */}
+      {store.application && (
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="h5" component="h1" gutterBottom>
+              {store.application.number}:
+              {/* {store.application.title} */}
+            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                Статус: <strong>{store.application.status}</strong>
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Срок выполнения: <strong>{store.formatDate(store.application.deadline)}</strong>
+              </Typography>
+            </Box>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Steps List */}
+      <Stack spacing={2}>
+
+        {regularSteps.map((step) => (
+          <div key={step.id} id={`step-${step.id}`}>
+            {renderSingleStep(step)}
+          </div>
+        ))}
+        {/* Диалоги */}
         <AddDocumentDialog stepId={store.currentStepId} onSuccess={() => store.loadApplication(store.application_id)} />
         <AddSignerDialog stepId={store.currentStepId} onSuccess={() => store.loadApplication(store.application_id)} />
+
       </Stack>
 
       {/* Children (action buttons) */}
@@ -549,8 +824,7 @@ const ApplicationStepsBaseView: FC<ApplicationStepsBaseViewProps> = observer(({ 
         isOpen={workDocumentStore.isOpenFileView}
         onClose={() => { workDocumentStore.isOpenFileView = false }}
         fileUrl={workDocumentStore.fileUrl}
-        fileType={workDocumentStore.fileType}
-      />
+        fileType={workDocumentStore.fileType} />
 
       {/* Pause Dialog */}
       <Dialog
@@ -589,8 +863,6 @@ const ApplicationStepsBaseView: FC<ApplicationStepsBaseViewProps> = observer(({ 
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Return Dialog */}
       <Dialog
         open={store.returnDialogOpen}
         onClose={() => store.closeReturnDialog()}
@@ -647,91 +919,42 @@ const ApplicationStepsBaseView: FC<ApplicationStepsBaseViewProps> = observer(({ 
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* НОВЫЙ ДИАЛОГ: Добавление шагов из другой услуги */}
+      <AddServiceDialog />
       <Dialog
-        open={store.addStepsDialogOpen}
-        onClose={() => store.closeAddStepsDialog()}
-        maxWidth="md"
+        open={store.cancelServiceDialogOpen}
+        onClose={() => store.closeCancelServiceDialog()}
+        maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Добавить шаги из другой услуги</DialogTitle>
+        <DialogTitle>Отмена дополнительной услуги</DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ mb: 2 }}>
-            Выберите услугу, шаги которой необходимо добавить в текущую заявку.
-            Шаги будут вставлены после текущего шага.
+          <DialogContentText>
+            Вы уверены, что хотите отменить дополнительную услугу?
+            <br />
+            <br />
+            Все добавленные шаги будут удалены из заявки.
           </DialogContentText>
-
-          {/* Выбор услуги */}
-          <Box sx={{ mb: 2 }}>
-            <AutocompleteCustom
-              data={store.availableServicePaths}
-              value={store.selectedServicePath?.id || 0}
-              onChange={(e) => {
-                const selected = store.availableServicePaths.find(sp => sp.id === e.target.value);
-                store.setSelectedServicePath(selected || null);
-              }}
-              fieldNameDisplay={(option) => `${option.service_name} - ${option.name}`}
-              label="Услуга"
-              name="service_path_id"
-              id="id_f_service_path_id"
-              helperText=""
-              error={false}
-            />
-          </Box>
-
-          {/* Информация о выбранной услуге */}
-          {store.selectedServicePath && (
-            <Alert severity="info" sx={{ mb: 2 }}>
-              <AlertTitle>Будет добавлено шагов: {store.selectedServicePath.steps_count || 0}</AlertTitle>
-              {store.selectedServicePath.description && (
-                <Typography variant="body2">
-                  {store.selectedServicePath.description}
-                </Typography>
-              )}
-            </Alert>
-          )}
-
-          {/* Обоснование */}
-          <CustomTextField
-            value={store.addStepsReason}
-            onChange={(e) => store.setAddStepsReason(e.target.value)}
-            name="add_steps_reason"
-            id="id_f_add_steps_reason"
-            label="Обоснование добавления (обязательно)"
-            helperText="Объясните, почему необходимо добавить эти шаги в заявку"
-            error={false}
-            multiline
-            rows={4}
-          />
-
-          {/* Предупреждение о лимите */}
-          {store.additionalServices.filter(s =>
-            s.status === 'active' || s.status === 'pending'
-          ).length >= 2 && (
-              <Alert severity="warning" sx={{ mt: 2 }}>
-                У вас уже есть {store.additionalServices.filter(s =>
-                  s.status === 'active' || s.status === 'pending'
-                ).length} активных добавлений. Максимум разрешено 3.
-              </Alert>
-            )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => store.closeAddStepsDialog()} color="inherit">
-            Отмена
+          <Button
+            onClick={() => store.closeCancelServiceDialog()}
+            color="inherit"
+          >
+            Нет
           </Button>
           <Button
-            onClick={() => store.addStepsFromService()}
+            onClick={() => store.confirmCancelAdditionalService()}
+            color="error"
             variant="contained"
-            color="primary"
-            disabled={!store.selectedServicePath || !store.addStepsReason.trim()}
           >
-            Добавить шаги
+            Да, отменить
           </Button>
         </DialogActions>
       </Dialog>
     </Box>
   );
 });
+
+
 
 export default ApplicationStepsBaseView;

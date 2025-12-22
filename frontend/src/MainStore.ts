@@ -8,7 +8,11 @@ import printJS from "print-js";
 import pages, { icons } from "./menu-items/pages";
 import { getCountMyStructure } from "./api/TechCouncil";
 import TechCouncilSection from "./layouts/MainLayout/Header/TechCouncilSection";
-import { getCountApplicationsFromCabinet } from "api/Application/useGetApplications";
+import {
+  getCountApplicationsFromCabinet,
+  getCountFilterForEO,
+  getCountFilterRefusal
+} from "api/Application/useGetApplications";
 import dayjs, { Dayjs } from "dayjs";
 
 class NewStore {
@@ -63,6 +67,8 @@ class NewStore {
   isSecretary = false;
   TechCouncilCount = 0;
   CountAppsFromCabinet = 0;
+  CountFilterForEO = 0;
+  CountFilterRefusal = 0;
   BackUrl = ''
   curentUserPin: string = "";
 
@@ -347,6 +353,38 @@ class NewStore {
       const response = await getCountApplicationsFromCabinet();
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
         this.CountAppsFromCabinet = response.data;
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      MainStore.changeLoader(false);
+    }
+  }
+
+  getCountFilterForEO = async () => {
+    try {
+      MainStore.changeLoader(true);
+      const response = await getCountFilterForEO();
+      if ((response.status === 201 || response.status === 200) && response?.data !== null) {
+        this.CountFilterForEO = response.data.totalCount;
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      MainStore.changeLoader(false);
+    }
+  }
+
+  getCountFilterRefusal = async () => {
+    try {
+      MainStore.changeLoader(true);
+      const response = await getCountFilterRefusal();
+      if ((response.status === 201 || response.status === 200) && response?.data !== null) {
+        this.CountFilterRefusal = response.data.totalCount;
       } else {
         throw new Error();
       }

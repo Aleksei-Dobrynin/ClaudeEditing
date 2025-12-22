@@ -3,6 +3,7 @@ import i18n from "i18next";
 import MainStore from "MainStore";
 import { deletestep_partner } from "api/step_partner";
 import { getstep_partnersBystep_id } from "api/step_partner";
+import buffer from "../../service_path/service_pathAddEditView/store";
 
 class NewStore {
   data = [];
@@ -54,13 +55,18 @@ class NewStore {
       async () => {
         try {
           MainStore.changeLoader(true);
-          const response = await deletestep_partner(id);
-          if (response.status === 201 || response.status === 200) {
-            this.loadstep_partners();
-            MainStore.setSnackbar(i18n.t("message:snackbar.successSave"));
-          } else {
-            throw new Error();
-          }
+          // const response = await deletestep_partner(id);
+          buffer.addBuffer({
+            entity: "step_partner",
+            kind: "delete",
+            id
+          });
+          // if (response.status === 201 || response.status === 200) {
+          //   this.loadstep_partners();
+          //   MainStore.setSnackbar(i18n.t("message:snackbar.successSave"));
+          // } else {
+          //   throw new Error();
+          // }
         } catch (err) {
           MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
         } finally {
@@ -81,6 +87,44 @@ class NewStore {
       this.isEdit = false;
     });
   };
+
+  get effectiveData() {
+    const result = [...this.data];
+
+    const changes = (buffer.bufferList ?? []).filter(
+      (x) => x.entity === "step_partner"
+    );
+
+    const deletes = changes.filter((x) => x.kind === "delete" && x.id != null);
+    for (const d of deletes) {
+      const idx = result.findIndex((r: any) => r.id === d.id);
+      if (idx !== -1) {
+        result.splice(idx, 1);
+      }
+    }
+
+    const updates = changes.filter((x) => x.kind === "update" && x.id != null);
+    for (const u of updates) {
+      const idx = result.findIndex((r: any) => r.id === u.id);
+      if (idx !== -1) {
+        result[idx] = {
+          ...result[idx],
+          ...(u.payload || {}),
+        };
+      }
+    }
+
+    const adds = changes.filter((x) => x.kind === "add");
+    for (const a of adds) {
+      const payload = a.payload || {};
+      result.push({
+        ...payload,
+        id: a.id, // временный отрицательный id
+      });
+    }
+
+    return result;
+  }
 }
 
 export default new NewStore();

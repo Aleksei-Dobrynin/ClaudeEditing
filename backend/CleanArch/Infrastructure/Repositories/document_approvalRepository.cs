@@ -6,6 +6,7 @@ using Infrastructure.Data.Models;
 using Application.Exceptions;
 using Application.Models;
 using System;
+using Infrastructure.FillLogData;
 
 namespace Infrastructure.Repositories
 {
@@ -13,10 +14,12 @@ namespace Infrastructure.Repositories
     {
         private readonly IDbConnection _dbConnection;
         private IDbTransaction? _dbTransaction;
-
-        public document_approvalRepository(IDbConnection dbConnection)
+        private IUserRepository _userRepository;
+        
+        public document_approvalRepository(IDbConnection dbConnection, IUserRepository userRepository)
         {
             _dbConnection = dbConnection;
+            _userRepository = userRepository;
         }
 
         public void SetTransaction(IDbTransaction dbTransaction)
@@ -63,7 +66,8 @@ namespace Infrastructure.Repositories
                     is_final = domain.is_final,
                     source_approver_id = domain.source_approver_id,
                     is_manually_modified = domain.is_manually_modified,
-                    last_sync_at = domain.last_sync_at
+                    last_sync_at = domain.last_sync_at,
+                    order_number = domain.order_number
                 };
 
                 var sql = @"INSERT INTO ""document_approval""
@@ -71,13 +75,13 @@ namespace Infrastructure.Repositories
                      ""file_sign_id"", ""department_id"", ""position_id"", ""status"", 
                      ""approval_date"", ""comments"", ""created_at"", ""app_step_id"", 
                      ""document_type_id"", ""is_required_approver"", ""is_required_doc"",
-                     ""is_final"", ""source_approver_id"", ""is_manually_modified"", ""last_sync_at"") 
+                     ""is_final"", ""source_approver_id"", ""is_manually_modified"", ""last_sync_at"", ""order_number"") 
                 VALUES 
                     (@updated_at, @created_by, @updated_by, @app_document_id, 
                      @file_sign_id, @department_id, @position_id, @status, 
                      @approval_date, @comments, @created_at, @app_step_id, 
                      @document_type_id, @is_required_approver, @is_required_doc,
-                     @is_final, @source_approver_id, @is_manually_modified, @last_sync_at) 
+                     @is_final, @source_approver_id, @is_manually_modified, @last_sync_at, @order_number) 
                 RETURNING id";
 
                 var result = await _dbConnection.ExecuteScalarAsync<int>(sql, model, transaction: _dbTransaction);
@@ -113,7 +117,8 @@ namespace Infrastructure.Repositories
                     is_final = domain.is_final,
                     source_approver_id = domain.source_approver_id,
                     is_manually_modified = domain.is_manually_modified,
-                    last_sync_at = domain.last_sync_at
+                    last_sync_at = domain.last_sync_at,
+                    order_number = domain.order_number
                 };
 
                 var sql = @"UPDATE ""document_approval"" 
@@ -135,7 +140,8 @@ namespace Infrastructure.Repositories
                     ""is_final"" = @is_final,
                     ""source_approver_id"" = @source_approver_id,
                     ""is_manually_modified"" = @is_manually_modified,
-                    ""last_sync_at"" = @last_sync_at
+                    ""last_sync_at"" = @last_sync_at,
+                    ""order_number"" = @order_number
                 WHERE id = @id";
 
                 var affected = await _dbConnection.ExecuteAsync(sql, model, transaction: _dbTransaction);
@@ -298,7 +304,7 @@ namespace Infrastructure.Repositories
         }
 
         /// <summary>
-        /// Получить все согласования для конкретного application_step
+        /// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ application_step
         /// </summary>
         public async Task<List<document_approval>> GetByapp_step_id(int app_step_id)
         {
@@ -311,6 +317,23 @@ namespace Infrastructure.Repositories
             catch (Exception ex)
             {
                 throw new RepositoryException("Failed to get document_approval by app_step_id", ex);
+            }
+        }
+        
+        public async Task ResetByUploadedDocumentId(int uplId)
+        {
+            try
+            {
+                var userId = await UserSessionHelper.SetCurrentUserAsync(_userRepository, _dbConnection, _dbTransaction);
+                
+                var sql = @"UPDATE document_approval SET app_document_id = NULL, file_sign_id = NULL, status = 'waiting', approval_date = NULL 
+                            WHERE app_document_id = @uplId";
+
+                await _dbConnection.ExecuteAsync(sql, new { uplId }, transaction: _dbTransaction);
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to reset document_approval by uploaded document id", ex);
             }
         }
     }

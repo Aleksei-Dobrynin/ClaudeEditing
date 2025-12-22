@@ -606,7 +606,23 @@ namespace Application.UseCases
             return res;
         }
 
+        public async Task<Result> DeleteSoft(int appDocId, string deleteReason)
+        {
+            var upl = await unitOfWork.uploaded_application_documentRepository.GetOne(appDocId);
+            if (upl == null)
+                return Result.Fail("Документ не найден");
+            
+            upl.delete_reason = deleteReason;
+            upl.deleted_at = DateTime.Now;
 
+            await unitOfWork.uploaded_application_documentRepository.DeleteSoft(upl);
+            
+            await unitOfWork.document_approvalRepository.ResetByUploadedDocumentId(appDocId);
+
+            unitOfWork.Commit();
+
+            return Result.Ok();
+        }
 
     }
 }

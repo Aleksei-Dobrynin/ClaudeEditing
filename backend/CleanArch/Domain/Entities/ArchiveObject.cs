@@ -28,6 +28,7 @@ namespace Domain.Entities
         public string archirecture_process_status_name { get; set; }
         public string? archive_folders { get; set; }
         public string? customer_name { get; set; }
+        public string? customer_description { get; set; }
         public string? customer_pin { get; set; }
         public string? customer_number{ get; set; }
         public int? parent_id { get; set; }

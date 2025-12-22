@@ -10,7 +10,12 @@ import { gettask_statuses } from "api/task_status";
 import { getorg_structures } from "api/org_structure";
 import { getEmployeeInStructureGroup } from "api/EmployeeInStructure/useGetEmployeeInStructure";
 import storeComments from "features/ApplicationComments/ApplicationCommentsListView/store";
-import { checkCalucationForApplication, getApplication } from "api/Application/useGetApplication";
+import {
+  addToFavorite,
+  checkCalucationForApplication,
+  deleteToFavorite,
+  getApplication, getStatusFavorite
+} from "api/Application/useGetApplication";
 import { APPLICATION_STATUSES, ErrorResponseCode } from "constants/constant";
 import { getMyApplications } from "api/Application/useGetApplications";
 import { Application } from "constants/Application";
@@ -77,6 +82,7 @@ class NewStore {
   comment = ""
   name = ""
   is_required = false
+  is_favorite = false
   order = 0
   status_id = 0
   type_id = 0
@@ -265,6 +271,7 @@ class NewStore {
       this.comment = ""
       this.name = ""
       this.is_required = false
+      this.is_favorite = false
       this.DarekSearchList = [];
       this.order = 0
       this.status_id = 0
@@ -630,6 +637,9 @@ class NewStore {
       if (results?.length !== 0) {
         // this.newCoordAddres = results[0].name + (results[0]?.address_name ? ", " + results[0]?.address_name : "")
         this.newCoordAddres = results[0].name
+        this.address = results[0].name;
+        this.radius = 400;
+        this.loadDutyPlanObjects();
       }
     } catch (error) {
       // console.error('Ошибка поиска:', error);
@@ -747,6 +757,7 @@ class NewStore {
           this.comment = response.data.comment;
           this.name = response.data.name;
           this.is_required = response.data.is_required;
+          this.is_favorite = response.data.is_favorite;
           this.order = response.data.order;
           this.status_id = response.data.status_id;
           this.type_id = response.data.type_id;
@@ -977,6 +988,7 @@ class NewStore {
           this.Application.object_tag_id = response.data?.object_tag_id
           this.object_tag_id = response.data?.object_tag_id ? response.data?.object_tag_id : 0
           this.tech_decision_id = response.data.tech_decision_id;
+          this.is_favorite = response.data.is_favorite;
         })
         this.loadCustomer(response.data.customer_id)
       } else {
@@ -1387,7 +1399,7 @@ class NewStore {
       if (Array.isArray(response.data) && response.data.length > 0) {
         response.data.forEach((item) => {
           const geoObj = JSON.parse(item.layer);
-          const point: [number, number] = [geoObj[0].geometry.coordinates[1], geoObj[0].geometry.coordinates[0]];
+          const point: [number, number] = [geoObj[0].point[0], geoObj[0].point[1]];
           this.mapDutyPlanObject.push({
             address: item.address,
             number: item.doc_number,
@@ -1468,6 +1480,25 @@ class NewStore {
 
   onCloseStructureTemplates() {
     this.isOpenStructureTemplates = false;
+  }
+
+  async setFavorite() {
+    try {
+      MainStore.changeLoader(true);
+      var set = this.is_favorite ? await deleteToFavorite(this.application_id) : await addToFavorite(this.application_id);
+      const response = await getStatusFavorite(this.application_id);
+      if ((response.status === 201 || response.status === 200) && response?.data !== null) {
+        runInAction(() => {
+          this.is_favorite = response.data;
+        });
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      MainStore.changeLoader(false);
+    }
   }
 }
 

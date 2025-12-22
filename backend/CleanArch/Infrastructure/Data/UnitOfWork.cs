@@ -2303,7 +2303,7 @@ namespace Infrastructure.Data
             {
                 if (_document_approvalRepository == null)
                 {
-                    _document_approvalRepository = new document_approvalRepository(_dbConnection);
+                    _document_approvalRepository = new document_approvalRepository(_dbConnection, _userRepository);
                     _document_approvalRepository.SetTransaction(_dbTransaction);
                 }
                 return _document_approvalRepository;

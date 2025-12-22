@@ -47,7 +47,7 @@ namespace Infrastructure.Repositories
         {
             try
             {
-                var sql = @"SELECT customers_for_archive_object.full_name full_name, dutyplan_object.id obj_id 
+                var sql = @"SELECT customers_for_archive_object.full_name full_name, dutyplan_object.id obj_id, customers_for_archive_object.description description
                                 FROM customers_for_archive_object
                                 LEFT JOIN archive_object_customer ON archive_object_customer.customer_id = customers_for_archive_object.id
                                 LEFT JOIN dutyplan_object ON dutyplan_object.id = archive_object_customer.archive_object_id

@@ -21,5 +21,6 @@ namespace Application.Repositories
         Task<List<uploaded_application_document>> GetByservice_document_id(int service_document_id);
         Task<List<CustomUploadedDocument>> GetCustomByApplicationId(int application_document_id);
         Task<List<uploaded_application_document>> ByApplicationIdAndStepId(int application_document_id, int app_step_id);
+        Task DeleteSoft(uploaded_application_document domain);
     }
 }

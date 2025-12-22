@@ -27,6 +27,7 @@ export type Application = {
   outgoing_numbers?: string;
   dp_outgoing_number?: string;
   tech_decision_id?: number;
+  is_favorite?: boolean;
 };
 
 

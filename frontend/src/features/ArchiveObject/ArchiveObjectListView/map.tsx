@@ -19,6 +19,7 @@ import {
 import L, { LatLngExpression, LatLngBounds, Renderer, LatLngTuple } from "leaflet";
 import dayjs, { Dayjs } from "dayjs";
 import { Card } from "@mui/material";
+import { Description } from "@mui/icons-material";
 
 const { BaseLayer, Overlay } = LayersControl;
 
@@ -216,49 +217,51 @@ const ArchMap: FC<ArchiveObjectListViewProps> = observer((props) => {
   }
 
   // Обработчик клика по объекту
-  const handleObjectClick = useCallback((item, position) => {
-    setSelectedObjectId(item.id);
-    setPopupPosition(position);
+// Путь: src/features/ArchiveObject/map.tsx
+// Обновленная функция handleObjectClick с поддержкой customer_description
 
-    // Подготовка содержимого для попапа
-    const content = (
-      <div>
-        <p><strong>{translate("label:ArchiveObjectListView.doc_number")}:</strong> {item.doc_number}</p>
-        <p><strong>{translate("label:ArchiveObjectListView.address")}:</strong> {item.address}</p>
-        {(() => {
-          const names = item.customer_name ? item.customer_name.split(",").map(s => s.trim()) : [];
-          const numbers = item.customer_number ? item.customer_number.split(",").map(s => s.trim()) : [];
-          return (
-            <div>
-              {names.map((name, i) => (
-                <Card
-                  key={i}
-                  variant="outlined"
-                  sx={{ mt: 0.5, p: 0.5 }}
-                >
-                  <strong>{translate("label:ArchiveObjectListView.customer")} {i + 1}:</strong> {name}<br/>
-                  <strong>{translate("label:ArchiveObjectListView.customer_number")}:</strong> {numbers[i]}
-                </Card>
-              ))}
-            </div>
-          );
-        })()}
-        <p><strong>{translate("label:ArchiveObjectListView.description")}:</strong> {item.description}</p>
-        <p><strong>{translate("label:ArchiveObjectListView.created_at")}:</strong> {formatDate(item.created_at)}</p>
-        <p><strong>{translate("label:ArchiveObjectListView.updated_at")}:</strong> {formatDate(item.updated_at)}</p>
-        {/* {store.customers
-          .filter((x) => x.obj_id === item.id)
-          .map((x) => (
-            <p key={x.id}>
-              <strong>{translate("label:ArchiveObjectListView.customer")}:</strong> {x.full_name}
-            </p>
-          ))
-        } */}
-      </div>
-    );
+const handleObjectClick = useCallback((item, position) => {
+  setSelectedObjectId(item.id);
+  setPopupPosition(position);
 
-    setPopupContent(content);
-  }, [translate]);
+  // Подготовка содержимого для попапа
+  const content = (
+    <div>
+      <p><strong>{translate("label:ArchiveObjectListView.doc_number")}:</strong> {item.doc_number}</p>
+      <p><strong>{translate("label:ArchiveObjectListView.address")}:</strong> {item.address}</p>
+      {(() => {
+        const names = item.customer_name ? item.customer_name.split(",").map(s => s.trim()) : [];
+        const numbers = item.customer_number ? item.customer_number.split(",").map(s => s.trim()) : [];
+        const descriptions = item.customer_description ? item.customer_description.split(",").map(s => s.trim()) : [];
+        
+        return (
+          <div>
+            {names.map((name, i) => (
+              <Card
+                key={i}
+                variant="outlined"
+                sx={{ mt: 0.5, p: 0.5 }}
+              >
+                <strong>{translate("label:ArchiveObjectListView.customer")} {i + 1}:</strong> {name}<br/>
+                {/* {descriptions[i] && (
+                  <> */}
+                    <strong>{translate("label:ArchiveObjectListView.customerDescription")} {i + 1}:</strong> {descriptions[i]}<br/>
+                  {/* </>
+                )} */}
+                <strong>{translate("label:ArchiveObjectListView.customer_number")}:</strong> {numbers[i]}
+              </Card>
+            ))}
+          </div>
+        );
+      })()}
+      <p><strong>{translate("label:ArchiveObjectListView.description")}:</strong> {item.description}</p>
+      <p><strong>{translate("label:ArchiveObjectListView.created_at")}:</strong> {formatDate(item.created_at)}</p>
+      <p><strong>{translate("label:ArchiveObjectListView.updated_at")}:</strong> {formatDate(item.updated_at)}</p>
+    </div>
+  );
+
+  setPopupContent(content);
+}, [translate]);
 
   // Закрытие попапа
   const closePopup = useCallback(() => {

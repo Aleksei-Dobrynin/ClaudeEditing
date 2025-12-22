@@ -52,5 +52,9 @@ namespace Application.Repositories
         Task SetHtmlFromCabinet(int applicationId, string html);
         Task<List<MyApplication>> GetMyApplication(string user_id);
         Task SetElectronicOnly(int application_id, bool is_electronic);
+        Task<PaginatedList<Domain.Entities.Application>> GetByFilterRefusal(PaginationFields filter, bool onlyCount);
+        Task<int> AddToFavorite(int application_id, int employee_id);
+        Task<int> DeleteToFavorite(int application_id, int employee_id);
+        Task<bool> GetStatusFavorite(int application_id, int employee_id);
     }
 }

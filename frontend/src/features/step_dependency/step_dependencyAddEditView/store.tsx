@@ -6,6 +6,7 @@ import { validate, validateField } from "./valid";
 import { getstep_dependency } from "api/step_dependency";
 import { createstep_dependency } from "api/step_dependency";
 import { updatestep_dependency } from "api/step_dependency";
+import buffer from "../../service_path/service_pathAddEditView/store";
 
 // dictionaries
 import { getpath_steps } from "api/path_step";
@@ -99,21 +100,34 @@ class NewStore {
     try {
       MainStore.changeLoader(true);
       let response;
-      if (this.id === 0) {
-        response = await createstep_dependency(data);
+      if (this.id <= 0) {
+        // response = await createstep_dependency(data);
+        buffer.addBuffer({
+          entity: "step_dependency",
+          kind: "add",
+          id: this.id < 0 ? this.id : undefined,
+          payload: data
+        });
       } else {
-        response = await updatestep_dependency(data);
+        // response = await updatestep_dependency(data);
+        buffer.addBuffer({
+          entity: "step_dependency",
+          kind: "update",
+          id: data.id,
+          payload: data
+        });
       }
-      if (response.status === 201 || response.status === 200) {
-        onSaved(response);
-        if (data.id === 0) {
-          MainStore.setSnackbar(i18n.t("message:snackbar.successSave"), "success");
-        } else {
-          MainStore.setSnackbar(i18n.t("message:snackbar.successEdit"), "success");
-        }
-      } else {
-        throw new Error();
-      }
+      onSaved(1);
+      // if (response.status === 201 || response.status === 200) {
+      //   onSaved(response);
+      //   if (data.id === 0) {
+      //     MainStore.setSnackbar(i18n.t("message:snackbar.successSave"), "success");
+      //   } else {
+      //     MainStore.setSnackbar(i18n.t("message:snackbar.successEdit"), "success");
+      //   }
+      // } else {
+      //   throw new Error();
+      // }
     } catch (err) {
       MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
     } finally {
@@ -130,6 +144,18 @@ class NewStore {
     if (id === null || id === 0) {
       return;
     }
+
+    if (id < 0) {
+      const change = buffer.bufferList?.find(
+        x => x.entity === "step_dependency" && x.kind === "add" && x.id === id
+      );
+
+      if (change?.payload) {
+        this.fillFromData(change.payload);
+      }
+      return;
+    }
+
     this.id = id;
 
     this.loadstep_dependency(id);
@@ -138,28 +164,25 @@ class NewStore {
   loadstep_dependency = async (id: number) => {
     try {
       MainStore.changeLoader(true);
+      const buffered = (buffer.bufferList ?? []).find(
+        x =>
+          x.entity === "step_dependency" &&
+          x.kind === "update" &&
+          x.id === id
+      );
+
+      if (buffered?.payload) {
+        this.fillFromData(buffered.payload);
+        return;
+      }
       const response = await getstep_dependency(id);
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
-        runInAction(() => {
-          
-          this.id = response.data.id;
-          
-          // Находим service_path_id через связанные шаги
-          const depStep = this.path_steps.find(s => s.id == response.data.dependent_step_id);
-          if (depStep && depStep.path_id) {
-            this.service_path_id = depStep.path_id;
-            // Обновляем filtered_steps - используем нестрогое сравнение
-            this.filtered_steps = this.path_steps.filter(step => step.path_id == depStep.path_id);
-          } else if (response.data.service_path_id) {
-            this.service_path_id = response.data.service_path_id;
-            // Обновляем filtered_steps - используем нестрогое сравнение
-            this.filtered_steps = this.path_steps.filter(step => step.path_id == response.data.service_path_id);
-          }
-          
-          this.dependent_step_id = response.data.dependent_step_id;
-          this.prerequisite_step_id = response.data.prerequisite_step_id;
-          this.is_strict = response.data.is_strict;
-        });
+        const data = response.data;
+        const depStep = this.path_steps.find(s => s.id == data.dependent_step_id);
+        if (depStep) {
+          data.service_path_id = depStep.path_id;
+        }
+        this.fillFromData(data);
       } else {
         throw new Error();
       }
@@ -169,6 +192,21 @@ class NewStore {
       MainStore.changeLoader(false);
     }
   };
+
+  private fillFromData(data: any) {
+    runInAction(() => {
+      this.id = data.id;
+      this.service_path_id = data.service_path_id;
+      this.dependent_step_id = data.dependent_step_id;
+      this.prerequisite_step_id = data.prerequisite_step_id;
+      this.is_strict = data.is_strict;
+
+      // Обновляем список шагов
+      if (data.service_path_id) {
+        this.filtered_steps = this.path_steps.filter(s => s.path_id == data.service_path_id);
+      }
+    });
+  }
 
   loadservice_paths = async () => {
     try {

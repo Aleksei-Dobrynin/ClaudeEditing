@@ -56,6 +56,7 @@ import CustomerAddEditView from "./features/Customer/CustomerAddEditView";
 import ApplicationListView from "./features/Application/ApplicationListView";
 import ApplicationFromCabinetListView from "./features/Application/ApplicationsFromCabinet";
 import ApplicationForEoListView from "./features/Application/ApplicationForEOListView";
+import ApplicationRefusalListView from "./features/Application/ApplicationRefusalListView";
 import ApplicationAddEditView from "./features/Application/ApplicationAddEditView";
 import ApplicationStatusHistoryListView from "./features/HistoryTable/StatusHistoryTableListView"
 
@@ -317,6 +318,7 @@ const router = createBrowserRouter([
               { path: "Application", element: <ApplicationListView /> },
               { path: "AppsFromCabinet", element: <ApplicationFromCabinetListView /> },
               { path: "AppsForEO", element: <ApplicationForEoListView /> },
+              { path: "AppRefusal", element: <ApplicationRefusalListView /> },
 
               { path: "ApplicationFinPlan", element: <ApplicationListView finPlan /> },
               { path: "Application/addedit", element: <ApplicationAddEditView /> },

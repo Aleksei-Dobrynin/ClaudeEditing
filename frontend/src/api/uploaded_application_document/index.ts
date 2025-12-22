@@ -89,3 +89,7 @@ export const getAttachedOldDocuments = (application_document_id: number, applica
 export const getOldUploads = (application_id: number): Promise<any> => {
   return http.get(`/ApplicationDocument/GetOldUploads?application_id=${application_id}`);
 };
+
+export const deleteUploadedApplicationDocument = (app_doc_id: number, delete_reason: string): Promise<any> => {
+  return http.remove(`/uploaded_application_document/Delete`, { app_doc_id, delete_reason });
+};

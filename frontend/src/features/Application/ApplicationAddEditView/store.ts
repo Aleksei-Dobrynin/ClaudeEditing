@@ -2,7 +2,7 @@ import { makeAutoObservable, reaction, runInAction } from "mobx";
 import { validate } from "./valid";
 import i18n from "i18next";
 import MainStore from "MainStore";
-import { getApplication } from "api/Application/useGetApplication";
+import { addToFavorite, deleteToFavorite, getApplication, getStatusFavorite } from "api/Application/useGetApplication";
 import { changeApplicationStatus, createApplication } from "api/Application/useCreateApplication";
 import { approveApplication, rejectApplication, updateApplication } from "api/Application/useUpdateApplication";
 import { getCustomersBySearch } from "api/Customer/useGetCustomers";
@@ -70,6 +70,7 @@ class NewStore {
   workflow_task_structure_id = null;
   comment = "";
   is_paid = false;
+  is_favorite = false;
   number = "";
   cabinet_html = ""; //TODO delete
   app_cabinet_uuid = ""; //TODO delete
@@ -225,6 +226,7 @@ class NewStore {
       this.workflow_task_structure_id = null;
       this.comment = null;
       this.is_paid = false;
+      this.is_favorite = false;
       this.number = "";
       this.new_arch_object = "";
       this.new_pin = "";
@@ -301,6 +303,7 @@ class NewStore {
       this.workflow_task_structure_id = null;
       this.comment = "";
       this.is_paid = false;
+      this.is_favorite = false;
       this.number = "";
       this.cabinet_html = "";
       this.app_cabinet_uuid = "";
@@ -959,6 +962,7 @@ class NewStore {
           this.comment = response.data.comment;
           this.arch_object_id = response.data.arch_object_id;
           this.is_paid = response.data.is_paid;
+          this.is_favorite = response.data.is_favorite;
           this.number = response.data.number;
           this.created_by_name = response.data.created_by_name;
           this.created_at = response.data.created_at;
@@ -1361,6 +1365,25 @@ class NewStore {
       MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
     } finally {
       this.customerLoading = false;
+    }
+  }
+
+  async setFavorite() {
+    try {
+      MainStore.changeLoader(true);
+      var set = this.is_favorite ? await deleteToFavorite(this.id) : await addToFavorite(this.id);
+      const response = await getStatusFavorite(this.id);
+      if ((response.status === 201 || response.status === 200) && response?.data !== null) {
+        runInAction(() => {
+          this.is_favorite = response.data;
+        });
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      MainStore.changeLoader(false);
     }
   }
 

@@ -848,9 +848,9 @@ class NewStore {
       }
     });
 
-    if (prevValue === true && value === false) {
+    // if (prevValue === true && value === false) {
       this.loadApplications();
-    }
+    // }
 
     if (fieldName !== 'is_paid') {
       this.setFilterToLocalStorageDebounced();

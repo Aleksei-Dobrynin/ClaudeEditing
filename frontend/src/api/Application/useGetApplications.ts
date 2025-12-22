@@ -18,6 +18,10 @@ export const getApplicationsPaginationForEO = (filter: FilterApplication): Promi
   return http.post("/Application/GetByFilterForEO", filter);
 };
 
+export const getApplicationsPaginationRefusal = (filter: FilterApplication): Promise<any> => {
+  return http.post("/Application/GetByFilterRefusal", filter);
+};
+
 export const getApplicationPagination = (filter: FilterApplication): Promise<any> => {
   return http.post(`/Application/GetPaginated`, filter);
 };
@@ -28,6 +32,14 @@ export const getApplicationPaginationFinPlan = (filter: FilterApplication): Prom
 
 export const getCountApplicationsFromCabinet = (): Promise<any> => {
   return http.get(`/Application/GetCountAppsFromCabinet`);
+};
+
+export const getCountFilterForEO = (): Promise<any> => {
+  return http.get(`/Application/GetCountFilterForEO`);
+};
+
+export const getCountFilterRefusal = (): Promise<any> => {
+  return http.get(`/Application/GetCountFilterRefusal`);
 };
 
 export const getApplicationReport = (isOrg: boolean, mount: number | null, year: number | null, structure: number | null): Promise<any> => {

@@ -53,7 +53,8 @@ namespace WebApi.Controllers
                 is_final = requestDto.is_final,
                 source_approver_id = requestDto.source_approver_id,
                 is_manually_modified = requestDto.is_manually_modified,
-                last_sync_at = requestDto.last_sync_at
+                last_sync_at = requestDto.last_sync_at,
+                order_number =requestDto.order_number
             };
             var response = await _document_approvalUseCases.Create(request);
             return Ok(response);
@@ -82,7 +83,8 @@ namespace WebApi.Controllers
                 is_final = requestDto.is_final,
                 source_approver_id = requestDto.source_approver_id,
                 is_manually_modified = requestDto.is_manually_modified,
-                last_sync_at = requestDto.last_sync_at
+                last_sync_at = requestDto.last_sync_at,
+                order_number = requestDto.order_number
             };
             var response = await _document_approvalUseCases.Update(request);
             return Ok(response);

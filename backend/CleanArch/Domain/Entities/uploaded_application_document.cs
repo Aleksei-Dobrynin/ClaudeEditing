@@ -30,7 +30,11 @@ namespace Domain.Entities
         public List<string>? app_docs { get; set; }
         public int? status_id { get; set; }
         public bool? add_sign { get; set; }
-
+        public bool is_deleted { get; set; } = false;
+        public string? delete_reason { get; set; }
+        public DateTime? deleted_at { get; set; }
+        public int? deleted_by { get; set; }
+        public string? deleted_by_name { get; set; }
     } 
 
     public class CustomUploadedDocument

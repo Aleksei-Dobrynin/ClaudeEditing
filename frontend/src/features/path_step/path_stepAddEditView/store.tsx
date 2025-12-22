@@ -11,6 +11,7 @@ import { updatepath_step } from "api/path_step";
 
 import { getservice_paths } from "api/service_path";
 import { getStructures } from "../../../api/Structure/useGetStructures";
+import buffer from "../../service_path/service_pathAddEditView/store";
 
 
 
@@ -114,8 +115,8 @@ class NewStore {
       is_required: this.is_required,
       estimated_days: this.estimated_days - 0,
       wait_for_previous_steps: this.wait_for_previous_steps,
+      structure_name: this.Structures.find(x => x.id == this.responsible_org_id)?.name ?? "",
     };
-
     const { isValid, errors } = await validate(data);
     if (!isValid) {
       this.errors = errors;
@@ -126,21 +127,31 @@ class NewStore {
     try {
       MainStore.changeLoader(true);
       let response;
-      if (this.id === 0) {
-        response = await createpath_step(data);
+      console.log(0);
+      if (this.id <= 0) {
+        buffer.addBuffer({
+          entity: "path_step",
+          kind: "add",
+          id: this.id < 0 ? this.id : undefined,
+          payload: data
+        });
+        //response = await createpath_step(data);
       } else {
-        response = await updatepath_step(data);
+        buffer.addBuffer({ entity: "path_step", kind: "update", id: data.id, payload: data });
+        //response = await updatepath_step(data);
       }
-      if (response.status === 201 || response.status === 200) {
-        onSaved(response);
-        if (data.id === 0) {
-          MainStore.setSnackbar(i18n.t("message:snackbar.successSave"), "success");
-        } else {
-          MainStore.setSnackbar(i18n.t("message:snackbar.successEdit"), "success");
-        }
-      } else {
-        throw new Error();
-      }
+      onSaved(1);
+
+      // if (response.status === 201 || response.status === 200) {
+      //   onSaved(response);
+      //   if (data.id === 0) {
+      //     MainStore.setSnackbar(i18n.t("message:snackbar.successSave"), "success");
+      //   } else {
+      //     MainStore.setSnackbar(i18n.t("message:snackbar.successEdit"), "success");
+      //   }
+      // } else {
+      //   throw new Error();
+      // }
     } catch (err) {
       MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
     } finally {
@@ -158,6 +169,28 @@ class NewStore {
     if (id === null || id === 0) {
       return;
     }
+
+    if (id < 0) {
+      const change = buffer.bufferList?.find(
+        x => x.entity === "path_step" && x.kind === "add" && x.id === id
+      );
+
+      if (change?.payload) {
+        const p = change.payload;
+        this.id = id;
+        this.step_type = p.step_type;
+        this.path_id = p.path_id;
+        this.responsible_org_id = p.responsible_org_id;
+        this.name = p.name;
+        this.description = p.description;
+        this.order_number = p.order_number;
+        this.is_required = p.is_required;
+        this.estimated_days = p.estimated_days;
+        this.wait_for_previous_steps = p.wait_for_previous_steps;
+      }
+      return;
+    }
+
     this.id = id;
 
     this.loadpath_step(id);
@@ -166,21 +199,19 @@ class NewStore {
   loadpath_step = async (id: number) => {
     try {
       MainStore.changeLoader(true);
+      const buffered = (buffer.bufferList ?? []).find(
+        (x: any) =>
+          x.entity === "path_step" &&
+          x.kind === "update" &&
+          x.id === id
+      );
+      if (buffered?.payload) {
+        this.fillFromData(buffered.payload);
+        return;
+      }
       const response = await getpath_step(id);
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
-        runInAction(() => {
-
-          this.id = response.data.id;
-          this.step_type = response.data.step_type;
-          this.path_id = response.data.path_id;
-          this.responsible_org_id = response.data.responsible_org_id;
-          this.name = response.data.name;
-          this.description = response.data.description;
-          this.order_number = response.data.order_number;
-          this.is_required = response.data.is_required;
-          this.estimated_days = response.data.estimated_days;
-          this.wait_for_previous_steps = response.data.wait_for_previous_steps;
-        });
+        this.fillFromData(response.data);
       } else {
         throw new Error();
       }
@@ -191,6 +222,20 @@ class NewStore {
     }
   };
 
+  private fillFromData(data: any) {
+    runInAction(() => {
+      this.id = data.id;
+      this.step_type = data.step_type;
+      this.path_id = data.path_id;
+      this.responsible_org_id = data.responsible_org_id;
+      this.name = data.name;
+      this.description = data.description;
+      this.order_number = data.order_number;
+      this.is_required = data.is_required;
+      this.estimated_days = data.estimated_days;
+      this.wait_for_previous_steps = data.wait_for_previous_steps;
+    });
+  }
 
   loadservice_paths = async () => {
     try {

@@ -79,11 +79,52 @@ const Header = observer(({ handleLeftDrawerToggle }) => {
           {!mainStore.myRoles.includes("admin") && (
             mainStore.menuHeader.map((menu) => (
               <ItemMenu $active={location.pathname.includes(menu.url)} $marginRight={menu.id === "AppsFromCabinet" && MainStore.CountAppsFromCabinet !== 0 ? "20px" : ""} >
-                {menu.id === "AppsFromCabinet" && MainStore.CountAppsFromCabinet !== 0 ?
-                  <Link id={`MenuHeader${menu.id}`} to={menu.url}><Badge badgeContent={MainStore.CountAppsFromCabinet} color="error">{menu.title}</Badge></Link>
-                  :
-                  <Link id={`MenuHeader${menu.id}`} to={menu.url}>{menu.title}</Link>}
-
+                {(() => {
+                  switch (menu.id) {
+                    case "AppsFromCabinet":
+                      return MainStore.CountAppsFromCabinet !== 0 ? (
+                        <Link id={`MenuHeader${menu.id}`} to={menu.url}>
+                          <Badge badgeContent={MainStore.CountAppsFromCabinet} color="error">
+                            {menu.title}
+                          </Badge>
+                        </Link>
+                      ) : (
+                        <Link id={`MenuHeader${menu.id}`} to={menu.url}>
+                          {menu.title}
+                        </Link>
+                      );
+                    case "AppsFrorEO":
+                      return MainStore.CountFilterForEO !== 0 ? (
+                        <Link id={`MenuHeader${menu.id}`} to={menu.url}>
+                          <Badge badgeContent={MainStore.CountFilterForEO} color="error">
+                            {menu.title}
+                          </Badge>
+                        </Link>
+                      ) : (
+                        <Link id={`MenuHeader${menu.id}`} to={menu.url}>
+                          {menu.title}
+                        </Link>
+                      );
+                    case "AppRefusal":
+                      return MainStore.CountFilterRefusal !== 0 ? (
+                        <Link id={`MenuHeader${menu.id}`} to={menu.url}>
+                          <Badge badgeContent={MainStore.CountFilterRefusal} color="error">
+                            {menu.title}
+                          </Badge>
+                        </Link>
+                      ) : (
+                        <Link id={`MenuHeader${menu.id}`} to={menu.url}>
+                          {menu.title}
+                        </Link>
+                      );
+                    default:
+                      return (
+                        <Link id={`MenuHeader${menu.id}`} to={menu.url}>
+                          {menu.title}
+                        </Link>
+                      );
+                  }
+                })()}
               </ItemMenu>
             ))
           )}

@@ -312,7 +312,7 @@ SELECT obj.*, proc.id archirecture_process_id, st.id archirecture_process_status
             try
             {
                 var sql = @"
-      SELECT ao.*,
+            SELECT ao.*,
                    proc.id AS archirecture_process_id,
                    st.id AS archirecture_process_status_id,
                    st.name AS archirecture_process_status_name,
@@ -321,22 +321,26 @@ SELECT obj.*, proc.id archirecture_process_id, st.id archirecture_process_status
                     FROM archive_object_customer aoc 
                     JOIN customers_for_archive_object c ON aoc.customer_id = c.id 
                     WHERE aoc.archive_object_id = ao.id) AS customer_name,
+                   (SELECT STRING_AGG(c.description, ', ') 
+                    FROM archive_object_customer aoc 
+                    JOIN customers_for_archive_object c ON aoc.customer_id = c.id 
+                    WHERE aoc.archive_object_id = ao.id) AS customer_description,
                    (SELECT STRING_AGG(c.pin, ', ') 
                     FROM archive_object_customer aoc 
                     JOIN customers_for_archive_object c ON aoc.customer_id = c.id 
                     WHERE aoc.archive_object_id = ao.id) AS customer_pin,
-					(SELECT STRING_AGG(c.dp_outgoing_number, ', ') 
+                   (SELECT STRING_AGG(c.dp_outgoing_number, ', ') 
                     FROM archive_object_customer aoc 
                     JOIN customers_for_archive_object c ON aoc.customer_id = c.id 
                     WHERE aoc.archive_object_id = ao.id) AS customer_number,
-					ot.description as tag_description,
-					ot.name as tag_name
+                   ot.description as tag_description,
+                   ot.name as tag_name
             FROM dutyplan_object ao
             LEFT JOIN application_duty_object adp ON adp.dutyplan_object_id = ao.id
             LEFT JOIN architecture_process proc ON proc.id = adp.application_id
             LEFT JOIN architecture_status st ON st.id = proc.status_id
-	left join application a on a.id = proc.id
-			left join object_tag ot on ot.id = a.object_tag_id
+            LEFT JOIN application a on a.id = proc.id
+            LEFT JOIN object_tag ot on ot.id = a.object_tag_id
         ";
 
                 var parameters = new DynamicParameters();
@@ -354,7 +358,7 @@ SELECT obj.*, proc.id archirecture_process_id, st.id archirecture_process_status
 
                     parameters.Add("Search", $"%{filter.search}%");
                 }
-                
+
                 if (filter.created_at_from.HasValue)
                 {
                     whereDates.Add("ao.created_at >= @CreatedAtFrom");
@@ -375,7 +379,7 @@ SELECT obj.*, proc.id archirecture_process_id, st.id archirecture_process_status
                     whereDates.Add("ao.updated_at <= @UpdatedAtTo");
                     parameters.Add("UpdatedAtTo", filter.updated_at_to.Value.Date);
                 }
-                
+
                 if (whereDates.Any())
                 {
                     whereClauses.Add(string.Join(" AND ", whereDates));
@@ -411,7 +415,6 @@ SELECT obj.*, proc.id archirecture_process_id, st.id archirecture_process_status
                 throw new RepositoryException("Failed to get ArchiveObject", ex);
             }
         }
-
 
         public async Task Delete(int id)
         {

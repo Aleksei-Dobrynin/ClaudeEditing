@@ -92,7 +92,7 @@ const step_partnerListView: FC<step_partnerListViewProps> = observer((props) => 
         title={translate("label:step_partnerListView.entityTitle")}
         onDeleteClicked={(id: number) => store.deletestep_partner(id)}
         columns={columns}
-        data={store.data}
+        data={store.effectiveData}
         tableName="step_partner" />
       break
     case 'popup':
@@ -101,7 +101,7 @@ const step_partnerListView: FC<step_partnerListViewProps> = observer((props) => 
         onDeleteClicked={(id: number) => store.deletestep_partner(id)}
         onEditClicked={(id: number) => store.onEditClicked(id)}
         columns={columns}
-        data={store.data}
+        data={store.effectiveData}
         tableName="step_partner" />
       break
   }

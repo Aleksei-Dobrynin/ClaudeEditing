@@ -144,6 +144,41 @@ namespace Application.UseCases
         }
 
 
+        public async Task<PaginatedList<Domain.Entities.Application>> GetCountFilterForEO(PaginationFields filter)
+        {
+            return await unitOfWork.ApplicationRepository.GetByFilterFromEO(filter, true);
+        }
+        
+        public async Task<PaginatedList<Domain.Entities.Application>> GetByFilterRefusal(PaginationFields filter)
+        {
+            // Trim filter fields like in GetPaginated
+            filter.pin = filter.pin?.Trim();
+            filter.customerName = filter.customerName?.Trim();
+            filter.address = filter.address?.Trim();
+            filter.number = filter.number?.Trim();
+            filter.common_filter = filter.common_filter?.Trim();
+            filter.incoming_numbers = filter.incoming_numbers?.Trim();
+            filter.outgoing_numbers = filter.outgoing_numbers?.Trim();
+            filter.application_code = filter.application_code?.Trim();
+
+            // Handle isMyOrgApplication filter
+            if (filter.isMyOrgApplication != null && filter.isMyOrgApplication.Value)
+            {
+                var emp = await unitOfWork.EmployeeRepository.GetUser();
+                var orgs = await unitOfWork.EmployeeInStructureRepository.GetByidEmployee(emp.id);
+                filter.structure_ids = orgs.Select(org => org.structure_id).ToArray();
+            }
+
+            // Call the repository method
+            return await unitOfWork.ApplicationRepository.GetByFilterRefusal(filter, false);
+        }
+
+
+        public async Task<PaginatedList<Domain.Entities.Application>> GetCountFilterRefusal(PaginationFields filter)
+        {
+            return await unitOfWork.ApplicationRepository.GetByFilterRefusal(filter, true);
+        }
+        
         public Task<int> GetCountAppsFromCabinet()
         {
             return unitOfWork.ApplicationRepository.GetCountAppsFromCabinet();
@@ -152,6 +187,9 @@ namespace Application.UseCases
         public async Task<Domain.Entities.Application> GetOneByID(int id)
         {
             var app = await unitOfWork.ApplicationRepository.GetOneByID(id);
+            var user_id = await unitOfWork.UserRepository.GetUserUID();
+            var employee = await unitOfWork.EmployeeRepository.GetByUserId(user_id);
+            app.is_favorite = await unitOfWork.ApplicationRepository.GetStatusFavorite(id, employee.id);
             var tasks = await unitOfWork.application_taskRepository.GetByapplication_id(id);
             app.workflow_task_structure_id = tasks.OrderBy(x => x.id).FirstOrDefault()?.task_template_id;
             return app;
@@ -2208,5 +2246,45 @@ namespace Application.UseCases
             return result;
         }
 
+        public async Task<int?> AddToFavorite(int application_id)
+        {
+            var app = await unitOfWork.ApplicationRepository.GetOneByID(application_id);
+            if (app == null)
+            {
+                return null;
+            }
+            var user_id = await unitOfWork.UserRepository.GetUserUID();
+            var employee = await unitOfWork.EmployeeRepository.GetByUserId(user_id);
+            var result = await unitOfWork.ApplicationRepository.AddToFavorite(application_id, employee.id);
+            unitOfWork.Commit();
+            return result;
+        }
+        
+        public async Task<int?> DeleteToFavorite(int application_id)
+        {
+            var app = await unitOfWork.ApplicationRepository.GetOneByID(application_id);
+            if (app == null)
+            {
+                return null;
+            }
+            var user_id = await unitOfWork.UserRepository.GetUserUID();
+            var employee = await unitOfWork.EmployeeRepository.GetByUserId(user_id);
+            var result = await unitOfWork.ApplicationRepository.DeleteToFavorite(application_id, employee.id);
+            unitOfWork.Commit();
+            return result;
+        }
+        
+        public async Task<bool> GetStatusFavorite(int application_id)
+        {
+            var app = await unitOfWork.ApplicationRepository.GetOneByID(application_id);
+            if (app == null)
+            {
+                return false;
+            }
+            var user_id = await unitOfWork.UserRepository.GetUserUID();
+            var employee = await unitOfWork.EmployeeRepository.GetByUserId(user_id);
+            var result = await unitOfWork.ApplicationRepository.GetStatusFavorite(application_id, employee.id);
+            return result;
+        }
     }
 }

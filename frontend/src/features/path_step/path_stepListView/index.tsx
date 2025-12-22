@@ -144,7 +144,7 @@ const path_stepListView: FC<path_stepListViewProps> = observer((props) => {
         title={translate("label:path_stepListView.entityTitle")}
         onDeleteClicked={(id: number) => store.deletepath_step(id)}
         columns={columns}
-        data={store.data}
+        data={store.effectiveData}
         tableName="path_step" />
       break
     case 'popup':
@@ -153,7 +153,7 @@ const path_stepListView: FC<path_stepListViewProps> = observer((props) => {
         onDeleteClicked={(id: number) => store.deletepath_step(id)}
         onEditClicked={(id: number) => store.onEditClicked(id)}
         columns={columns}
-        data={store.data}
+        data={store.effectiveData}
         tableName="path_step" />
       break
   }

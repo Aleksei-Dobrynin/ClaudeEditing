@@ -168,6 +168,13 @@ const pages = {
           url: "/user/AppsForEO"
         },
         {
+          id: "AppRefusal",
+          title: "Отказы",
+          type: "item",
+          icon: icons.IconId,
+          url: "/user/AppRefusal"
+        },
+        {
           id: "AppNotification",
           title: "История уведомлений",
           type: "item",

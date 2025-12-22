@@ -21,6 +21,7 @@ import {
   toProgressStep,
 } from "api/ApplicationWorkDocument/documentsApi";
 import {
+  deleteUploadedApplicationDocument,
   getApplicationWorkDocumentByStepID,
   getStepDocuments,
   getStepsWithInfo,
@@ -30,20 +31,9 @@ import {
 import { downloadFile, getSignByFileId } from "api/File";
 import { getapplication_paymentsByapplication_id } from "api/application_payment";
 import { createStepStatusLog } from "api/stepstatuslog";
-// НОВЫЕ импорты для работы с динамическими шагами
 import {
-  addStepsFromService,
-  getAdditionalServicesByApplicationId,
-  cancelAdditionalService,
-  AddStepsFromServiceRequest,
-  ApplicationAdditionalService,
-} from "api/application_additional_service";
-import { 
-  DynamicStepInfo, 
-  ServicePathOption 
-} from "constants/ApplicationAdditionalService";
-import { getservice_paths } from "api/service_path";
-
+  getapplication_additional_service, setApplicationAdditionalServiceCancel
+} from "../../../../api/ApplicationAdditionalService/applicationAdditionalServiceApi";
 // Types
 interface Department {
   id: number;
@@ -67,10 +57,10 @@ interface Application {
   status: string;
   start_date: string;
   deadline: string;
+  // service_path_id?: number;
 }
 
-// ОБНОВЛЕННЫЙ интерфейс AppStep с новыми полями для динамических шагов
-interface AppStep {
+export interface AppStep {
   id: number;
   step_id: number;
   application_id: number;
@@ -78,7 +68,7 @@ interface AppStep {
   name: string;
   description: string;
   responsible_department_id: number;
-  status: "completed" | "in_progress" | "waiting" | "paused";
+  status: "completed" | "in_progress" | "waiting" | "paused" | "cancelled";
   order_number: number;
   start_date?: string;
   completion_date?: string;
@@ -86,22 +76,38 @@ interface AppStep {
   is_required: boolean;
   dependencies: number[];
   blocks: number[];
-  
-  // НОВЫЕ ПОЛЯ для динамических шагов
   is_dynamically_added?: boolean;
-  additional_service_path_id?: number;
-  original_step_order?: number;
-  added_by_link_id?: number;
-  
-  // Дополнительные поля из бэкенда
-  documents?: any[];
-  workDocuments?: any[];
-  requiredCalcs?: Array<{
-    id: number;
-    structure_id: number;
-    structure_name: string;
-  }>;
+  additional_service_id?: number | null;
+  additional_service_name?: string | null;
+  added_by_link_id?: number | null;
+  original_step_order?: number | null;
+
+  step_name?: string;
+  responsible_department_name?: string;
+
+  is_paused?: boolean;                       // Шаг приостановлен
+  pause_reason?: string;  
 }
+
+export interface NestedStepGroup {
+  linkId: number;                           // ID группы (added_by_link_id)
+  serviceName: string;                      // Название услуги (отображается в заголовке!)
+  addedAt?: string;                         // Когда добавлено
+  requestedBy?: string;                     // Кто запросил
+  addReason?: string;                       // Причина добавления
+  status: 'active' | 'completed' | 'cancelled' | 'pending';
+  steps: AppStep[];         // Шаги в группе
+  parentStepId: number;                     // ID родительского шага
+}
+
+/**
+ * Результат группировки шагов
+ */
+export interface GroupedSteps {
+  regularSteps: AppStep[];  // Обычные шаги
+  groupsByParentId: Map<number, NestedStepGroup[]>; // Группы по ID родительского шага
+}
+
 
 interface AppDocument {
   id: number;
@@ -115,6 +121,8 @@ interface AppDocument {
   created_at: any | null;
   created_by_name: string | null;
   structure_name: string | null;
+  delete_reason: string | null;
+  deleted_by_name: string | null;
 }
 
 interface DocumentApproval {
@@ -141,18 +149,18 @@ interface DocumentApprover {
 }
 
 class ApplicationStepsStore {
-  // Существующие данные
-  data: AppStep[] = [];
-  outgoingData: any[] = [];
+  // Data
+  data = []
+  outgoingData = [];
   application_id: number = 0;
   hasAccess: boolean = false;
   openPanelUpload: boolean = false;
   isOpenFileView: boolean = false;
-  fileUrl = "";
-  fileType = "";
+  fileUrl = ""
+  fileType = ""
   ecpListOpen = false;
   isOpenFileHistory = false;
-  signData: any[] = [];
+  signData = []
 
   application: Application | null = null;
   steps: AppStep[] = [];
@@ -160,266 +168,99 @@ class ApplicationStepsStore {
   fileHistory: AppDocument[] = [];
   approvals: DocumentApproval[] = [];
   departments: Record<number, Department> = {};
+  // users: Record<number, User> = {};
   documentTypes: Record<number, DocumentType> = {};
   stepRequiredDocuments: StepRequiredDocument[] = [];
   documentApprovers: DocumentApprover[] = [];
 
-  // Existing UI state
-  loading: boolean = false;
-  expandedStepId: number | null = null;
-  pauseDialogOpen: boolean = false;
-  pauseReason: string = "";
+  // UI State
+  expandedStepIds: number[] = [];
+  currentUser = { user_id: 103, department_id: 2 };
+  loading = false;
+  pauseDialogOpen = false;
+  pauseReason = "";
   currentStepToPause: number | null = null;
-  returnDialogOpen: boolean = false;
-  returnReason: string = "";
-  currentStepToReturn: number | null = null;
   currentStepId: number = 0;
+  currentUploadId: number = 0;
   currentServiceDocId: number = 0;
-  historyDialogOpen: boolean = false;
-  currentStepForHistory: number | null = null;
-  
-  // НОВЫЕ ПОЛЯ для работы с динамическими шагами
-  additionalServices: ApplicationAdditionalService[] = [];
-  addStepsDialogOpen: boolean = false;
-  selectedServicePath: ServicePathOption | null = null;
-  addStepsReason: string = "";
-  currentStepForAdding: number | null = null;
-  availableServicePaths: ServicePathOption[] = [];
-  loadingServicePaths: boolean = false;
 
+  returnDialogOpen = false;
+  returnReason = "";
+  currentStepToReturn: number | null = null;
+
+  historyDialogOpen = false;
+  currentStepForHistory: number | null = null;
+  application_additional_service = [];
+  cancelServiceDialogOpen = false;
+  serviceToCancelId: number | null = null;
   constructor() {
     makeAutoObservable(this);
+    this.loadReferenceData();
   }
 
-  // ============================================
-  // НОВЫЕ МЕТОДЫ для работы с динамическими шагами
-  // ============================================
+  openCancelServiceDialog(id: number) {
+    this.serviceToCancelId = id;
+    this.cancelServiceDialogOpen = true;
+  }
 
-  /**
-   * Загрузить список дополнительных услуг для заявки
-   */
-  async loadAdditionalServices(applicationId: number) {
+  closeCancelServiceDialog() {
+    this.cancelServiceDialogOpen = false;
+    this.serviceToCancelId = null;
+  }
+
+  async confirmCancelAdditionalService() {
+    if (!this.serviceToCancelId) return;
+
     try {
-      const response = await getAdditionalServicesByApplicationId(applicationId);
-      if (response.status === 200 && response.data) {
-        runInAction(() => {
-          this.additionalServices = response.data;
-        });
+      const response = await setApplicationAdditionalServiceCancel(this.serviceToCancelId);
+      console.log(response);
+      if (response.status === 200 && response.data.error) {
+        MainStore.openErrorDialog(response.data.error, "Ошибка");
+        this.closeCancelServiceDialog();
+      } else {
+        throw new Error();
       }
-    } catch (err) {
-      console.error("Error loading additional services:", err);
+      this.closeCancelServiceDialog();
+      await this.loadApplication(this.application_id);
+    } catch (e: any) {
+      MainStore.openErrorDialog(i18n.t("Ошибка отмены дополнительной услуги"), "Ошибка");
     }
   }
 
-  /**
-   * Открыть диалог добавления шагов
-   */
-  openAddStepsDialog(stepId: number) {
-    runInAction(() => {
-      this.currentStepForAdding = stepId;
-      this.addStepsDialogOpen = true;
-      this.addStepsReason = "";
-      this.selectedServicePath = null;
-    });
-    this.loadAvailableServicePaths();
-  }
-
-  /**
-   * Закрыть диалог добавления шагов
-   */
-  closeAddStepsDialog() {
-    runInAction(() => {
-      this.addStepsDialogOpen = false;
-      this.currentStepForAdding = null;
-      this.addStepsReason = "";
-      this.selectedServicePath = null;
-    });
-  }
-
-  /**
-   * Установить выбранную услугу
-   */
-  setSelectedServicePath(servicePath: ServicePathOption | null) {
-    this.selectedServicePath = servicePath;
-  }
-
-  /**
-   * Установить причину добавления
-   */
-  setAddStepsReason(reason: string) {
-    this.addStepsReason = reason;
-  }
-
-  /**
-   * Загрузить доступные service_paths для добавления
-   */
-  async loadAvailableServicePaths() {
+  async loadReferenceData() {
     try {
+      const [departmentsRes, documentTypesRes] = await Promise.all([
+        getDepartments(),
+        getDocumentTypes(),
+      ]);
+
       runInAction(() => {
-        this.loadingServicePaths = true;
-      });
-      
-      const response = await getservice_paths();
-      if (response.status === 200 && response.data) {
-        runInAction(() => {
-          this.availableServicePaths = response.data;
-        });
-      }
-    } catch (err) {
-      MainStore.setSnackbar("Ошибка загрузки списка услуг", "error");
-    } finally {
-      runInAction(() => {
-        this.loadingServicePaths = false;
-      });
-    }
-  }
-
-  /**
-   * Добавить шаги из выбранной услуги
-   */
-  async addStepsFromService() {
-    if (!this.currentStepForAdding || !this.selectedServicePath || !this.addStepsReason.trim()) {
-      MainStore.setSnackbar("Заполните все обязательные поля", "error");
-      return;
-    }
-
-    // Проверка лимита активных услуг (максимум 3)
-    const activeServicesCount = this.additionalServices.filter(
-      s => s.status === 'active' || s.status === 'pending'
-    ).length;
-    
-    if (activeServicesCount >= 3) {
-      MainStore.setSnackbar("Достигнут лимит активных дополнительных услуг (максимум 3)", "error");
-      return;
-    }
-
-    MainStore.openErrorConfirm(
-      `Добавить ${this.selectedServicePath.steps_count || 'несколько'} шагов из услуги "${this.selectedServicePath.name}"?`,
-      "Добавить",
-      "Отмена",
-      async () => {
-        try {
-          MainStore.changeLoader(true);
-
-          const request: AddStepsFromServiceRequest = {
-            application_id: this.application_id,
-            additional_service_path_id: this.selectedServicePath!.id,
-            added_at_step_id: this.currentStepForAdding!,
-            insert_after_step_id: this.currentStepForAdding!,
-            add_reason: this.addStepsReason,
-          };
-
-          const response = await addStepsFromService(request);
-
-          if (response.status === 200 || response.status === 201) {
-            MainStore.setSnackbar("Шаги успешно добавлены", "success");
-            this.closeAddStepsDialog();
-
-            // Перезагружаем данные заявки
-            await this.loadApplication(this.application_id);
-            await this.loadAdditionalServices(this.application_id);
-          } else {
-            throw new Error();
-          }
-        } catch (err: any) {
-          const errorMessage = err.response?.data?.message || "Ошибка при добавлении шагов";
-          MainStore.setSnackbar(errorMessage, "error");
-        } finally {
-          MainStore.changeLoader(false);
-          MainStore.onCloseConfirm();
+        if (departmentsRes.status === 200 && departmentsRes.data) {
+          this.departments = departmentsRes.data.reduce((acc: any, dept: Department) => {
+            acc[dept.id] = dept;
+            return acc;
+          }, {});
         }
-      },
-      () => {
-        MainStore.onCloseConfirm();
-      }
-    );
-  }
 
-  /**
-   * Отменить добавленную услугу
-   */
-  async cancelAddedService(serviceId: number) {
-    const service = this.additionalServices.find(s => s.id === serviceId);
-    if (!service) return;
+        // if (usersRes.status === 200 && usersRes.data) {
+        //   this.users = usersRes.data.reduce((acc: any, user: User) => {
+        //     acc[user.user_id] = user;
+        //     return acc;
+        //   }, {});
+        // }
 
-    MainStore.openErrorConfirm(
-      `Отменить добавление услуги "${service.service_name}"? Все динамические шаги будут удалены.`,
-      "Отменить",
-      "Назад",
-      async () => {
-        try {
-          MainStore.changeLoader(true);
-
-          const response = await cancelAdditionalService(serviceId);
-
-          if (response.status === 200 || response.status === 201) {
-            MainStore.setSnackbar("Услуга успешно отменена", "success");
-
-            // Перезагружаем данные
-            await this.loadApplication(this.application_id);
-            await this.loadAdditionalServices(this.application_id);
-          } else {
-            throw new Error();
-          }
-        } catch (err: any) {
-          const errorMessage = err.response?.data?.message || "Ошибка при отмене услуги";
-          MainStore.setSnackbar(errorMessage, "error");
-        } finally {
-          MainStore.changeLoader(false);
-          MainStore.onCloseConfirm();
+        if (documentTypesRes.status === 200 && documentTypesRes.data) {
+          this.documentTypes = documentTypesRes.data.reduce((acc: any, docType: DocumentType) => {
+            acc[docType.id] = docType;
+            return acc;
+          }, {});
         }
-      },
-      () => {
-        MainStore.onCloseConfirm();
-      }
-    );
-  }
-
-  /**
-   * Получить информацию о динамическом шаге
-   */
-  getDynamicStepInfo(stepId: number): DynamicStepInfo {
-    const step = this.data.find(s => s.id === stepId);
-    
-    if (!step || !step.is_dynamically_added) {
-      return { isDynamic: false };
+      });
+    } catch (error) {
+      console.error("Error loading reference data:", error);
+      // Use mock data as fallback
     }
-
-    const service = this.additionalServices.find(
-      s => s.id === step.added_by_link_id
-    );
-
-    return {
-      isDynamic: true,
-      serviceName: service?.service_name,
-      servicePathName: service?.service_path_name,
-      addReason: service?.add_reason,
-      linkId: step.added_by_link_id,
-      canCancel: service?.status === 'pending' || service?.status === 'active',
-    };
   }
-
-  /**
-   * Проверить, можно ли добавить шаги к текущему шагу
-   */
-  canAddStepsToStep(stepId: number): boolean {
-    const step = this.data.find(s => s.id === stepId);
-    if (!step) return false;
-
-    // Можно добавлять только к активному шагу
-    if (step.status !== "in_progress") return false;
-
-    // Проверяем лимит активных услуг
-    const activeServicesCount = this.additionalServices.filter(
-      s => s.status === 'active' || s.status === 'pending'
-    ).length;
-
-    return activeServicesCount < 3;
-  }
-
-  // ============================================
-  // СУЩЕСТВУЮЩИЕ МЕТОДЫ (без изменений)
-  // ============================================
 
   clearStore() {
     runInAction(() => {
@@ -427,50 +268,76 @@ class ApplicationStepsStore {
       this.steps = [];
       this.documents = [];
       this.approvals = [];
-      this.expandedStepId = null;
+      this.expandedStepIds = [];
       this.pauseDialogOpen = false;
       this.pauseReason = "";
       this.currentStepToPause = null;
-      
-      // Очищаем также новые поля
-      this.additionalServices = [];
-      this.addStepsDialogOpen = false;
-      this.selectedServicePath = null;
-      this.addStepsReason = "";
-      this.currentStepForAdding = null;
     });
   }
 
   checkFile(fileName: string) {
-    return (
-      fileName.toLowerCase().endsWith('.jpg') ||
+    return (fileName.toLowerCase().endsWith('.jpg') ||
       fileName.toLowerCase().endsWith('.jpeg') ||
       fileName.toLowerCase().endsWith('.png') ||
-      fileName.toLowerCase().endsWith('.pdf')
-    );
+      fileName.toLowerCase().endsWith('.pdf'));
   }
 
   async loadApplication(applicationId: number) {
     try {
       this.loading = true;
 
-      await this.getStepDocuments();
+      // await this.loaduploaded_application_documents();
+      // this.getStepsWithInfo()
+      await this.getStepDocuments()
 
+      // Load application data
       const [docsRes] = await Promise.all([
+        // getApplicationSteps(applicationId),
         getApplicationDocuments(applicationId),
+        // getDocumentApprovals(applicationId),
       ]);
 
       runInAction(() => {
+        // if (appRes.status === 200 && appRes.data) {
+        //   this.application = appRes.data;
+        // }
+
+        // if (stepsRes.status === 200 && stepsRes.data) {
+        //   this.steps = stepsRes.data;
+        // }
+
         if (docsRes.status === 200 && docsRes.data) {
           this.documents = docsRes.data;
         }
+
+        // if (approvalsRes.status === 200 && approvalsRes.data) {
+        //   this.approvals = approvalsRes.data;
+        // }
       });
 
-      // НОВОЕ: Загружаем дополнительные услуги
-      await this.loadAdditionalServices(applicationId);
+      // Load step requirements if we have path_id from steps
+      // const pathId = stepsRes.data?.[0]?.path_id;
+      // if (pathId) {
+      //   const [stepReqRes, docApproversRes] = await Promise.all([
+      //     getStepRequiredDocuments(pathId),
+      //     getDocumentApprovers(pathId),
+      //   ]);
+
+      //   runInAction(() => {
+      //     if (stepReqRes.status === 200 && stepReqRes.data) {
+      //       this.stepRequiredDocuments = stepReqRes.data;
+      //     }
+
+      //     if (docApproversRes.status === 200 && docApproversRes.data) {
+      //       this.documentApprovers = docApproversRes.data;
+      //     }
+      //   });
+      // }
+      this.loadGetApplication_additional_service(applicationId);
 
     } catch (err) {
       MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+      // Fallback to mock data
     } finally {
       runInAction(() => {
         this.loading = false;
@@ -478,9 +345,38 @@ class ApplicationStepsStore {
     }
   }
 
+
   toggleStep(id: number) {
-    this.expandedStepId = this.expandedStepId === id ? null : id;
+    const index = this.expandedStepIds.indexOf(id);
+    if (index > -1) {
+      // Закрыть - удалить из массива
+      this.expandedStepIds.splice(index, 1);
+    } else {
+      // Открыть - добавить в массив
+      this.expandedStepIds.push(id);
+    }
   }
+  
+  // Дополнительный метод для проверки открыт ли шаг
+  isStepExpanded(id: number): boolean {
+    return this.expandedStepIds.includes(id);
+  }
+
+  // async getStepsWithInfo() {
+  //   try {
+  //     MainStore.changeLoader(true);
+  //     const response = await getStepsWithInfo(this.application_id);
+  //     if ((response.status === 201 || response.status === 200) && response?.data !== null) {
+  //       this.data = response.data;
+  //     } else {
+  //       throw new Error();
+  //     }
+  //   } catch (err) {
+  //     MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+  //   } finally {
+  //     MainStore.changeLoader(false);
+  //   }
+  // }
 
   async getStepDocuments() {
     try {
@@ -498,6 +394,7 @@ class ApplicationStepsStore {
     }
   }
 
+
   isStepCompleted(stepId: number) {
     const step = this.data.find((s) => s.step_id === stepId);
     return step && step.status === "completed";
@@ -507,7 +404,7 @@ class ApplicationStepsStore {
     const step = this.data.find((s) => s.step_id === stepId);
     if (!step) return false;
 
-    if (step.dependencies == null) step.dependencies = [];
+    if (step.dependencies == null) step.dependencies = []; //TODO
 
     return step.dependencies.every((depStepId) =>
       this.isStepCompleted(depStepId)
@@ -539,7 +436,7 @@ class ApplicationStepsStore {
     });
   }
 
-  async loadGetSignByFileId(id: number) {
+  async loadGetSignByFileId(id) {
     try {
       MainStore.changeLoader(true);
       const response = await getSignByFileId(id);
@@ -553,21 +450,15 @@ class ApplicationStepsStore {
     } finally {
       MainStore.changeLoader(false);
     }
-  }
+  };
 
-  async loadGetUploaded_application_documentsByApplicationIdAndStepId(
-    application_document_id: number,
-    app_step_id: number
-  ) {
+  async loadGetUploaded_application_documentsByApplicationIdAndStepId(application_document_id: number, app_step_id: number) {
     try {
       MainStore.changeLoader(true);
-      const response = await getuploaded_application_documentsByApplicationIdAndStepId(
-        application_document_id,
-        app_step_id
-      );
+      const response = await getuploaded_application_documentsByApplicationIdAndStepId(application_document_id, app_step_id);
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
-        this.fileHistory = response.data.sort(
-          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        this.fileHistory = response.data.sort((a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
       } else {
         throw new Error();
@@ -577,15 +468,15 @@ class ApplicationStepsStore {
     } finally {
       MainStore.changeLoader(false);
     }
-  }
+  };
 
   async loadGetApplicationWorkDocumentByStepID(app_step_id: number) {
     try {
       MainStore.changeLoader(true);
       const response = await getApplicationWorkDocumentByStepID(app_step_id);
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
-        this.fileHistory = response.data.sort(
-          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        this.fileHistory = response.data.sort((a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
       } else {
         throw new Error();
@@ -595,9 +486,9 @@ class ApplicationStepsStore {
     } finally {
       MainStore.changeLoader(false);
     }
-  }
+  };
 
-  async OpenFileFile(idFile: number, fileName: string) {
+  async OpenFileFile(idFile: number, fileName) {
     try {
       MainStore.changeLoader(true);
       const response = await downloadFile(idFile);
@@ -621,7 +512,7 @@ class ApplicationStepsStore {
         const blob = new Blob([byteArray], { type: mimeType });
         this.fileUrl = URL.createObjectURL(blob);
         this.isOpenFileView = true;
-        return;
+        return
       } else {
         throw new Error();
       }
@@ -632,181 +523,24 @@ class ApplicationStepsStore {
     }
   }
 
-  async downloadFile(idFile: number, fileName: string) {
-    try {
-      MainStore.changeLoader(true);
-      const response = await downloadFile(idFile);
-      if ((response.status === 201 || response.status === 200) && response?.data !== null) {
-        const byteCharacters = atob(response.data.fileContents);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: response.data.contentType || 'application/octet-stream' });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-      } else {
-        throw new Error();
-      }
-    } catch (err) {
-      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
-    } finally {
-      MainStore.changeLoader(false);
-    }
+  onUploadFile(service_document_id: number, upload_id: number, step_id: number) {
+    this.currentServiceDocId = service_document_id;
+    this.currentUploadId = upload_id
+    this.openPanelUpload = true;
+    this.currentStepId = step_id
   }
 
-  async startStep(stepId: number, structureId: number) {
-    try {
-      MainStore.changeLoader(true);
-      const response = await toProgressStep(stepId);
-      if (response.status === 200) {
-        await this.loadApplication(this.application_id || 0);
-        MainStore.setSnackbar("Этап успешно запущен", "success");
-      } else {
-        throw new Error();
-      }
-    } catch (err) {
-      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
-    } finally {
-      MainStore.changeLoader(false);
-    }
-  }
-
-  async completeStep(stepId: number, structureId: number) {
-    try {
-      MainStore.changeLoader(true);
-      const response = await completeStep(stepId);
-      if (response.status === 200) {
-        await this.loadApplication(this.application_id || 0);
-        
-        // НОВОЕ: Проверяем, не завершилась ли дополнительная услуга
-        const step = this.data.find((s) => s.id === stepId);
-        if (step?.is_dynamically_added) {
-          await this.loadAdditionalServices(this.application_id);
-          
-          const service = this.additionalServices.find(
-            s => s.id === step.added_by_link_id
-          );
-          
-          if (service?.status === 'completed') {
-            MainStore.setSnackbar(
-              `Все шаги услуги "${service.service_name}" завершены!`,
-              "success"
-            );
-          }
-        }
-        
-        MainStore.setSnackbar("Этап успешно завершен", "success");
-      } else {
-        throw new Error();
-      }
-    } catch (err) {
-      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
-    } finally {
-      MainStore.changeLoader(false);
-    }
+  closeUploadFilePopup() {
+    this.currentServiceDocId = 0;
+    this.currentUploadId = 0
+    this.openPanelUpload = false;
+    this.currentStepId = 0
   }
 
   showPauseDialog(stepId: number) {
     this.currentStepToPause = stepId;
+    this.pauseReason = "";
     this.pauseDialogOpen = true;
-    this.pauseReason = "";
-  }
-
-  closePauseDialog() {
-    this.pauseDialogOpen = false;
-    this.currentStepToPause = null;
-    this.pauseReason = "";
-  }
-
-  setPauseReason(reason: string) {
-    this.pauseReason = reason;
-  }
-
-  async executePauseStep() {
-    if (!this.currentStepToPause || !this.pauseReason.trim()) {
-      MainStore.setSnackbar("Укажите причину приостановки", "error");
-      return;
-    }
-
-    try {
-      MainStore.changeLoader(true);
-      const response = await pauseStep(this.currentStepToPause, this.pauseReason);
-      if (response.status === 200) {
-        await this.loadApplication(this.application_id || 0);
-        MainStore.setSnackbar("Этап приостановлен", "info");
-        this.closePauseDialog();
-      } else {
-        throw new Error();
-      }
-    } catch (err) {
-      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
-    } finally {
-      MainStore.changeLoader(false);
-    }
-  }
-
-  async resumeStep(stepId: number) {
-    try {
-      MainStore.changeLoader(true);
-      const response = await resumeStep(stepId);
-      if (response.status === 200) {
-        await this.loadApplication(this.application_id || 0);
-        MainStore.setSnackbar("Этап возобновлен", "success");
-      } else {
-        throw new Error();
-      }
-    } catch (err) {
-      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
-    } finally {
-      MainStore.changeLoader(false);
-    }
-  }
-
-  showReturnDialog(stepId: number) {
-    this.currentStepToReturn = stepId;
-    this.returnDialogOpen = true;
-    this.returnReason = "";
-  }
-
-  closeReturnDialog() {
-    this.returnDialogOpen = false;
-    this.currentStepToReturn = null;
-    this.returnReason = "";
-  }
-
-  setReturnReason(reason: string) {
-    this.returnReason = reason;
-  }
-
-  async executeReturnStep() {
-    if (!this.currentStepToReturn || !this.returnReason.trim()) {
-      MainStore.setSnackbar("Укажите обоснование возврата", "error");
-      return;
-    }
-
-    try {
-      MainStore.changeLoader(true);
-      const response = await returnStep(this.currentStepToReturn, this.returnReason);
-      if (response.status === 200) {
-        await this.loadApplication(this.application_id || 0);
-        MainStore.setSnackbar("Этап возвращен на доработку", "info");
-        this.closeReturnDialog();
-      } else {
-        throw new Error();
-      }
-    } catch (err) {
-      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
-    } finally {
-      MainStore.changeLoader(false);
-    }
   }
 
   showHistoryDialog(stepId: number) {
@@ -819,17 +553,343 @@ class ApplicationStepsStore {
     this.currentStepForHistory = null;
   }
 
-  onUploadFile(service_document_id: number, application_document_id: number, step_id: number) {
-    this.openPanelUpload = true;
-    this.currentServiceDocId = service_document_id;
-    this.currentStepId = step_id;
+  closePauseDialog() {
+    this.pauseDialogOpen = false;
+    this.pauseReason = "";
+    this.currentStepToPause = null;
   }
 
-  closeUploadFilePopup() {
-    this.openPanelUpload = false;
-    this.currentServiceDocId = 0;
-    this.currentStepId = 0;
+  setPauseReason(reason: string) {
+    this.pauseReason = reason;
   }
+
+  async executePauseStep() {
+    if (!this.currentStepToPause || !this.pauseReason.trim()) {
+      MainStore.setSnackbar("Укажите причину приостановки", "error");
+      return;
+    }
+
+    MainStore.openErrorConfirm(
+      "Вы точно хотите приостановить шаг?",
+      "Да",
+      "Нет",
+      async () => {
+        try {
+          MainStore.changeLoader(true);
+          const response = await pauseStep(this.currentStepToPause, this.pauseReason);
+          if (response.status === 200) {
+            await this.loadApplication(this.application_id || 0);
+            MainStore.setSnackbar(`Этап  приостановлен`, "info");
+            this.closePauseDialog();
+          } else {
+            throw new Error();
+          }
+        } catch (err) {
+          MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+        } finally {
+          MainStore.changeLoader(false);
+          MainStore.onCloseConfirm();
+        }
+      },
+      () => {
+        MainStore.onCloseConfirm();
+      }
+    );
+  }
+
+  async resumeStep(stepId: number) {
+    MainStore.openErrorConfirm(
+      "Вы точно хотите возобновить шаг?",
+      "Да",
+      "Нет",
+      async () => {
+        try {
+          MainStore.changeLoader(true);
+          const response = await resumeStep(stepId);
+          if (response.status === 200) {
+            await this.loadApplication(this.application_id || 0);
+            MainStore.setSnackbar("Этап возобновлен", "success");
+          } else {
+            throw new Error();
+          }
+        } catch (err) {
+          MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+        } finally {
+          MainStore.changeLoader(false);
+          MainStore.onCloseConfirm();
+        }
+      },
+      () => {
+        MainStore.onCloseConfirm();
+      }
+    );
+  }
+
+  async uploadDocument(docTypeId: number) {
+    try {
+      MainStore.changeLoader(true);
+
+      // In real implementation, you would get the file from file input
+      // For now, we'll just call the API
+      const response = await uploadDocument({
+        applicationId: this.application?.id || 0,
+        documentTypeId: docTypeId,
+        file: new File([""], "document.pdf"), // This would be the actual file
+      });
+
+      if (response.status === 200 || response.status === 201) {
+        // Reload documents
+        await this.loadApplication(this.application_id || 0);
+        MainStore.setSnackbar(
+          `Документ "${this.documentTypes[docTypeId].name}" загружен`,
+          "success"
+        );
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      MainStore.changeLoader(false);
+    }
+  }
+
+  async signDocument(docId: number) {
+    try {
+      MainStore.changeLoader(true);
+
+      const response = await signDocument(docId);
+
+      if (response.status === 200) {
+        // Reload documents and approvals
+        await this.loadApplication(this.application_id || 0);
+        MainStore.setSnackbar("Документ успешно подписан", "success");
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      MainStore.changeLoader(false);
+    }
+  }
+
+
+  async loadapplication_payments() {
+    try {
+      MainStore.changeLoader(true);
+      const response = await getapplication_paymentsByapplication_id(this.application_id)
+      if ((response.status === 201 || response.status === 200) && response?.data !== null) {
+        return response.data;
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      MainStore.changeLoader(false);
+    }
+  };
+
+  async completeStep(stepId: number, structureId: number) {
+
+    if (!this.canCompleteStep(stepId)) {
+      MainStore.setSnackbar(
+        "Невозможно завершить шаг. Убедитесь, что все обязательные документы подписаны.",
+        "error"
+      );
+      return;
+    }
+
+    const payments = await this.loadapplication_payments();
+    const payment = payments?.find(x => x.structure_id === structureId);
+    let text = "Вы точно хотите завершить шаг?"
+    if (!payment) {
+      text = `НЕТ ДАННЫХ ПО КАЛЬКУЛЯЦИИ.<br /> Вы хотите завершить текущий  этап?`
+    }
+
+    MainStore.openErrorConfirm(
+      text,
+      "Да",
+      "Нет",
+      async () => {
+        try {
+          MainStore.changeLoader(true);
+          const response = await completeStep(stepId);
+          if (response.status === 200) {
+            await this.loadApplication(this.application_id || 0);
+            const step = this.data.find((s) => s.id === stepId);
+            MainStore.setSnackbar(`Шаг "${step?.name}" успешно завершен!`, "success");
+            if (step.blocks?.length === 0) {
+              MainStore.openErrorDialog("Последний этап завершен! Не забудьте поменять статус заявки!")
+            }
+            // if(this.data.every(x => x.status === "completed")){
+            //   MainStore.openErrorDialog("Последний этап завершен! Не забудьте поменять статус заявки!")
+            // }
+          } else {
+            throw new Error();
+          }
+        } catch (err) {
+          MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+        } finally {
+          MainStore.changeLoader(false);
+          MainStore.onCloseConfirm();
+        }
+      },
+      () => {
+        MainStore.onCloseConfirm();
+      }
+    );
+  }
+
+  showReturnDialog(stepId: number) {
+    this.currentStepToReturn = stepId;
+    this.returnReason = "";
+    this.returnDialogOpen = true;
+  }
+
+  closeReturnDialog() {
+    this.returnDialogOpen = false;
+    this.returnReason = "";
+    this.currentStepToReturn = null;
+  }
+
+  setReturnReason(reason: string) {
+    this.returnReason = reason;
+  }
+
+  async returnStep(stepId: number) {
+    this.showReturnDialog(stepId);
+  }
+
+  async executeReturnStep() {
+    if (!this.currentStepToReturn || !this.returnReason.trim()) {
+      MainStore.setSnackbar("Укажите обоснование возврата", "error");
+      return;
+    }
+
+    MainStore.openErrorConfirm(
+      "Вы точно хотите вернуть шаг?",
+      "Да",
+      "Нет",
+      async () => {
+        try {
+          MainStore.changeLoader(true);
+
+          const step = this.data.find((s) => s.id === this.currentStepToReturn);
+          if (!step) {
+            throw new Error("Шаг не найден");
+          }
+
+          const statusLogData = {
+            app_step_id: this.currentStepToReturn!,
+            old_status: step.status,
+            new_status: "waiting",
+            change_date: new Date().toISOString(),
+            comments: this.returnReason
+          };
+
+          const logResponse = await createStepStatusLog(statusLogData);
+
+          if (logResponse.status !== 200 && logResponse.status !== 201) {
+            throw new Error("Ошибка при создании записи в журнале");
+          }
+
+          const response = await returnStep(this.currentStepToReturn!, this.returnReason);
+
+          if (response.status === 200) {
+            await this.loadApplication(this.application_id || 0);
+            MainStore.setSnackbar(`Шаг "${step?.name}" возвращен`, "info");
+            this.closeReturnDialog();
+          } else {
+            throw new Error();
+          }
+        } catch (err) {
+          MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+        } finally {
+          MainStore.changeLoader(false);
+          MainStore.onCloseConfirm();
+        }
+      },
+      () => {
+        MainStore.onCloseConfirm();
+      }
+    );
+  }
+
+  async toProgress(stepId: number) {
+    MainStore.openErrorConfirm(
+      "Вы точно хотите начать прогресс?",
+      "Да",
+      "Нет",
+      async () => {
+        try {
+          MainStore.changeLoader(true);
+          const response = await toProgressStep(stepId);
+          if (response.status === 200) {
+            await this.loadApplication(this.application_id || 0);
+            const step = this.data.find((s) => s.id === stepId);
+            MainStore.setSnackbar(`Шаг "${step?.name}" в процессе`, "info");
+          } else {
+            throw new Error();
+          }
+        } catch (err) {
+          MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+        } finally {
+          MainStore.changeLoader(false);
+          MainStore.onCloseConfirm();
+        }
+      },
+      () => {
+        MainStore.onCloseConfirm();
+      }
+    );
+  }
+
+  formatDate(dateString: string | null | undefined): string {
+    if (!dateString) return "—";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("ru-RU", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  async loadGetApplication_additional_service(application_id: number) {
+    try {
+      MainStore.changeLoader(true);
+      const response = await getapplication_additional_service(application_id);
+      if ((response.status === 201 || response.status === 200) && response?.data !== null) {
+        this.application_additional_service = response.data
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      MainStore.changeLoader(false);
+    }
+  };
+
+  async handleDeleteUploadedDocument (uplId: number, reason: string) {
+    try {
+      MainStore.changeLoader(true);
+      const response = await deleteUploadedApplicationDocument(uplId, reason);
+      if ((response.status === 201 || response.status === 200) && response?.data !== null) {
+        await this.loadApplication(this.application_id);
+        MainStore.setSnackbar("Файл удалён. Все подписи сброшены.","success");
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    } finally {
+      MainStore.changeLoader(false);
+    }
+  };
 }
 
 export default new ApplicationStepsStore();

@@ -24,7 +24,9 @@ import HistoryIcon from "@mui/icons-material/History";
 import DoneIcon from '@mui/icons-material/Done';
 import dayjs from "dayjs";
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import NavigationBreadcrumbs from "./NavigationBreadcrumbs"; // Импортируем новый компонент
+import NavigationBreadcrumbs from "./NavigationBreadcrumbs";
+import StarIcon from "@mui/icons-material/Star";
+import StarBorderIcon from "@mui/icons-material/StarBorder"; // Импортируем новый компонент
 
 type MainInformationProps = {
 };
@@ -283,7 +285,15 @@ const MainInformation: FC<MainInformationProps> = observer((props) => {
                     })}
                   </Menu>
                 }
-                
+                <Tooltip title={store.is_favorite ? "Убрать из избранного" : "В избранное"} arrow>
+                  <span>
+                    <IconButton
+                      onClick={() => store.setFavorite()}
+                    >
+                      {store.is_favorite ? <StarIcon /> : <StarBorderIcon />}
+                    </IconButton>
+                  </span>
+                </Tooltip>
                 <Tooltip title={`${translate("label:HistoryTableListView.entityTitle")} `} arrow>
                   <IconButton
                     id="EmployeeList_Search_Btn"

@@ -1589,7 +1589,9 @@
     "unknown_name_history": "Неизвестно",
     "cabinet_upload_id": "Id из кабинета",
     "status": "Статус",
-    "view_history": "Просмотр"
+    "view_history": "Просмотр",
+    "delete_reason": "Причина удаления",
+    "delete_by_name_history": "Удалил"
   },
   "ApplicationCommentsListView": {
     "EntityNotComment": "Нет комментариев",
@@ -1859,7 +1861,8 @@
     "search": "Поиск",
     "description": "Описание",
     "customer_name": "Заказчик",
-    "customer_pin": "ИНН заказчика"
+    "customer_pin": "ИНН заказчика",
+    "customerDescription": "Информация о заказчике"
   },
   "ArchiveObjectFileAddEditView": {
     "entityTitle": "Файлы архивного объекта",

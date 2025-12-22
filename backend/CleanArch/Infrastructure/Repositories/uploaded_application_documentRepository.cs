@@ -131,6 +131,32 @@ namespace Infrastructure.Repositories
                 throw new RepositoryException("Failed to update uploaded_application_document", ex);
             }
         }
+        
+        public async Task DeleteSoft(uploaded_application_document domain)
+        {
+            try
+            {
+                var userId = await UserSessionHelper.SetCurrentUserAsync(_userRepository, _dbConnection, _dbTransaction);
+                
+                var model = new uploaded_application_documentModel
+                {
+                    id = domain.id,
+                    delete_reason = domain.delete_reason,
+                    deleted_at = domain.deleted_at,
+                    deleted_by = userId,
+                };
+                var sql = "UPDATE uploaded_application_document SET is_deleted = true, delete_reason = @delete_reason, deleted_at = @deleted_at, deleted_by = @deleted_by WHERE id = @id";
+                var affected = await _dbConnection.ExecuteAsync(sql, model, transaction: _dbTransaction);
+                if (affected == 0)
+                {
+                    throw new RepositoryException("Not found", null);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to update uploaded_application_document", ex);
+            }
+        }
 
         public async Task<PaginatedList<uploaded_application_document>> GetPaginated(int pageSize, int pageNumber)
         {
@@ -229,13 +255,16 @@ select upl.*,
        ad.id                                                                  as document_type_id,
        file.name                                                                 file_name,
        CONCAT(emp_c.last_name, ' ', emp_c.first_name, ' ', emp_c.second_name) AS created_by_name,
-       os.name                                                                AS structure_name
+       os.name                                                                AS structure_name,
+       CONCAT(emp_d.last_name, ' ', emp_d.first_name, ' ', emp_d.second_name) AS deleted_by_name
 from uploaded_application_document upl
          left join service_document sd on upl.service_document_id = sd.id
          left join application_document ad on ad.id = sd.application_document_id
          left join file on file.id = upl.file_id
          left join ""User"" uc on uc.id = upl.created_by
          left join employee emp_c on emp_c.user_id = uc.""userId""
+         left join ""User"" ud on ud.id = upl.deleted_by
+         left join employee emp_d on emp_d.user_id = ud.""userId""
          left join employee_in_structure eis on emp_c.id = eis.employee_id
          left join org_structure os on eis.structure_id = os.id
          where upl.application_document_id = @application_document_id and upl.app_step_id = @app_step_id";
@@ -346,7 +375,7 @@ left join (
 		SELECT *,
 			ROW_NUMBER() OVER (PARTITION BY service_document_id ORDER BY created_at DESC) AS rn
 		FROM uploaded_application_document upl
-			where upl.application_document_id = @application_document_id
+			where upl.is_deleted != true AND upl.application_document_id = @application_document_id
 	)
 	SELECT *
 	FROM RankedDocuments
@@ -363,7 +392,7 @@ select -1 id, up.name doc_name, 0 app_doc_id, false is_required, 'manual_docment
 	up.created_at, up.file_id, f.name file_name, up.created_by, up.is_outcome, up.document_number  from uploaded_application_document up 
 	left join application app on app.id = up.application_document_id
 	left join File f on f.id = up.file_id
-	where app.id = @application_document_id and service_document_id is null
+	where up.is_deleted != true AND app.id = @application_document_id and service_document_id is null
 ";
                 var manual_documents = await _dbConnection.QueryAsync<CustomUploadedDocument>(sql, new { application_document_id }, transaction: _dbTransaction);
 

@@ -21,9 +21,10 @@ namespace Application.Repositories
         Task<List<document_approval>> GetByposition_id(int position_id);
 
         /// <summary>
-        /// Получить все согласования для конкретного application_step
-        /// ЗАЧЕМ: Используется при удалении динамических шагов
+        /// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ application_step
+        /// пїЅпїЅпїЅпїЅпїЅ: пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
         /// </summary>
         Task<List<document_approval>> GetByapp_step_id(int app_step_id);
+        Task ResetByUploadedDocumentId(int uplId);
     }
 }

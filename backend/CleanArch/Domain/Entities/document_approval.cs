@@ -33,5 +33,6 @@ namespace Domain.Entities
         public int? source_approver_id { get; set; }
         public bool is_manually_modified { get; set; }
         public DateTime? last_sync_at { get; set; }
+        public int? order_number { get; set; }
     }
 }

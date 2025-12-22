@@ -86,6 +86,40 @@ namespace WebApi.Controllers
             var response = await _applicationUseCases.GetByFilterForEO(model);
             return Ok(response);
         }
+        
+        [HttpGet]
+        [Route("GetCountFilterForEO")]
+        public async Task<IActionResult> GetCountFilterForEO()
+        {
+            var filter = new PaginationFields();
+            filter.service_ids = Array.Empty<int>();
+            filter.status_ids = Array.Empty<int>();
+            var response = await _applicationUseCases.GetCountFilterForEO(filter);
+            return Ok(response);
+        }
+        
+        [HttpPost]
+        [Route("GetByFilterRefusal")]
+        public async Task<IActionResult> GetByFilterRefusal(PaginationFields model)
+        {
+            if (model.district_id == 0)
+            {
+                model.district_id = null;
+            }
+            var response = await _applicationUseCases.GetByFilterRefusal(model);
+            return Ok(response);
+        }
+        
+        [HttpGet]
+        [Route("GetCountFilterRefusal")]
+        public async Task<IActionResult> GetCountFilterRefusal()
+        {
+            var filter = new PaginationFields();
+            filter.service_ids = Array.Empty<int>();
+            filter.status_ids = Array.Empty<int>();
+            var response = await _applicationUseCases.GetCountFilterRefusal(filter);
+            return Ok(response);
+        }
 
         [HttpGet]
         [Route("GetCountAppsFromCabinet")]
@@ -577,6 +611,34 @@ namespace WebApi.Controllers
             return Ok(response);
         }
         
+        [HttpPost]
+        [Route("AddToFavorite")]
+        public async Task<IActionResult> AddToFavorite([FromBody] FavoriteRequest req)
+        {
+            var result = await _applicationUseCases.AddToFavorite(req.application_id);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("DeleteToFavorite")]
+        public async Task<IActionResult> DeleteToFavorite([FromBody] FavoriteRequest req)
+        {
+            var result = await _applicationUseCases.DeleteToFavorite(req.application_id);
+            return Ok(result);
+        }       
+        
+        [HttpGet]
+        [Route("GetStatusFavorite")]
+        public async Task<IActionResult> GetStatusFavorite(int application_id)
+        {
+            var response = await _applicationUseCases.GetStatusFavorite(application_id);
+            return Ok(response);
+        }
+        
+        public class FavoriteRequest
+        {
+            public int application_id { get; set; }
+        }
 
         public class SendNotificationDto
         {

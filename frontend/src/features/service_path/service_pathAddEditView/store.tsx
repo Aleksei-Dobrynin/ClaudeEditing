@@ -10,7 +10,16 @@ import { updateservice_path } from "api/service_path";
  // dictionaries
 
 import { getServices } from "api/Service/useGetServices";
-    
+
+export type EntityType = "path_step" | "step_required_document" | "step_partner" | "step_dependency";
+export type ChangeKind = "add" | "update" | "delete";
+
+export interface BufferedChange {
+  entity: EntityType;
+  kind: ChangeKind;
+  id?: number | string;
+  payload?: any;
+}
 
 class NewStore {
   id = 0
@@ -24,11 +33,79 @@ class NewStore {
 
   // Справочники
   services = []
-	
+  bufferList: BufferedChange[] = []
+  private tempIdCounter = -1;
 
 
   constructor() {
     makeAutoObservable(this);
+  }
+
+  addBuffer(change: {
+    entity: EntityType;
+    kind: ChangeKind;
+    id?: number | null;
+    payload?: any;
+  }){
+    if (!this.bufferList) {
+      this.bufferList = [];
+    }
+    console.log(0);
+    if (change.kind === "add") {
+      if (change.id == null) {
+        const newId = this.tempIdCounter--;
+        this.bufferList.push({
+          entity: change.entity,
+          kind: "add",
+          id: newId,
+          payload: change.payload
+        });
+        return;
+      }
+
+      const idx = this.bufferList.findIndex(
+        x =>
+          x.entity === change.entity &&
+          x.kind === "add" &&
+          x.id === change.id
+      );
+
+      if (idx !== -1) {
+        this.bufferList[idx].payload = change.payload;
+      } else {
+        this.bufferList.push({
+          entity: change.entity,
+          kind: "add",
+          id: change.id,
+          payload: change.payload
+        });
+      }
+      return;
+    }
+    if (change.kind === "update" && change.id != null) {
+      const idx = this.bufferList.findIndex(
+        x =>
+          x.entity === change.entity &&
+          x.kind === "update" &&
+          x.id === change.id
+      );
+      if (idx !== -1) {
+        this.bufferList[idx].payload = change.payload;
+        return;
+      }
+      this.bufferList.push(change);
+      return;
+    }
+    if (change.kind === "delete" && change.id != null) {
+      const existsIdx = this.bufferList.findIndex(
+        x => x.entity === change.entity && x.id === change.id
+      );
+      if (existsIdx !== -1 && this.bufferList[existsIdx].kind === "add") {
+        this.bufferList.splice(existsIdx, 1);
+        return;
+      }
+      this.bufferList.push(change);
+    }
   }
 
   clearStore() {
@@ -68,6 +145,7 @@ class NewStore {
       description: this.description,
       is_default: this.is_default,
       is_active: this.is_active,
+      children: this.bufferList,
     };
 
     const { isValid, errors } = await validate(data);

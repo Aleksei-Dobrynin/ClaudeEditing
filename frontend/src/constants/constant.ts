@@ -225,7 +225,7 @@ export const RoleMenuHeader = {
   registrar: [
     {
       group: "CustomPage",
-      rows: ["Application", "AppNotification", "AppsFromCabinet", "AppsFrorEO"],
+      rows: ["Application", "AppNotification", "AppsFromCabinet", "AppsFrorEO", "AppRefusal"],
     },
     {
       group: "CustomPage",

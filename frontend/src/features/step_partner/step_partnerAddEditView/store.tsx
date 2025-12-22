@@ -6,7 +6,7 @@ import { validate, validateField } from "./valid";
 import { getstep_partner } from "api/step_partner";
 import { createstep_partner } from "api/step_partner";
 import { updatestep_partner } from "api/step_partner";
-
+import buffer from "../../service_path/service_pathAddEditView/store";
  // dictionaries
 
 import { getpath_steps } from "api/path_step";
@@ -81,21 +81,34 @@ class NewStore {
     try {
       MainStore.changeLoader(true);
       let response;
-      if (this.id === 0) {
-        response = await createstep_partner(data);
+      if (this.id <= 0) {
+        // response = await createstep_partner(data);
+        buffer.addBuffer({
+          entity: "step_partner",
+          kind: "add",
+          id: this.id < 0 ? this.id : undefined,
+          payload: data
+        });
       } else {
-        response = await updatestep_partner(data);
+        // response = await updatestep_partner(data);
+        buffer.addBuffer({
+          entity: "step_partner",
+          kind: "update",
+          id: data.id,
+          payload: data
+        });
       }
-      if (response.status === 201 || response.status === 200) {
-        onSaved(response);
-        if (data.id === 0) {
-          MainStore.setSnackbar(i18n.t("message:snackbar.successSave"), "success");
-        } else {
-          MainStore.setSnackbar(i18n.t("message:snackbar.successEdit"), "success");
-        }
-      } else {
-        throw new Error();
-      }
+      onSaved(1);
+      // if (response.status === 201 || response.status === 200) {
+      //   onSaved(response);
+      //   if (data.id === 0) {
+      //     MainStore.setSnackbar(i18n.t("message:snackbar.successSave"), "success");
+      //   } else {
+      //     MainStore.setSnackbar(i18n.t("message:snackbar.successEdit"), "success");
+      //   }
+      // } else {
+      //   throw new Error();
+      // }
     } catch (err) {
       MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
     } finally {
@@ -107,7 +120,17 @@ class NewStore {
     //загрузка справочников
     await this.loadpath_steps();
     await this.loadcontragents();
-    
+
+    if (id < 0) {
+      const change = buffer.bufferList?.find(
+        x => x.entity === "step_partner" && x.kind === "add" && x.id === id
+      );
+
+      if (change?.payload) {
+        this.fillFromData(change.payload);
+      }
+      return;
+    }
     // For a new record (id=0), set step_id to the current step
     if (id === 0) {
       // Get the idMain from the list store
@@ -123,16 +146,22 @@ class NewStore {
   loadstep_partner = async (id: number) => {
     try {
       MainStore.changeLoader(true);
+
+      const buffered = (buffer.bufferList ?? []).find(
+        x =>
+          x.entity === "step_partner" &&
+          x.kind === "update" &&
+          x.id === id
+      );
+
+      if (buffered?.payload) {
+        this.fillFromData(buffered.payload);
+        return;
+      }
+
       const response = await getstep_partner(id);
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
-        runInAction(() => {
-          
-          this.id = response.data.id;
-          this.step_id = response.data.step_id;
-          this.partner_id = response.data.partner_id;
-          this.role = response.data.role;
-          this.is_required = response.data.is_required;
-        });
+        this.fillFromData(response.data);
       } else {
         throw new Error();
       }
@@ -143,6 +172,15 @@ class NewStore {
     }
   };
 
+  private fillFromData(data: any) {
+    runInAction(() => {
+      this.id = data.id;
+      this.step_id = data.step_id;
+      this.partner_id = data.partner_id;
+      this.role = data.role;
+      this.is_required = data.is_required;
+    });
+  }
   
   loadpath_steps = async () => {
     try {

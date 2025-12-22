@@ -13,6 +13,7 @@ import FileViewer from "components/FileViewer";
 import CloseIcon from '@mui/icons-material/Close';
 import i18n from "i18next";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
 
 type ApplicationStepsProps = {
   appId: number;
@@ -41,7 +42,8 @@ const ApplicationStepsView: FC<ApplicationStepsProps> = observer((props) => {
   }, [props.hasAccess]);
 
   useEffect(() => {
-    store.expandedStepId = props.expandedStepId
+    store.expandedStepIds = [props.expandedStepId];
+    // store.expandedStepId = props.expandedStepId
   }, [props.expandedStepId]);
 
   const formatDateTime = (timestamp) => {
@@ -192,6 +194,12 @@ const ApplicationStepsView: FC<ApplicationStepsProps> = observer((props) => {
                   <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
                     {i18n.t("label:UploadedApplicationDocumentListView.created_by_name_history")}
                   </th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                    {i18n.t("label:UploadedApplicationDocumentListView.delete_reason")}
+                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                    {i18n.t("label:UploadedApplicationDocumentListView.delete_by_name_history")}
+                  </th>
                 </tr>
                 </thead>
                 <tbody>
@@ -208,6 +216,14 @@ const ApplicationStepsView: FC<ApplicationStepsProps> = observer((props) => {
                           <VisibilityIcon />
                         </IconButton>
                       </Tooltip>}
+                      {doc.file_id && <Tooltip title="Список подписавших">
+                        <IconButton size="small" onClick={() => {
+                          store.ecpListOpen = true;
+                          store.loadGetSignByFileId(doc.file_id)
+                        }}>
+                          <FormatListBulletedIcon />
+                        </IconButton>
+                      </Tooltip>}
                     </td>
                     <td className="px-4 py-4 border-b border-gray-200">
                 <span className="text-sm font-medium text-gray-900">
@@ -222,6 +238,16 @@ const ApplicationStepsView: FC<ApplicationStepsProps> = observer((props) => {
                     <td className="px-4 py-4 border-b border-gray-200">
                 <span className="text-sm text-gray-700">
                   {doc.created_by_name} \ {doc.structure_name}
+                </span>
+                    </td>
+                    <td className="px-4 py-4 border-b border-gray-200">
+                <span className="text-sm font-mono text-gray-800">
+                  {doc.delete_reason}
+                </span>
+                    </td>
+                    <td className="px-4 py-4 border-b border-gray-200">
+                <span className="text-sm text-gray-700">
+                  {doc.deleted_by_name}
                 </span>
                     </td>
                   </tr>

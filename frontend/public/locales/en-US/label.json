@@ -1581,7 +1581,8 @@
     "customer": "Заказчик",
     "searchdoc_number": "Поиск по номеру документа",
     "search": "Поиск",
-    "description": "Описание"
+    "description": "Описание",
+    "customerDescription": "Информация о заказчике"
   },
   "ArchiveObjectFileAddEditView": {
     "entityTitle": "Файлы архивного объекта",

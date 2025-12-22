@@ -26,6 +26,8 @@ const MainLayout = observer(() => {
     store.checkIsSuperAdmin()
     MainStore.getMyRoles()
     MainStore.getCountAppsFromCabinet()
+    MainStore.getCountFilterForEO();
+    MainStore.getCountFilterRefusal();
     store.loadCurrentEmployee();
     const timer = setInterval(() => {
       store.getNotifications()

@@ -80,7 +80,7 @@ const step_required_documentListView: FC<step_required_documentListViewProps> = 
         title={translate("label:step_required_documentListView.entityTitle")}
         onDeleteClicked={(id: number) => store.deletestep_required_document(id)}
         columns={columns}
-        data={store.data}
+        data={store.effectiveData}
         tableName="step_required_document" />
       break
     case 'popup':
@@ -89,7 +89,7 @@ const step_required_documentListView: FC<step_required_documentListViewProps> = 
         onDeleteClicked={(id: number) => store.deletestep_required_document(id)}
         onEditClicked={(id: number) => store.onEditClicked(id)}
         columns={columns}
-        data={store.data}
+        data={store.effectiveData}
         tableName="step_required_document" />
       break
   }

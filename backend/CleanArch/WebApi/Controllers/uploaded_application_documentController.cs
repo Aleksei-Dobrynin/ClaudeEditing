@@ -320,5 +320,22 @@ namespace WebApi.Controllers
             return Ok(response);
         }
 
+        [HttpDelete]
+        [Route("Delete")]
+        public async Task<IActionResult> Delete([FromBody] DeleteUploadedDocumentRequest request)
+        {
+            var response = await _uploaded_application_documentUseCases.DeleteSoft(
+                request.app_doc_id,
+                request.delete_reason
+            );
+
+            return Ok(response);
+        }
+        
+        public class DeleteUploadedDocumentRequest
+        {
+            public int app_doc_id { get; set; }
+            public string delete_reason { get; set; }
+        }
     }
 }

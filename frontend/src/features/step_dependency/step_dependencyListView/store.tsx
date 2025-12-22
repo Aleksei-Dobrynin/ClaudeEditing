@@ -5,6 +5,7 @@ import { deletestep_dependency } from "api/step_dependency";
 import { getstep_dependencies } from "api/step_dependency";
 import { getstep_dependenciesByFilter } from "api/step_dependency";
 import { getservice_paths } from "api/service_path";
+import buffer from "../../service_path/service_pathAddEditView/store";
 
 class NewStore {
   data = [];
@@ -106,13 +107,18 @@ class NewStore {
       async () => {
         try {
           MainStore.changeLoader(true);
-          const response = await deletestep_dependency(id);
-          if (response.status === 201 || response.status === 200) {
-            this.loadstep_dependencies();
-            MainStore.setSnackbar(i18n.t("message:snackbar.successSave"));
-          } else {
-            throw new Error();
-          }
+          // const response = await deletestep_dependency(id);
+          buffer.addBuffer({
+            entity: "step_dependency",
+            kind: "delete",
+            id
+          });
+          // if (response.status === 201 || response.status === 200) {
+          //   this.loadstep_dependencies();
+          //   MainStore.setSnackbar(i18n.t("message:snackbar.successSave"));
+          // } else {
+          //   throw new Error();
+          // }
         } catch (err) {
           MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
         } finally {
@@ -139,6 +145,44 @@ class NewStore {
       this.prerequisite_step_id = 0;
     });
   };
+
+  get effectiveData() {
+    const result = [...this.data];
+
+    const changes = (buffer.bufferList ?? []).filter(
+      (x) => x.entity === "step_dependency"
+    );
+
+    const deletes = changes.filter((x) => x.kind === "delete" && x.id != null);
+    for (const d of deletes) {
+      const idx = result.findIndex((r: any) => r.id === d.id);
+      if (idx !== -1) {
+        result.splice(idx, 1);
+      }
+    }
+
+    const updates = changes.filter((x) => x.kind === "update" && x.id != null);
+    for (const u of updates) {
+      const idx = result.findIndex((r: any) => r.id === u.id);
+      if (idx !== -1) {
+        result[idx] = {
+          ...result[idx],
+          ...(u.payload || {}),
+        };
+      }
+    }
+
+    const adds = changes.filter((x) => x.kind === "add");
+    for (const a of adds) {
+      const payload = a.payload || {};
+      result.push({
+        ...payload,
+        id: a.id, // временный отрицательный id
+      });
+    }
+
+    return result;
+  }
 }
 
 export default new NewStore();

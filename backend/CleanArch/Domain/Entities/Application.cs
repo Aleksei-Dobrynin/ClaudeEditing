@@ -101,6 +101,7 @@ namespace Domain.Entities
         public string? journal_name { get; set; }
         public string? journal_outgoing_number { get; set; }
         public DateTime? journal_added_at { get; set; }
+        public bool? is_favorite { get; set; }
 
         public application_step current_step { get; set; }
         public Validation Validate()

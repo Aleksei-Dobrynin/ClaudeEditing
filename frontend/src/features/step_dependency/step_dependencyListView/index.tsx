@@ -92,7 +92,7 @@ const step_dependencyListView: FC<step_dependencyListViewProps> = observer((prop
         title={translate("label:step_dependencyListView.entityTitle")}
         onDeleteClicked={(id: number) => store.deletestep_dependency(id)}
         columns={columns}
-        data={store.data}
+        data={store.effectiveData}
         tableName="step_dependency" />
       break
     case 'popup':
@@ -101,7 +101,7 @@ const step_dependencyListView: FC<step_dependencyListViewProps> = observer((prop
         onDeleteClicked={(id: number) => store.deletestep_dependency(id)}
         onEditClicked={(id: number) => store.onEditClicked(id)}
         columns={columns}
-        data={store.data}
+        data={store.effectiveData}
         hideAddButton={props.isTab}
         tableName="step_dependency" />
       break
