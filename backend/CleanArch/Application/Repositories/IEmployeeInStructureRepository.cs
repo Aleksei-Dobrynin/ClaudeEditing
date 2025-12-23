@@ -21,6 +21,26 @@ namespace Application.Repositories
         Task<List<DashboardStructures>> DashboardStructures(int idEmployee);
         Task<int> Add(EmployeeInStructure domain); 
         Task Update(EmployeeInStructure domain);
+
+        /// <summary>
+        /// Получает информацию о сотрудниках по списку ID из employee_in_structure
+        /// </summary>
+        /// <param name="ids">Список ID записей employee_in_structure</param>
+        /// <returns>Список сотрудников с информацией о структуре</returns>
+        Task<List<EmployeeInStructure>> GetByIdsAsync(List<int> ids);
+
+        /// <summary>
+        /// Получает активных сотрудников по отделу и должности на указанную дату
+        /// </summary>
+        /// <param name="structureId">ID структуры (отдела)</param>
+        /// <param name="postId">ID должности</param>
+        /// <param name="asOfDate">Дата проверки (по умолчанию - текущая)</param>
+        /// <returns>Список активных сотрудников</returns>
+        Task<List<EmployeeInStructure>> GetActiveByStructureAndPostAsync(
+            int structureId,
+            int postId,
+            DateTime? asOfDate = null
+        );
         Task Delete(int id);
     }
 }

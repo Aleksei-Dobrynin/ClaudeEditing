@@ -50,7 +50,7 @@ namespace Infrastructure.Repositories
                 throw new RepositoryException("Failed to get EmployeeInStructure", ex);
             }
         }
-        
+
         public async Task<List<EmployeeInStructure>> GetInMyStructure(int userId)
         {
             try
@@ -62,7 +62,7 @@ left join ""User"" u on u.""userId"" = e.user_id
 where u.id = @userId 
 	AND ((NOW() >= eis.date_start AND (eis.date_end > NOW() OR eis.date_end IS NULL)) )
 ";
-                var models = await _dbConnection.QueryAsync<EmployeeInStructure>(sql, new { userId = userId}, transaction: _dbTransaction);
+                var models = await _dbConnection.QueryAsync<EmployeeInStructure>(sql, new { userId = userId }, transaction: _dbTransaction);
                 return models.ToList();
             }
             catch (Exception ex)
@@ -475,6 +475,128 @@ WHERE employee_id = @employee_id and post.code = 'head_structure'
             }
         }
 
-        
+        /// <summary>
+        /// Получает информацию о сотрудниках по списку ID из employee_in_structure
+        /// Включает полную информацию: employee, structure_post, org_structure
+        /// Используется для получения данных назначенных исполнителей
+        /// </summary>
+        /// <param name="ids">Список ID записей employee_in_structure</param>
+        /// <returns>Список сотрудников с полной информацией о должности и отделе</returns>
+        public async Task<List<EmployeeInStructure>> GetByIdsAsync(List<int> ids)
+        {
+            if (ids == null || !ids.Any())
+                return new List<EmployeeInStructure>();
+
+            try
+            {
+                var sql = @"
+            SELECT 
+                eis.id,
+                eis.employee_id,
+                eis.date_start,
+                eis.date_end,
+                eis.structure_id,
+                eis.post_id,
+                eis.is_temporary,
+                -- Полное имя сотрудника: ""Иванов Иван Иванович""
+                CONCAT(e.last_name, ' ', e.first_name, ' ', COALESCE(e.second_name, '')) as employee_fullname,
+                -- Краткое имя для списков: ""Иванов И.И.""
+                e.last_name || ' ' || 
+                LEFT(e.first_name, 1) || '.' || 
+                COALESCE(LEFT(e.second_name, 1) || '.', '') as employee_name,
+                -- Информация о должности
+                sp.name as post_name,
+                sp.code as post_code,
+                -- Информация о структуре/отделе
+                os.name as structure_name,
+                os.code as structure_code
+            FROM employee_in_structure eis
+            INNER JOIN employee e ON eis.employee_id = e.id
+            LEFT JOIN structure_post sp ON eis.post_id = sp.id
+            LEFT JOIN org_structure os ON eis.structure_id = os.id
+            WHERE eis.id = ANY(@Ids)
+            ORDER BY e.last_name, e.first_name";
+
+                var result = await _dbConnection.QueryAsync<EmployeeInStructure>(
+                    sql,
+                    new { Ids = ids.ToArray() },
+                    transaction: _dbTransaction
+                );
+
+                return result.ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to get EmployeeInStructure by IDs", ex);
+            }
+        }
+
+        /// <summary>
+        /// Получает активных сотрудников по отделу и должности на указанную дату
+        /// Проверяет date_start <= checkDate AND (date_end IS NULL OR date_end >= checkDate)
+        /// </summary>
+        /// <param name="structureId">ID структуры (отдела)</param>
+        /// <param name="postId">ID должности</param>
+        /// <param name="asOfDate">Дата проверки (по умолчанию - текущая)</param>
+        /// <returns>Список активных сотрудников</returns>
+        public async Task<List<EmployeeInStructure>> GetActiveByStructureAndPostAsync(
+            int structureId,
+            int postId,
+            DateTime? asOfDate = null)
+        {
+            var checkDate = asOfDate ?? DateTime.UtcNow;
+
+            try
+            {
+                var sql = @"
+            SELECT 
+                eis.id,
+                eis.employee_id,
+                eis.date_start,
+                eis.date_end,
+                eis.structure_id,
+                eis.post_id,
+                eis.is_temporary,
+                -- Полное имя сотрудника: ""Иванов Иван Иванович""
+                CONCAT(e.last_name, ' ', e.first_name, ' ', COALESCE(e.second_name, '')) as employee_fullname,
+                -- Краткое имя для списков: ""Иванов И.И.""
+                e.last_name || ' ' || 
+                LEFT(e.first_name, 1) || '.' || 
+                COALESCE(LEFT(e.second_name, 1) || '.', '') as employee_name,
+                -- Информация о должности
+                sp.name as post_name,
+                sp.code as post_code,
+                -- Информация о структуре/отделе
+                os.name as structure_name,
+                os.code as structure_code
+            FROM employee_in_structure eis
+            INNER JOIN employee e ON eis.employee_id = e.id
+            LEFT JOIN structure_post sp ON eis.post_id = sp.id
+            LEFT JOIN org_structure os ON eis.structure_id = os.id
+            WHERE eis.structure_id = @StructureId 
+                AND eis.post_id = @PostId
+                AND eis.date_start <= @CheckDate
+                AND (eis.date_end IS NULL OR eis.date_end >= @CheckDate)
+            ORDER BY e.last_name, e.first_name";
+
+                var result = await _dbConnection.QueryAsync<EmployeeInStructure>(
+                    sql,
+                    new
+                    {
+                        StructureId = structureId,
+                        PostId = postId,
+                        CheckDate = checkDate
+                    },
+                    transaction: _dbTransaction
+                );
+
+                return result.ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to get active EmployeeInStructure by structure and post", ex);
+            }
+        }
+
     }
 }

@@ -34,5 +34,58 @@ namespace Domain.Entities
         public bool is_manually_modified { get; set; }
         public DateTime? last_sync_at { get; set; }
         public int? order_number { get; set; }
+
+        /// <summary>
+        /// Список назначенных исполнителей для этого подписания
+        /// Формируется на основе сопоставления department_id/position_id 
+        /// с данными из application_task_assignee через employee_in_structure
+        /// </summary>
+        public List<AssignedApprover> assigned_approvers { get; set; }
+    }
+
+    /// <summary>
+    /// Назначенный исполнитель для подписания
+    /// </summary>
+    public class AssignedApprover
+    {
+        /// <summary>
+        /// ID сотрудника из таблицы employee
+        /// </summary>
+        public int employee_id { get; set; }
+
+        /// <summary>
+        /// Краткое имя: "Иванов И.И."
+        /// </summary>
+        public string employee_name { get; set; }
+
+        /// <summary>
+        /// Полное имя: "Иванов Иван Иванович"
+        /// </summary>
+        public string employee_fullname { get; set; }
+
+        /// <summary>
+        /// ID записи в employee_in_structure
+        /// </summary>
+        public int structure_employee_id { get; set; }
+
+        /// <summary>
+        /// Название должности
+        /// </summary>
+        public string post_name { get; set; }
+
+        /// <summary>
+        /// Код должности
+        /// </summary>
+        public string post_code { get; set; }
+
+        /// <summary>
+        /// Название отдела/структуры
+        /// </summary>
+        public string structure_name { get; set; }
+
+        /// <summary>
+        /// Код отдела/структуры
+        /// </summary>
+        public string structure_code { get; set; }
     }
 }

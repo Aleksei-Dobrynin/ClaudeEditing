@@ -26,5 +26,15 @@ namespace Application.Repositories
         /// </summary>
         Task<List<document_approval>> GetByapp_step_id(int app_step_id);
         Task ResetByUploadedDocumentId(int uplId);
+
+        /// <summary>
+        /// Получает согласования по ID заявки с сортировкой по order_number
+        /// Включает информацию о department_name и position_name
+        /// </summary>
+        /// <param name="applicationId">ID заявки</param>
+        /// <param name="stepId">ID этапа (опционально)</param>
+        /// <returns>Список согласований, отсортированный по order_number (NULL в конец)</returns>
+        Task<List<document_approval>> GetByApplicationId(int applicationId, int? stepId = null);
+
     }
 }

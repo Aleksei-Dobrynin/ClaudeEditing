@@ -137,5 +137,56 @@ namespace WebApi.Controllers
             var response = await _document_approvalUseCases.GetByposition_id(position_id);
             return Ok(response);
         }
+
+        /// <summary>
+        /// Получает согласования с информацией о назначенных исполнителях
+        /// Возвращает данные с сортировкой по order_number (NULL в конец) 
+        /// и списком assigned_approvers для каждого согласования
+        /// Формат имени: "Иванов И.И. (Главный специалист Отдел архитектуры)"
+        /// </summary>
+        /// <param name="applicationId">ID заявки</param>
+        /// <param name="stepId">ID этапа (опционально)</param>
+        /// <returns>Список согласований с assigned_approvers</returns>
+        /// <response code="200">Успешное получение данных</response>
+        /// <response code="400">Некорректные параметры запроса</response>
+        /// <response code="500">Внутренняя ошибка сервера</response>
+        [HttpGet]
+        [Route("GetByApplicationWithAssignees")]
+        public async Task<IActionResult> GetByApplicationWithAssignees(
+            [FromQuery] int applicationId,
+            [FromQuery] int? stepId = null)
+        {
+            try
+            {
+                if (applicationId <= 0)
+                {
+                    return BadRequest(new
+                    {
+                        error = "Invalid applicationId",
+                        message = "applicationId должен быть больше 0"
+                    });
+                }
+
+                var response = await _document_approvalUseCases.GetApprovalsWithAssignees(
+                    applicationId,
+                    stepId
+                );
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                // Логирование ошибки
+                Console.WriteLine($"Error in GetByApplicationWithAssignees: {ex.Message}");
+                Console.WriteLine($"StackTrace: {ex.StackTrace}");
+
+                return StatusCode(500, new
+                {
+                    error = "Internal server error",
+                    message = "Произошла ошибка при получении согласований",
+                    details = ex.Message
+                });
+            }
+        }
     }
 }

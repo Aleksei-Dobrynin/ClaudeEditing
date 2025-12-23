@@ -1,3 +1,5 @@
+// Путь: frontend/src/features/UploadedApplicationDocument/uploaded_application_documentListView/cards.tsx
+
 import { FC, useEffect, useState } from 'react';
 import styled from 'styled-components';
 import dayjs from 'dayjs';
@@ -22,6 +24,11 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import i18n from "i18next";
 import TextField from "@mui/material/TextField";
 
+// ========== НОВЫЕ ИМПОРТЫ ==========
+import { groupApprovalsByOrder } from '../utils/approvalHelpers';
+import ApprovalGroupCard from './ApprovalGroupCard';
+// ===================================
+
 type DocumentCardProps = {
   document: any, t: any,
   documentApprovers?: any,
@@ -37,10 +44,24 @@ type DocumentCardProps = {
   onDeleteFile: (reason: string) => void;
 }
 
-export const DocumentCard: FC<DocumentCardProps> = ({ document, t, onDocumentPreview, onOpenSigners, onOpenFileHistory, onSigned, onUploadFile, step_id, step, onAddSigner, hasAccess, onDeleteFile }) => {
+export const DocumentCard: FC<DocumentCardProps> = ({ 
+  document, 
+  t, 
+  onDocumentPreview, 
+  onOpenSigners, 
+  onOpenFileHistory, 
+  onSigned, 
+  onUploadFile, 
+  step_id, 
+  step, 
+  onAddSigner, 
+  hasAccess, 
+  onDeleteFile 
+}) => {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteReason, setDeleteReason] = useState('');
+  
   const formatDate = (date) => {
     if (!date) return '';
     return dayjs(date).format('DD.MM.YYYY');
@@ -79,41 +100,31 @@ export const DocumentCard: FC<DocumentCardProps> = ({ document, t, onDocumentPre
             <DateValue>{formatDate(document.upl?.created_at)}</DateValue>
           </InfoRow>}
 
-          {/* Согласования */}
+          {/* ========== НОВАЯ СЕКЦИЯ: Согласования с группировкой ========== */}
           {document.approvals && document.approvals.length > 0 && (
-            <div style={{ marginTop: '12px' }}>
-              <Label style={{ marginBottom: '8px', display: 'block' }}>Согласования:</Label>
-              {document.approvals.map((signer) => (
-                <InfoRow
-                  key={signer.id}
-                  style={{
-                    marginLeft: '20px',
-                    marginBottom: '8px',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    backgroundColor: signer.status === 'signed' ? '#e6f4ea' : '#fffde7',
-                    border: '1px solid',
-                    borderColor: signer.status === 'signed' ? '#a5d6a7' : '#ffe082',
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                >
-                  <IconButton size="small" sx={{ padding: '2px', color: signer.status === "signed" ? '#4caf50' : '#9e9e9e' }}>
-                    {signer.status === 'signed' ? <CheckCircleIcon fontSize="small" /> : <AccessTimeIcon fontSize="small" />}
-                  </IconButton>
-                  {signer.is_required && (
-                    <Tooltip title={t("mandatory_sign")}>
-                      <WarningAmberIcon color="error" fontSize="small" />
-                    </Tooltip>)}
-                  <span style={{ flex: 1, marginLeft: "8px", fontSize: "13px" }}>
-                    {signer.department_name} <br />
-                    <strong>{signer.signInfo?.employee_fullname}</strong> {" "} ({signer.position_name}) {" "}
-                    {signer.status === "signed" ? ` - ${t("signed")}` : ` - ${t("waiting")}`}
-                  </span>
-                </InfoRow>
+            <div style={{ marginTop: '16px' }}>
+              <Label style={{ 
+                marginBottom: '12px', 
+                display: 'block', 
+                fontSize: '14px', 
+                fontWeight: 600,
+                color: '#333'
+              }}>
+                Очередь согласования:
+              </Label>
+              
+              {groupApprovalsByOrder(document.approvals).map((group) => (
+                <ApprovalGroupCard
+                  key={`group-${group.order_number}`}
+                  displayNumber={group.displayNumber}
+                  approvals={group.approvals}
+                  t={t}
+                />
               ))}
             </div>
           )}
+          {/* ========== КОНЕЦ НОВОЙ СЕКЦИИ ========== */}
+
         </div>
       </div>
 
@@ -208,6 +219,7 @@ export const DocumentCard: FC<DocumentCardProps> = ({ document, t, onDocumentPre
           Подписать ЭЦП
         </PrimaryButton>
       </ActionsRow>
+      
       <Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Удаление файла</DialogTitle>
 

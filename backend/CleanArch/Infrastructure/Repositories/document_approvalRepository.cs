@@ -336,5 +336,80 @@ namespace Infrastructure.Repositories
                 throw new RepositoryException("Failed to reset document_approval by uploaded document id", ex);
             }
         }
+
+        /// <summary>
+        /// Получает согласования по ID заявки с полной информацией
+        /// PostgreSQL версия с правильной сортировкой NULL значений
+        /// Сортировка: order_number ASC (NULL в конец), затем id ASC
+        /// </summary>
+        /// <param name="applicationId">ID заявки</param>
+        /// <param name="stepId">ID этапа (опционально, для фильтрации)</param>
+        /// <returns>Список согласований с названиями отделов и должностей</returns>
+        public async Task<List<document_approval>> GetByApplicationId(
+            int applicationId,
+            int? stepId = null)
+        {
+            try
+            {
+                // Базовый запрос с JOIN для получения названий отделов и должностей
+                var sql = @"
+            SELECT 
+                da.id,
+                da.updated_at,
+                da.created_by,
+                da.updated_by,
+                da.app_document_id,
+                da.file_sign_id,
+                da.department_id,
+                da.position_id,
+                da.status,
+                da.approval_date,
+                da.comments,
+                da.created_at,
+                da.app_step_id,
+                da.document_type_id,
+                da.is_required,
+                da.is_required_doc,
+                da.is_required_approver,
+                da.document_name,
+                da.is_final,
+                da.source_approver_id,
+                da.is_manually_modified,
+                da.last_sync_at,
+                da.order_number,
+                os.name as department_name,
+                sp.name as position_name
+            FROM document_approval da
+            LEFT JOIN org_structure os ON da.department_id = os.id
+            LEFT JOIN structure_post sp ON da.position_id = sp.id
+            WHERE da.app_document_id IN (
+                SELECT id FROM application_document 
+                WHERE application_id = @ApplicationId
+                {0}
+            )
+            ORDER BY 
+                da.order_number NULLS LAST,
+                da.id ASC";
+
+                // Формируем фильтр по stepId если он указан
+                var stepFilter = stepId.HasValue
+                    ? "AND app_step_id = @StepId"
+                    : "";
+
+                var finalQuery = string.Format(sql, stepFilter);
+
+                var result = await _dbConnection.QueryAsync<document_approval>(
+                    finalQuery,
+                    new { ApplicationId = applicationId, StepId = stepId },
+                    transaction: _dbTransaction
+                );
+
+                return result.ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to get document_approval by application_id", ex);
+            }
+        }
     }
 }
