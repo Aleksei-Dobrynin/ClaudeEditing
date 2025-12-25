@@ -150,5 +150,10 @@ namespace Application.UseCases
             return unitOfWork.application_task_assigneeRepository.GetByapplication_task_id(application_task_id);
         }
 
+        public async Task<List<application_task_assignee>> GetByapplication_id(int application_id)
+        {
+            var all_assignees = await unitOfWork.application_task_assigneeRepository.GetByapplication_id(application_id);
+            return all_assignees;
+        }
     }
 }

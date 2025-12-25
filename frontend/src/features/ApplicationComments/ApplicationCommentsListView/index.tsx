@@ -1,5 +1,5 @@
 import React, { FC, useEffect } from "react";
-import { Container, Grid, InputLabel, MenuItem, Select, TextField } from "@mui/material";
+import { Checkbox, Container, FormControlLabel, Grid, InputLabel, MenuItem, Select, TextField } from "@mui/material";
 import PageGrid from "components/PageGrid";
 import { observer } from "mobx-react";
 import store from "./store";
@@ -29,6 +29,7 @@ const ApplicationCommentsListView: FC<ApplicationDocumentListViewProps> = observ
   useEffect(() => {
     store.clearStore()
     store.loadEmployees();
+    store.loadEmployeesExecutors();
     store.loadCommentType();
     store.loadAllComments(store.application_id);
     store.getUser();
@@ -90,7 +91,7 @@ const ApplicationCommentsListView: FC<ApplicationDocumentListViewProps> = observ
             onChange={(e) => store.handleChange(e)}
           ></TextField>
             </Grid>
-              <Grid item md={5} xs={12}>
+              <Grid item md={4} xs={12}>
           <AutocompleteCustom
             value={store.comment_type_id ?? 0}
             onChange={(e) => store.comment_type_id = e.target.value}
@@ -101,12 +102,27 @@ const ApplicationCommentsListView: FC<ApplicationDocumentListViewProps> = observ
             label={translate("label:DutyPlanLogListView.search_employee")}
           />
               </Grid>
-                <Grid item md={6} xs={12}>
+            <Grid item md={3} xs={12}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={store.onlyExecutors}
+                    onChange={(e) =>
+                    {store.onlyExecutors = e.target.checked
+                      store.employee_id = 0;}
+                    }
+                  />
+                }
+                label="Только исполнители заявки"
+              />
+            </Grid>
+
+            <Grid item md={4} xs={12}>
           <AutocompleteCustom
             value={store.employee_id ?? 0}
             onChange={(e) => store.employee_id = e.target.value}
             name="employee_id"
-            data={store.employees}
+            data={store.onlyExecutors ? store.employeesExecutorsNormalized : store.employees}
             fieldNameDisplay={(e) => `${e.last_name} ${e.first_name} ${e.second_name}`}
             id="id_f_employee_id"
             label={translate("label:DutyPlanLogListView.search_employee")}

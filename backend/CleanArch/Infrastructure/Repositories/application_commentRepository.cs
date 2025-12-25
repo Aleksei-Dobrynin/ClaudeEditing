@@ -138,7 +138,7 @@ namespace Infrastructure.Repositories
         {
             try
             {
-                var sql = "SELECT a.*, e.first_name || ' ' || e.last_name || ' ' || e.second_name AS full_name, ct.button_label, ct.button_color FROM \"application_comment\" a  JOIN \"User\" u ON a.created_by = u.id JOIN \"employee\" e ON u.\"userId\" = e.user_id LEFT JOIN \"comment_type\" ct ON ct.id = a.type_id WHERE a.application_id = @Id ORDER BY a.created_at";
+                var sql = "SELECT a.*, e.first_name || ' ' || e.last_name || ' ' || e.second_name AS full_name, ct.button_label, ct.button_color, ct.code type_code, aca.is_completed FROM \"application_comment\" a  JOIN \"User\" u ON a.created_by = u.id JOIN \"employee\" e ON u.\"userId\" = e.user_id LEFT JOIN \"comment_type\" ct ON ct.id = a.type_id LEFT JOIN \"application_comment_assignee\" aca ON a.id = aca.comment_id WHERE a.application_id = @Id ORDER BY a.created_at";
 
                 var models = await _dbConnection.QueryAsync<application_comment>(sql, new { Id = id }, transaction: _dbTransaction);
                 return models.ToList();

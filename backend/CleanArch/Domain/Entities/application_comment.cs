@@ -20,6 +20,7 @@ namespace Domain.Entities
         public int? employee_id { get; set; }
         public string? button_label { get; set; }
         public string? button_color { get; set; }
+        public string? type_code { get; set; }
         public bool? is_completed { get; set; }
     }
 }

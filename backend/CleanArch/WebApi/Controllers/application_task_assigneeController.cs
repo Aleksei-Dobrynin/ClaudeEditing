@@ -93,6 +93,12 @@ namespace WebApi.Controllers
             return Ok(response);
         }
         
-
+        [HttpGet]
+        [Route("GetByapplication_id")]
+        public async Task<IActionResult> GetByapplication_id(int application_id)
+        {
+            var response = await _application_task_assigneeUseCases.GetByapplication_id(application_id);
+            return Ok(response);
+        }
     }
 }

@@ -1362,6 +1362,7 @@ class NewStore {
         throw new Error();
       }
     } catch (err) {
+      this.isTundukError = true;
       MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
     } finally {
       this.customerLoading = false;

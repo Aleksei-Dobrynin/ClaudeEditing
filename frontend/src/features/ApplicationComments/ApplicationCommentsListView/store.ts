@@ -10,7 +10,7 @@ import {deleteComments} from "../../../api/ApplicationComments/useDeleteApplicat
 import dayjs from "dayjs";
 import relativeTime from 'dayjs/plugin/relativeTime';
 import storeApplication from "../../Application/ApplicationAddEditView/store";
-import { getEmployees } from "../../../api/Employee/useGetEmployees";
+import { getEmployees, getEmployeesExecutors } from "../../../api/Employee/useGetEmployees";
 import { getCommentType } from "../../../api/ApplicationComments/useGetAllApplicationComments";
 
 class NewStore { 
@@ -27,10 +27,11 @@ class NewStore {
     comment_types = [];
     comment_type_id = 0;
     employees = [];
+  employeesExecutors = [];
     employee_id = 0;
     isOpenComment = false;
     isEdit = 0;
-
+  onlyExecutors = false;
 
     constructor() {
         makeAutoObservable(this);
@@ -206,6 +207,28 @@ class NewStore {
       MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
     }
   };
+
+  loadEmployeesExecutors = async () => {
+    try {
+      const response = await getEmployeesExecutors(this.application_id);
+      if ((response.status === 201 || response.status === 200) && response?.data !== null) {
+        this.employeesExecutors = response.data
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+    }
+  };
+
+  get employeesExecutorsNormalized() {
+    return this.employeesExecutors.map(e => ({
+      id: e.employee_id,
+      last_name: e.employee_name,
+      first_name: "",
+      second_name: ""
+    }));
+  }
 
   loadCommentType = async () => {
     try {

@@ -139,6 +139,7 @@ interface DocumentApproval {
   department_id: number;
   status: "Подписан" | "В процессе" | "Ожидает";
   approval_date: string | null;
+  order_number: number | null;
 }
 
 interface StepRequiredDocument {

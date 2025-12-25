@@ -93,7 +93,7 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
               onBlur={() => store.setBadge()}
             />
           </Grid>
-           <Grid item md={1} xs={12}>
+          {store.customer.is_organization && <Grid item md={1} xs={12}>
             <IconButton
               disabled={!store.customer.pin || store.customer.pin.length < 14}
               sx={{ ml: 1 }}
@@ -102,7 +102,7 @@ const CustomerFormView: FC<ProjectsTableProps> = observer((props) => {
             >
               <ContentPasteSearchIcon color="primary" />
             </IconButton>
-          </Grid>
+          </Grid>}
           <Grid item md={3} xs={12}>
             <CustomCheckbox
               value={store.customer.is_organization}

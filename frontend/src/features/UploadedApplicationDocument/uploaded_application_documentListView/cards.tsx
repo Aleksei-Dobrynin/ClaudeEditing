@@ -23,6 +23,7 @@ import HistoryIcon from '@mui/icons-material/History';
 import DeleteIcon from '@mui/icons-material/Delete';
 import i18n from "i18next";
 import TextField from "@mui/material/TextField";
+import taskStore from '../../application_task/task/store';
 
 import { groupApprovalsByOrder } from '../utils/approvalHelpers';
 import ApprovalGroupCard from './ApprovalGroupCard';
@@ -106,6 +107,17 @@ export const DocumentCard: FC<DocumentCardProps> = ({
       });
     });
   }
+  const groupedApprovals = (document.approvals ?? []).reduce((acc, a) => {
+    const order = a.order_number ?? 1;
+    if (!acc[order]) acc[order] = [];
+    acc[order].push(a);
+    return acc;
+  }, {} as Record<number, any[]>);
+
+  const sortedOrders = Object.keys(groupedApprovals)
+    .map(Number)
+    .sort((a, b) => a - b);
+
 
   return (
     <Card>
@@ -128,28 +140,60 @@ export const DocumentCard: FC<DocumentCardProps> = ({
 
           {/* СЕКЦИЯ СОГЛАСОВАНИЙ */}
           {document.approvals && document.approvals.length > 0 && (
-            <div style={{ marginTop: '16px' }}>
-              <Label style={{ 
-                marginBottom: '12px', 
-                display: 'block', 
-                fontSize: '14px', 
-                fontWeight: 600,
-                color: '#333'
-              }}>
-                Очередь согласования:
-              </Label>
-              
-              {groupApprovalsByOrder(document.approvals).map((group) => {
-                console.log('Rendering group:', group.displayNumber, group);
-                return (
-                  <ApprovalGroupCard
-                    key={`group-${group.order_number}`}
-                    displayNumber={group.displayNumber}
-                    approvals={group.approvals}
-                    t={t}
-                  />
-                );
-              })}
+            <div style={{ marginTop: '12px' }}>
+              <Label style={{ marginBottom: '8px', display: 'block' }}>Согласования:</Label>
+              {sortedOrders.map(order => (
+                <div key={order} style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "#666", marginBottom: 4 }}>
+                    Порядок #{order}
+                    {groupedApprovals[order].length > 1 && " (параллельно)"}
+                  </div>
+              {groupedApprovals[order].map((signer) => (
+                <InfoRow
+                  key={signer.id}
+                  style={{
+                    marginLeft: '20px',
+                    marginBottom: '8px',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    backgroundColor: signer.status === 'signed' ? '#e6f4ea' : '#fffde7',
+                    border: '1px solid',
+                    borderColor: signer.status === 'signed' ? '#a5d6a7' : '#ffe082',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <IconButton size="small" sx={{ padding: '2px', color: signer.status === "signed" ? '#4caf50' : '#9e9e9e' }}>
+                    {signer.status === 'signed' ? <CheckCircleIcon fontSize="small" /> : <AccessTimeIcon fontSize="small" />}
+                  </IconButton>
+                  {signer.is_required && (
+                    <Tooltip title={t("mandatory_sign")}>
+                      <WarningAmberIcon color="error" fontSize="small" />
+                    </Tooltip>)}
+                  <span style={{ flex: 1, marginLeft: "8px", fontSize: "13px" }}>
+                    {signer.department_name} <br />
+                    <strong>{signer.signInfo?.employee_fullname}</strong> {" "} ({signer.position_name}) {" "}
+                    {signer.status === "signed" ? ` - ${t("signed")}` : ` - ${t("waiting")}`}
+                    {signer.is_final && (
+                      <span
+                        style={{
+                          marginLeft: 8,
+                          padding: '2px 6px',
+                          backgroundColor: '#e0e7ff',
+                          color: '#3730a3',
+                          borderRadius: 6,
+                          fontSize: 11,
+                          fontWeight: 600
+                        }}
+                      >
+      финальная подпись
+    </span>
+                    )}
+                  </span>
+                </InfoRow>
+              ))}
+            </div>
+              ))}
             </div>
           )}
 
@@ -242,6 +286,7 @@ export const DocumentCard: FC<DocumentCardProps> = ({
           onClick={() => store.signApplicationPayment(document.upl?.file_id, document.upl?.id, () => {
             onSigned()
           })}
+          disabled={taskStore.applicationComments.filter(x => x.type_code == 'return' && x.is_completed == false).length > 0}
         >
           Подписать ЭЦП
         </PrimaryButton>

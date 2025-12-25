@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using WebApi.Dtos;
 using Application.UseCases;
 using Application.Models;
+using Domain.Entities;
 
 namespace WebApi.Controllers
 {
@@ -187,6 +188,36 @@ namespace WebApi.Controllers
                     details = ex.Message
                 });
             }
+        }
+    
+        
+        [HttpPost]
+        [Route("apply")]
+        public async Task<IActionResult> Apply(List<Updatedocument_approvalRequest> request)
+        {
+            var approvals = new List<Domain.Entities.document_approval>();
+            foreach (var item in request)
+            {
+                approvals.Add(new document_approval
+                {
+                    id = item.id,
+                    app_document_id = item.app_document_id,
+                    file_sign_id = item.file_sign_id,
+                    department_id = item.department_id,
+                    position_id = item.position_id,
+                    status = item.status,
+                    approval_date = item.approval_date,
+                    comments = item.comments,
+                    app_step_id = item.app_step_id,
+                    document_type_id = item.document_type_id,
+                    order_number = item.order_number,
+                    is_required = item.is_required,
+                    is_final = item.is_final,
+                });
+            }
+            await _document_approvalUseCases.Apply(approvals);
+
+            return Ok();
         }
     }
 }

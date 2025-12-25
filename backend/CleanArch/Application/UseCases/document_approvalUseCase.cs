@@ -80,7 +80,7 @@ namespace Application.UseCases
         {
             return unitOfWork.document_approvalRepository.GetByposition_id(position_id);
         }
-
+        
         /// <summary>
         /// ѕолучает согласовани€ с назначенными исполнител€ми
         /// ќсновной метод дл€ получени€ полной информации о согласовани€х
@@ -183,5 +183,37 @@ namespace Application.UseCases
                 && (!employee.date_end.HasValue || employee.date_end.Value >= checkDate);
         }
 
+ 
+        public async Task Apply(List<document_approval> approvals)
+        {
+            foreach (var item in approvals)
+            {
+                if (item.status == "is_deleted")
+                {
+                    await unitOfWork.document_approvalRepository.Delete(item.id);
+                    continue;
+                }
+                if (item.id <= 0)
+                {
+                    var app_step = await unitOfWork.application_stepRepository.GetOne(item.app_step_id ?? 0);
+                    var steps =
+                        await unitOfWork.application_stepRepository.GetByapplication_id(app_step.application_id ?? 0);
+                    var other_appr =
+                        await unitOfWork.document_approvalRepository.GetByAppStepIds(steps.Select(x => x.id).ToArray());
+                    var same_doc = other_appr.FirstOrDefault(x => x.document_type_id == item.document_type_id);
+                    if (same_doc != null)
+                    {
+                        item.app_document_id = same_doc.app_document_id;
+                    }
+                    var result = await unitOfWork.document_approvalRepository.Add(item);
+                    item.id = result;
+                }
+                else
+                {
+                    await unitOfWork.document_approvalRepository.Update(item);
+                }
+            }
+            unitOfWork.Commit();
+        }
     }
 }

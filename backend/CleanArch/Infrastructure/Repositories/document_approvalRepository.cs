@@ -17,7 +17,7 @@ namespace Infrastructure.Repositories
         private readonly IDbConnection _dbConnection;
         private IDbTransaction? _dbTransaction;
         private IUserRepository _userRepository;
-
+        
         public document_approvalRepository(IDbConnection dbConnection, IUserRepository userRepository)
         {
             _dbConnection = dbConnection;
@@ -223,7 +223,7 @@ namespace Infrastructure.Repositories
                 throw new RepositoryException("Failed to get document_approval", ex);
             }
         }
-
+        
         public async Task<List<document_approval>> GetByfile_sign_id(int file_sign_id)
         {
             try
@@ -237,7 +237,7 @@ namespace Infrastructure.Repositories
                 throw new RepositoryException("Failed to get document_approval", ex);
             }
         }
-
+        
         public async Task<List<document_approval>> GetBydepartment_id(int department_id)
         {
             try
@@ -251,7 +251,7 @@ namespace Infrastructure.Repositories
                 throw new RepositoryException("Failed to get document_approval", ex);
             }
         }
-
+        
         public async Task<List<document_approval>> GetByposition_id(int position_id)
         {
             try
@@ -321,13 +321,13 @@ namespace Infrastructure.Repositories
                 throw new RepositoryException("Failed to get document_approval by app_step_id", ex);
             }
         }
-
+        
         public async Task ResetByUploadedDocumentId(int uplId)
         {
             try
             {
                 var userId = await UserSessionHelper.SetCurrentUserAsync(_userRepository, _dbConnection, _dbTransaction);
-
+                
                 var sql = @"UPDATE document_approval SET app_document_id = NULL, file_sign_id = NULL, status = 'waiting', approval_date = NULL 
                             WHERE app_document_id = @uplId";
 
@@ -468,14 +468,14 @@ ORDER BY
                 }).ToList();
 
                 return approvals;
-            }
+    }
             catch (Exception ex)
             {
                 throw new RepositoryException(
                     $"Failed to get document_approval by application_id: {applicationId}",
                     ex
                 );
-            }
+}
         }
     }
 }

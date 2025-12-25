@@ -11,3 +11,7 @@ export const getByApplicationId = (application_id: number): Promise<any> => {
 export const getRegisterEmployees = (): Promise<any> => {
   return http.get("/Employee/GetAllRegister");
 };
+
+export const getEmployeesExecutors = (application_id: number): Promise<any> => {
+  return http.get(`/application_task_assignee/GetByapplication_id?application_id=${application_id}`);
+};
