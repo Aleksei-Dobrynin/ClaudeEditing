@@ -93,7 +93,7 @@ export interface AppStep {
   responsible_department_name?: string;
 
   is_paused?: boolean;
-  pause_reason?: string;  
+  pause_reason?: string;
 }
 
 export interface NestedStepGroup {
@@ -201,7 +201,7 @@ class ApplicationStepsStore {
   application_additional_service = [];
   cancelServiceDialogOpen = false;
   serviceToCancelId: number | null = null;
-  
+
   constructor() {
     makeAutoObservable(this);
     this.loadReferenceData();
@@ -284,45 +284,67 @@ class ApplicationStepsStore {
       fileName.toLowerCase().endsWith('.pdf'));
   }
 
-  // ========== ОБНОВЛЕННЫЙ МЕТОД loadApplication ==========
-  /**
-   * Загружает данные заявки вместе с согласованиями и назначенными исполнителями
-   */
-  async loadApplication(applicationId: number) {
-    try {
-      this.loading = true;
+  // ПУТ�: frontend/src/features/application_task/task/Documents/store.ts
+  // ИСПРАВЛЕНИЕ: Метод loadApplication (строки ~270-310)
 
-      await this.getStepDocuments();
+  // Путь: frontend/src/features/application_task/task/Documents/store.ts
+  // ТОЛЬКО МЕТОД loadApplication - КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ
 
-      // Загружаем документы С назначенными исполнителями
-      const [docsRes] = await Promise.all([
-        getDocumentApprovalsWithAssignees({ 
-          applicationId: applicationId 
-        })
-      ]);
+// ФРАГМЕНТ: frontend/src/features/application_task/task/Documents/store.ts
+// Метод loadApplication - ИСПРАВЛЕННАЯ ВЕРСИЯ
 
-      runInAction(() => {
-        if (docsRes.status === 200 && docsRes.data) {
-          // Данные уже содержат assigned_approvers для каждого approval
-          this.documents = docsRes.data;
-          
-          console.log('Loaded documents with assignees:', this.documents);
-        }
-      });
+async loadApplication(applicationId: number) {
+  try {
+    this.loading = true;
 
-      this.loadGetApplication_additional_service(applicationId);
+    // 1. Загружаем структуру этапов с документами (БЕЗ approvals)
+    await this.getStepDocuments();
 
-    } catch (err) {
-      console.error('Error loading application with assignees:', err);
-      MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
-      // Fallback to mock data
-    } finally {
-      runInAction(() => {
-        this.loading = false;
-      });
-    }
+    // 2. Загружаем approvals С назначенными исполнителями
+    const [docsRes] = await Promise.all([
+      getDocumentApprovalsWithAssignees({ 
+        applicationId: applicationId 
+      })
+    ]);
+
+    runInAction(() => {
+      if (docsRes.status === 200 && docsRes.data) {
+        // 3. Группируем approvals по документам
+        const approvalsByDocId = docsRes.data.reduce((acc: any, approval: any) => {
+          const docId = approval.document_type_id; // или app_document_id в зависимости от структуры
+          if (!acc[docId]) {
+            acc[docId] = [];
+          }
+          acc[docId].push(approval);
+          return acc;
+        }, {});
+
+        console.log('Approvals grouped by document:', approvalsByDocId);
+
+        // 4. КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Добавляем approvals в step.documents внутри this.data
+        this.data = this.data.map(step => ({
+          ...step,
+          documents: step.documents?.map(doc => ({
+            ...doc,
+            approvals: approvalsByDocId[doc.document_type_id] || []
+          }))
+        }));
+
+        console.log('Updated this.data with approvals:', this.data);
+      }
+    });
+
+    this.loadGetApplication_additional_service(applicationId);
+
+  } catch (err) {
+    console.error('Error loading application with assignees:', err);
+    MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
+  } finally {
+    runInAction(() => {
+      this.loading = false;
+    });
   }
-
+}
   // ========== НОВЫЙ МЕТОД: Загрузка для конкретного этапа ==========
   /**
    * Загружает согласования для конкретного этапа с исполнителями
@@ -331,22 +353,22 @@ class ApplicationStepsStore {
     try {
       this.loading = true;
 
-      const response = await getDocumentApprovalsWithAssignees({ 
+      const response = await getDocumentApprovalsWithAssignees({
         applicationId: applicationId,
-        stepId: stepId 
+        stepId: stepId
       });
 
       runInAction(() => {
         if (response.status === 200 && response.data) {
           // Обновляем только согласования для данного этапа
           const stepDocuments = response.data;
-          
+
           // Если нужно обновить существующий массив documents
           this.documents = this.documents.map(doc => {
             const updated = stepDocuments.find((sd: any) => sd.id === doc.id);
             return updated || doc;
           });
-          
+
           console.log('Loaded step approvals with assignees:', stepDocuments);
         }
       });
@@ -367,8 +389,8 @@ class ApplicationStepsStore {
    */
   async refreshApprovals(applicationId: number) {
     try {
-      const response = await getDocumentApprovalsWithAssignees({ 
-        applicationId: applicationId 
+      const response = await getDocumentApprovalsWithAssignees({
+        applicationId: applicationId
       });
 
       runInAction(() => {
@@ -378,7 +400,7 @@ class ApplicationStepsStore {
             const docIndex = this.documents.findIndex(
               doc => doc.id === newApproval.app_document_id
             );
-            
+
             if (docIndex !== -1) {
               // Обновляем approvals документа
               this.documents[docIndex].approvals = response.data.filter(
@@ -405,22 +427,41 @@ class ApplicationStepsStore {
       this.expandedStepIds.push(id);
     }
   }
-  
+
   // Дополнительный метод для проверки открыт ли шаг
   isStepExpanded(id: number): boolean {
     return this.expandedStepIds.includes(id);
   }
 
+  // ПУТЬ: frontend/src/features/application_task/task/Documents/store.ts
+  // ИСПРАВЛЕНИЕ: Метод getStepDocuments (строки ~390-410)
+
   async getStepDocuments() {
+    // ✅ КРИТИЧЕСКАЯ ВАЛИДАЦИЯ: Проверяем application_id
+    if (!this.application_id || this.application_id <= 0) {
+      console.error('[Documents/store] getStepDocuments called with invalid application_id:', this.application_id);
+      MainStore.setSnackbar('Ошибка: application_id не установлен', "error");
+      return;
+    }
+
     try {
       MainStore.changeLoader(true);
+
+      // ✅ Логируем для отладки
+      console.log('[Documents/store] getStepDocuments called with application_id:', this.application_id);
+
       const response = await getStepDocuments(this.application_id);
+
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
-        this.data = response.data;
+        runInAction(() => {
+          this.data = response.data;
+          console.log('[Documents/store] Loaded steps:', this.data.length);
+        });
       } else {
-        throw new Error();
+        throw new Error('Invalid response from getStepDocuments');
       }
     } catch (err) {
+      console.error('[Documents/store] Error in getStepDocuments:', err);
       MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
     } finally {
       MainStore.changeLoader(false);
@@ -906,13 +947,13 @@ class ApplicationStepsStore {
   };
 
   // ========== ОБНОВЛЕННЫЙ МЕТОД handleDeleteUploadedDocument ==========
-  async handleDeleteUploadedDocument (uplId: number, reason: string) {
+  async handleDeleteUploadedDocument(uplId: number, reason: string) {
     try {
       MainStore.changeLoader(true);
       const response = await deleteUploadedApplicationDocument(uplId, reason);
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
         await this.loadApplication(this.application_id);
-        MainStore.setSnackbar("Файл удалён. Все подписи сброшены.","success");
+        MainStore.setSnackbar("Файл удалён. Все подписи сброшены.", "success");
       } else {
         throw new Error();
       }

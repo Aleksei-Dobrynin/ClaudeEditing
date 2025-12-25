@@ -29,9 +29,20 @@ const ApplicationStepsView: FC<ApplicationStepsProps> = observer((props) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
+
   useEffect(() => {
-    store.application_id = props.appId;
+    // ✅ ИСПРАВЛЕНИЕ: НЕ перезаписываем application_id здесь
+    // Убираем строку: store.application_id = props.appId;
+
+    // ✅ Проверяем, что appId корректен
+    if (!props.appId || props.appId <= 0 || isNaN(props.appId)) {
+      console.error('[DocumentsView] Invalid appId provided:', props.appId);
+      return;
+    }
+
+    // ✅ Вызываем loadApplication, который сам установит application_id
     store.loadApplication(props.appId);
+
     return () => {
       store.clearStore();
     };
@@ -70,6 +81,20 @@ const ApplicationStepsView: FC<ApplicationStepsProps> = observer((props) => {
   //     store.loadApplication(1001);
   //   }
   // };
+
+  // ✅ ИСПРАВЛЕНИЕ: Если appId невалиден, показываем сообщение об ошибке
+  if (!props.appId || props.appId <= 0 || isNaN(props.appId)) {
+    return (
+      <Box sx={{ p: 3, textAlign: 'center' }}>
+        <Typography variant="h6" color="error">
+          Ошибка: Некорректный ID заявки
+        </Typography>
+        <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+          Application ID: {props.appId}
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <>
@@ -181,77 +206,77 @@ const ApplicationStepsView: FC<ApplicationStepsProps> = observer((props) => {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-100 border-b">
-                <tr>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                    {i18n.t("label:UploadedApplicationDocumentListView.view_history")}
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                    {i18n.t("label:UploadedApplicationDocumentListView.file_name_history")}
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                    {i18n.t("label:UploadedApplicationDocumentListView.created_at_history")}
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                    {i18n.t("label:UploadedApplicationDocumentListView.created_by_name_history")}
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                    {i18n.t("label:UploadedApplicationDocumentListView.delete_reason")}
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                    {i18n.t("label:UploadedApplicationDocumentListView.delete_by_name_history")}
-                  </th>
-                </tr>
+                  <tr>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                      {i18n.t("label:UploadedApplicationDocumentListView.view_history")}
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                      {i18n.t("label:UploadedApplicationDocumentListView.file_name_history")}
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                      {i18n.t("label:UploadedApplicationDocumentListView.created_at_history")}
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                      {i18n.t("label:UploadedApplicationDocumentListView.created_by_name_history")}
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                      {i18n.t("label:UploadedApplicationDocumentListView.delete_reason")}
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                      {i18n.t("label:UploadedApplicationDocumentListView.delete_by_name_history")}
+                    </th>
+                  </tr>
                 </thead>
                 <tbody>
-                {store.fileHistory?.filter(d => d.file_id != null).map((doc, index) => (
-                  <tr
-                    key={doc.id}
-                    className={`hover:bg-blue-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
-                  >
-                    <td className="px-4 py-4 border-b border-gray-200">
-                      {(doc.file_id && store.checkFile(doc?.file_name)) && <Tooltip title={i18n.t("label:UploadedApplicationDocumentListView.view_history")}>
-                        <IconButton size="small" onClick={() => {
-                          store.OpenFileFile(doc.file_id, doc.file_name)
-                        }}>
-                          <VisibilityIcon />
-                        </IconButton>
-                      </Tooltip>}
-                      {doc.file_id && <Tooltip title="Список подписавших">
-                        <IconButton size="small" onClick={() => {
-                          store.ecpListOpen = true;
-                          store.loadGetSignByFileId(doc.file_id)
-                        }}>
-                          <FormatListBulletedIcon />
-                        </IconButton>
-                      </Tooltip>}
-                    </td>
-                    <td className="px-4 py-4 border-b border-gray-200">
-                <span className="text-sm font-medium text-gray-900">
-                  {doc.file_name}
-                </span>
-                    </td>
-                    <td className="px-4 py-4 border-b border-gray-200">
-                <span className="text-sm font-mono text-gray-800">
-                  {formatDateTime(doc.created_at)}
-                </span>
-                    </td>
-                    <td className="px-4 py-4 border-b border-gray-200">
-                <span className="text-sm text-gray-700">
-                  {doc.created_by_name} \ {doc.structure_name}
-                </span>
-                    </td>
-                    <td className="px-4 py-4 border-b border-gray-200">
-                <span className="text-sm font-mono text-gray-800">
-                  {doc.delete_reason}
-                </span>
-                    </td>
-                    <td className="px-4 py-4 border-b border-gray-200">
-                <span className="text-sm text-gray-700">
-                  {doc.deleted_by_name}
-                </span>
-                    </td>
-                  </tr>
-                ))}
+                  {store.fileHistory?.filter(d => d.file_id != null).map((doc, index) => (
+                    <tr
+                      key={doc.id}
+                      className={`hover:bg-blue-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                    >
+                      <td className="px-4 py-4 border-b border-gray-200">
+                        {(doc.file_id && store.checkFile(doc?.file_name)) && <Tooltip title={i18n.t("label:UploadedApplicationDocumentListView.view_history")}>
+                          <IconButton size="small" onClick={() => {
+                            store.OpenFileFile(doc.file_id, doc.file_name)
+                          }}>
+                            <VisibilityIcon />
+                          </IconButton>
+                        </Tooltip>}
+                        {doc.file_id && <Tooltip title="Список подписавших">
+                          <IconButton size="small" onClick={() => {
+                            store.ecpListOpen = true;
+                            store.loadGetSignByFileId(doc.file_id)
+                          }}>
+                            <FormatListBulletedIcon />
+                          </IconButton>
+                        </Tooltip>}
+                      </td>
+                      <td className="px-4 py-4 border-b border-gray-200">
+                        <span className="text-sm font-medium text-gray-900">
+                          {doc.file_name}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 border-b border-gray-200">
+                        <span className="text-sm font-mono text-gray-800">
+                          {formatDateTime(doc.created_at)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 border-b border-gray-200">
+                        <span className="text-sm text-gray-700">
+                          {doc.created_by_name} \ {doc.structure_name}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 border-b border-gray-200">
+                        <span className="text-sm font-mono text-gray-800">
+                          {doc.delete_reason}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 border-b border-gray-200">
+                        <span className="text-sm text-gray-700">
+                          {doc.deleted_by_name}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>

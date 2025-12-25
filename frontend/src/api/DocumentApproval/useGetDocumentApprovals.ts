@@ -32,12 +32,15 @@ export interface GetApprovalsWithAssigneesParams {
 export const getDocumentApprovalsWithAssignees = (
   params: GetApprovalsWithAssigneesParams
 ): Promise<any> => {
-  return http.get(`/document_approval/GetByApplicationWithAssignees`, {
-    params: {
-      applicationId: params.applicationId,
-      stepId: params.stepId
-    }
-  });
+  // ✅ ИСПРАВЛЕНИЕ: Параметры передаем В URL-СТРОКЕ
+  let url = `/document_approval/GetByApplicationWithAssignees?applicationId=${params.applicationId}`;
+  
+  // Добавляем stepId если он есть
+  if (params.stepId) {
+    url += `&stepId=${params.stepId}`;
+  }
+  
+  return http.get(url);
 };
 
 /**
@@ -47,9 +50,7 @@ export const getDocumentApprovalsWithAssignees = (
 export const getDocumentApprovals = (
   applicationId: number
 ): Promise<any> => {
-  return http.get(`/document_approval/GetByApplication`, {
-    params: { applicationId }
-  });
+  return http.get(`/document_approval/GetByApplication?applicationId=${applicationId}`);
 };
 
 /**
@@ -58,9 +59,7 @@ export const getDocumentApprovals = (
 export const getDocumentApprovalsByDocumentId = (
   documentId: number
 ): Promise<any> => {
-  return http.get(`/document_approval/GetByDocumentId`, {
-    params: { documentId }
-  });
+  return http.get(`/document_approval/GetByDocumentId?documentId=${documentId}`);
 };
 
 /**

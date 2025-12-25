@@ -95,7 +95,7 @@ const TaskTabs: FC<TaskTabsProps> = observer((props) => {
           return true;
         }
       }
-      
+
       // Проверяем дату обновления
       if (comment.updated_at) {
         const updatedAt = dayjs(comment.updated_at);
@@ -103,7 +103,7 @@ const TaskTabs: FC<TaskTabsProps> = observer((props) => {
           return true;
         }
       }
-      
+
       return false;
     });
 
@@ -115,9 +115,9 @@ const TaskTabs: FC<TaskTabsProps> = observer((props) => {
 
   // Кастомный компонент для вкладки комментариев
   const CommentsTabLabel = () => (
-    <Box sx={{ 
-      display: 'flex', 
-      alignItems: 'center', 
+    <Box sx={{
+      display: 'flex',
+      alignItems: 'center',
       gap: 1,
       position: 'relative'
     }}>
@@ -125,14 +125,14 @@ const TaskTabs: FC<TaskTabsProps> = observer((props) => {
       {commentStats.hasRecentActivity && (
         <ActivityIndicator title="Есть новые комментарии (за последние 3 дня)" />
       )}
-      
+
       {/* Название вкладки */}
       <span>{translate("label:ApplicationTaskListView.TabName_comments")}</span>
-      
+
       {/* Badge с количеством справа */}
       {commentStats.totalCount > 0 && (
-        <Badge 
-          badgeContent={commentStats.totalCount} 
+        <Badge
+          badgeContent={commentStats.totalCount}
           color="primary"
           max={99}
           sx={{
@@ -162,14 +162,14 @@ const TaskTabs: FC<TaskTabsProps> = observer((props) => {
           <Tab label={translate("Этапы процесса")} {...a11yProps(2)} />
           <Tab label={translate("label:ApplicationTaskListView.TabName_docs")} {...a11yProps(3)} />
           <Tab label={translate("Калькуляции")} {...a11yProps(4)} />
-          <Tab 
+          <Tab
             label={<CommentsTabLabel />}
-            {...a11yProps(5)} 
+            {...a11yProps(5)}
           />
           <Tab label={translate("label:ApplicationTaskListView.TabName_history")} {...a11yProps(6)} />
         </Tabs>
       </Box>
-      
+
       <CustomTabPanel value={store.tab_id} index={0}>
         {store.id > 0 && <ApplicationInfoCards hasAccess={hasAccess} />}
       </CustomTabPanel>
@@ -177,9 +177,10 @@ const TaskTabs: FC<TaskTabsProps> = observer((props) => {
       <CustomTabPanel value={store.tab_id} index={1}>
         {store.id > 0 && <TaskListView />}
       </CustomTabPanel>
-      
+
       <CustomTabPanel value={store.tab_id} index={2}>
-        {store.application_id && <DocumentsView
+        {/* ✅ ИСПРАВЛЕНИЕ: Добавлена проверка application_id > 0 */}
+        {store.application_id > 0 && <DocumentsView
           taskId={store.id}
           expandedStepId={store.expandedStepId}
           hasAccess={true}
@@ -209,7 +210,7 @@ const TaskTabs: FC<TaskTabsProps> = observer((props) => {
         />
         <FastInputapplication_paid_invoiceView idMain={store.application_id} disabled={!hasAccess} />
       </CustomTabPanel>
-      
+
       <CustomTabPanel value={store.tab_id} index={5}>
         {store.id > 0 && <ApplicationCommentsListView />}
         {store.id > 0 && <FastInputapplication_subtaskView
@@ -219,13 +220,13 @@ const TaskTabs: FC<TaskTabsProps> = observer((props) => {
           structure_id={store.structure_id}
         />}
       </CustomTabPanel>
-      
+
       <CustomTabPanel value={store.tab_id} index={6}>
         {store.application_id > 0 && <HistoryCardsView ApplicationID={store.application_id} />}
       </CustomTabPanel>
 
-  
-      
+
+
       <Dialog
         open={store.isPaymentDialogOpen}
         onClose={() => { store.isPaymentDialogOpen = false; }}

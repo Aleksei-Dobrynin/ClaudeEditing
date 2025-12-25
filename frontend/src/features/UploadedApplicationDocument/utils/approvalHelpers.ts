@@ -10,6 +10,8 @@ export interface AssignedApprover {
   structure_employee_id: number;
   post_name: string;
   structure_name: string;
+  post_code?: string;
+  structure_code?: string | null;
 }
 
 /**
@@ -48,7 +50,6 @@ export interface DocumentApproval {
   last_sync_at?: string | null;
   order_number?: number | null;
   
-  // ========== НОВОЕ ПОЛЕ ==========
   /**
    * Список назначенных исполнителей для этого подписания
    */
@@ -87,15 +88,16 @@ export interface ApprovalGroup {
   /** Массив подписантов в группе, отсортированных по алфавиту */
   approvals: DocumentApproval[];
   
-  /** Отображаемый номер (обратная нумерация) */
+  /** Отображаемый номер (прямая нумерация по возрастанию) */
   displayNumber: number;
 }
 
 /**
  * Группирует подписантов по order_number и сортирует их
+ * Сортировка по возрастанию (меньший номер выше)
  * 
  * @param approvals - Массив подписантов
- * @returns Массив групп, отсортированных по order_number (по возрастанию)
+ * @returns Массив групп, отсортированных по order_number (по возрастанию: 1, 2, 3...)
  */
 export function groupApprovalsByOrder(
   approvals: DocumentApproval[] | null | undefined
@@ -109,7 +111,8 @@ export function groupApprovalsByOrder(
   const groupMap = new Map<number, DocumentApproval[]>();
   
   approvals.forEach(approval => {
-    const orderNum = approval.order_number ?? 0;
+    // Если order_number null или undefined, используем 1 (первая очередь)
+    const orderNum = approval.order_number ?? 1;
     
     if (!groupMap.has(orderNum)) {
       groupMap.set(orderNum, []);
@@ -118,17 +121,15 @@ export function groupApprovalsByOrder(
     groupMap.get(orderNum)!.push(approval);
   });
   
-  // Сортируем группы по order_number (возрастание: 1, 2, 3, ...)
+  // Сортируем группы по order_number по ВОЗРАСТАНИЮ
   const sortedGroups = Array.from(groupMap.entries())
-    .sort(([orderA], [orderB]) => orderA - orderB);
+    .sort(([orderA], [orderB]) => orderA - orderB); // 1, 2, 3, 4...
   
-  // Создаем результат с обратной нумерацией для отображения
-  const totalGroups = sortedGroups.length;
-  
+  // Прямая нумерация для отображения
   return sortedGroups.map(([order_number, groupApprovals], index) => ({
     order_number,
     approvals: sortApprovalsByName(groupApprovals),
-    displayNumber: totalGroups - index // Обратная нумерация: последний = 1
+    displayNumber: index + 1 // Прямая нумерация: первый = 1, второй = 2, третий = 3
   }));
 }
 
@@ -211,7 +212,7 @@ export function formatApprovalDate(dateString: string | null | undefined): strin
   }
 }
 
-// ========== НОВЫЕ ФУНКЦИИ ДЛЯ РАБОТЫ С ASSIGNED_APPROVERS ==========
+// ========== ФУНКЦИИ ДЛЯ РАБОТЫ С ASSIGNED_APPROVERS ==========
 
 /**
  * Проверяет, назначены ли исполнители для подписания
@@ -247,7 +248,8 @@ export function formatEmployeeName(fullName: string | null | undefined): string 
 }
 
 /**
- * Форматирует список исполнителей в строку "Иванов И.И. / Петров П.П."
+ * Форматирует список исполнителей в строку с должностями
+ * Формат: "Иванов И.И. (должность) / Петров П.П. (должность)"
  * 
  * @param approvers - Массив назначенных исполнителей
  * @param maxDisplay - Максимальное количество отображаемых исполнителей (по умолчанию без ограничений)
@@ -260,26 +262,28 @@ export function formatAssignedApprovers(
   if (!approvers || approvers.length === 0) {
     return 'Не назначен';
   }
-  
+
   // Сортируем по алфавиту
-  const sortedApprovers = [...approvers].sort((a, b) => {
+  const sorted = [...approvers].sort((a, b) => {
     const nameA = a.employee_fullname || a.employee_name || '';
     const nameB = b.employee_fullname || b.employee_name || '';
     return nameA.localeCompare(nameB, 'ru-RU');
   });
-  
-  // Форматируем имена
-  const formattedNames = sortedApprovers.map(a => 
-    formatEmployeeName(a.employee_fullname || a.employee_name)
-  );
-  
+
+  // Форматируем каждого подписанта: "Фамилия И.О. (должность)"
+  const formattedNames = sorted.map(approver => {
+    const shortName = formatEmployeeName(approver.employee_fullname || approver.employee_name);
+    const position = approver.post_name || 'Без должности';
+    return `${shortName} (${position})`;
+  });
+
   // Если есть ограничение на количество
   if (maxDisplay && formattedNames.length > maxDisplay) {
     const displayed = formattedNames.slice(0, maxDisplay);
     const remaining = formattedNames.length - maxDisplay;
     return `${displayed.join(' / ')} + ещё ${remaining}`;
   }
-  
+
   return formattedNames.join(' / ');
 }
 
@@ -302,7 +306,11 @@ export function getAssignedApproversTooltip(
       const nameB = b.employee_fullname || b.employee_name || '';
       return nameA.localeCompare(nameB, 'ru-RU');
     })
-    .map(a => a.employee_fullname || a.employee_name)
+    .map(a => {
+      const name = a.employee_fullname || a.employee_name;
+      const position = a.post_name || 'Должность не указана';
+      return `${name} (${position})`;
+    })
     .join('\n');
 }
 

@@ -24,10 +24,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import i18n from "i18next";
 import TextField from "@mui/material/TextField";
 
-// ========== НОВЫЕ ИМПОРТЫ ==========
 import { groupApprovalsByOrder } from '../utils/approvalHelpers';
 import ApprovalGroupCard from './ApprovalGroupCard';
-// ===================================
 
 type DocumentCardProps = {
   document: any, t: any,
@@ -75,11 +73,39 @@ export const DocumentCard: FC<DocumentCardProps> = ({
     return <><span style={{ color: "green" }}>Файл загружен</span> • {document.upl?.file_name}</>;
   };
 
-  // Определяем, нужно ли показывать tooltip для кнопки замены файла
   const shouldShowUploadTooltip = !hasAccess && document.upl?.file_id;
   const uploadTooltipTitle = shouldShowUploadTooltip 
     ? "только начальник и админ могут заменить документ" 
     : document.upl?.id ? "Заменить файл" : "Загрузить файл";
+
+  // КРИТИЧЕСКАЯ ОТЛАДКА
+  console.log('=== DocumentCard DEBUG ===');
+  console.log('Document:', document.document_type_name);
+  console.log('document.approvals RAW:', document.approvals);
+  console.log('Has approvals?', document.approvals && document.approvals.length > 0);
+  
+  if (document.approvals && document.approvals.length > 0) {
+    console.log('First approval:', document.approvals[0]);
+    console.log('First approval assigned_approvers:', document.approvals[0].assigned_approvers);
+    
+    const grouped = groupApprovalsByOrder(document.approvals);
+    console.log('Grouped approvals:', grouped);
+    grouped.forEach((group, idx) => {
+      console.log(`Group ${idx + 1}:`, {
+        displayNumber: group.displayNumber,
+        order_number: group.order_number,
+        approvals_count: group.approvals.length
+      });
+      group.approvals.forEach((approval, aIdx) => {
+        console.log(`  Approval ${aIdx}:`, {
+          id: approval.id,
+          department: approval.department_name,
+          assigned_approvers: approval.assigned_approvers,
+          assigned_count: approval.assigned_approvers?.length || 0
+        });
+      });
+    });
+  }
 
   return (
     <Card>
@@ -100,7 +126,7 @@ export const DocumentCard: FC<DocumentCardProps> = ({
             <DateValue>{formatDate(document.upl?.created_at)}</DateValue>
           </InfoRow>}
 
-          {/* ========== НОВАЯ СЕКЦИЯ: Согласования с группировкой ========== */}
+          {/* СЕКЦИЯ СОГЛАСОВАНИЙ */}
           {document.approvals && document.approvals.length > 0 && (
             <div style={{ marginTop: '16px' }}>
               <Label style={{ 
@@ -113,17 +139,19 @@ export const DocumentCard: FC<DocumentCardProps> = ({
                 Очередь согласования:
               </Label>
               
-              {groupApprovalsByOrder(document.approvals).map((group) => (
-                <ApprovalGroupCard
-                  key={`group-${group.order_number}`}
-                  displayNumber={group.displayNumber}
-                  approvals={group.approvals}
-                  t={t}
-                />
-              ))}
+              {groupApprovalsByOrder(document.approvals).map((group) => {
+                console.log('Rendering group:', group.displayNumber, group);
+                return (
+                  <ApprovalGroupCard
+                    key={`group-${group.order_number}`}
+                    displayNumber={group.displayNumber}
+                    approvals={group.approvals}
+                    t={t}
+                  />
+                );
+              })}
             </div>
           )}
-          {/* ========== КОНЕЦ НОВОЙ СЕКЦИИ ========== */}
 
         </div>
       </div>
@@ -214,7 +242,6 @@ export const DocumentCard: FC<DocumentCardProps> = ({
           onClick={() => store.signApplicationPayment(document.upl?.file_id, document.upl?.id, () => {
             onSigned()
           })}
-          // disabled={step?.status !== "in_progress"} //TODO
         >
           Подписать ЭЦП
         </PrimaryButton>
