@@ -469,10 +469,17 @@ namespace Application.UseCases
                                     position_id = a.position_id,
                                     document_type_id = d.document_type_id,
                                     status = "waiting",
-                                    created_at = DateTime.UtcNow.AddHours(6), //TODO
+                                    created_at = DateTime.UtcNow.AddHours(6),
                                     is_required_approver = a.is_required,
-                                    is_required_doc = d.is_required
+                                    is_required_doc = d.is_required,
 
+                                    // ✅ ДОБАВЛЕНО: Заполняем order_number из document_approver.approval_order
+                                    order_number = a.approval_order,
+
+                                    // Дополнительно: связываем с источником для синхронизации
+                                    source_approver_id = a.id,
+                                    is_manually_modified = false,
+                                    last_sync_at = DateTime.UtcNow
                                 };
                                 await unitOfWork.document_approvalRepository.Add(da);
                             }

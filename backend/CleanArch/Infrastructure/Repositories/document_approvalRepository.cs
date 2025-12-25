@@ -1,12 +1,14 @@
-using System.Data;
-using Dapper;
-using Domain.Entities;
-using Application.Repositories;
-using Infrastructure.Data.Models;
 using Application.Exceptions;
 using Application.Models;
-using System;
+using Application.Repositories;
+using Dapper;
+using Domain.Entities;
+using Infrastructure.Data.Models;
 using Infrastructure.FillLogData;
+using Newtonsoft.Json;
+using System;
+using System.Data;
+using System.Data.Common;
 
 namespace Infrastructure.Repositories
 {
@@ -15,7 +17,7 @@ namespace Infrastructure.Repositories
         private readonly IDbConnection _dbConnection;
         private IDbTransaction? _dbTransaction;
         private IUserRepository _userRepository;
-        
+
         public document_approvalRepository(IDbConnection dbConnection, IUserRepository userRepository)
         {
             _dbConnection = dbConnection;
@@ -221,7 +223,7 @@ namespace Infrastructure.Repositories
                 throw new RepositoryException("Failed to get document_approval", ex);
             }
         }
-        
+
         public async Task<List<document_approval>> GetByfile_sign_id(int file_sign_id)
         {
             try
@@ -235,7 +237,7 @@ namespace Infrastructure.Repositories
                 throw new RepositoryException("Failed to get document_approval", ex);
             }
         }
-        
+
         public async Task<List<document_approval>> GetBydepartment_id(int department_id)
         {
             try
@@ -249,7 +251,7 @@ namespace Infrastructure.Repositories
                 throw new RepositoryException("Failed to get document_approval", ex);
             }
         }
-        
+
         public async Task<List<document_approval>> GetByposition_id(int position_id)
         {
             try
@@ -319,13 +321,13 @@ namespace Infrastructure.Repositories
                 throw new RepositoryException("Failed to get document_approval by app_step_id", ex);
             }
         }
-        
+
         public async Task ResetByUploadedDocumentId(int uplId)
         {
             try
             {
                 var userId = await UserSessionHelper.SetCurrentUserAsync(_userRepository, _dbConnection, _dbTransaction);
-                
+
                 var sql = @"UPDATE document_approval SET app_document_id = NULL, file_sign_id = NULL, status = 'waiting', approval_date = NULL 
                             WHERE app_document_id = @uplId";
 
@@ -337,79 +339,144 @@ namespace Infrastructure.Repositories
             }
         }
 
-        /// <summary>
-        /// Получает согласования по ID заявки с полной информацией
-        /// PostgreSQL версия с правильной сортировкой NULL значений
-        /// Сортировка: order_number ASC (NULL в конец), затем id ASC
-        /// </summary>
-        /// <param name="applicationId">ID заявки</param>
-        /// <param name="stepId">ID этапа (опционально, для фильтрации)</param>
-        /// <returns>Список согласований с названиями отделов и должностей</returns>
+
         public async Task<List<document_approval>> GetByApplicationId(
             int applicationId,
             int? stepId = null)
         {
             try
             {
-                // Базовый запрос с JOIN для получения названий отделов и должностей
                 var sql = @"
-            SELECT 
-                da.id,
-                da.updated_at,
-                da.created_by,
-                da.updated_by,
-                da.app_document_id,
-                da.file_sign_id,
-                da.department_id,
-                da.position_id,
-                da.status,
-                da.approval_date,
-                da.comments,
-                da.created_at,
-                da.app_step_id,
-                da.document_type_id,
-                da.is_required,
-                da.is_required_doc,
-                da.is_required_approver,
-                da.document_name,
-                da.is_final,
-                da.source_approver_id,
-                da.is_manually_modified,
-                da.last_sync_at,
-                da.order_number,
-                os.name as department_name,
-                sp.name as position_name
-            FROM document_approval da
-            LEFT JOIN org_structure os ON da.department_id = os.id
-            LEFT JOIN structure_post sp ON da.position_id = sp.id
-            WHERE da.app_document_id IN (
-                SELECT id FROM application_document 
-                WHERE application_id = @ApplicationId
-                {0}
-            )
-            ORDER BY 
-                da.order_number NULLS LAST,
-                da.id ASC";
+WITH approval_employees AS (
+    SELECT DISTINCT
+        da.id as approval_id,
+        e.id as employee_id,
+        CONCAT(e.last_name, ' ', LEFT(e.first_name, 1), '.', 
+               CASE WHEN e.second_name IS NOT NULL 
+                    THEN LEFT(e.second_name, 1) || '.' 
+                    ELSE '' END) as employee_name,
+        CONCAT(e.last_name, ' ', e.first_name, ' ', 
+               COALESCE(e.second_name, '')) as employee_fullname,
+        sp.name as post_name,
+        sp.code as post_code,
+        os.name as structure_name,
+        os.code as structure_code,
+        eis.id as structure_employee_id
+    FROM document_approval da
+    INNER JOIN application_step aps ON aps.id = da.app_step_id
+    INNER JOIN employee_in_structure eis ON eis.structure_id = da.department_id 
+        AND eis.post_id = da.position_id
+    INNER JOIN employee e ON e.id = eis.employee_id
+    LEFT JOIN structure_post sp ON sp.id = eis.post_id
+    LEFT JOIN org_structure os ON os.id = eis.structure_id
+    WHERE aps.application_id = @ApplicationId
+        AND (eis.date_end IS NULL OR eis.date_end >= CURRENT_DATE)
+        AND eis.date_start <= CURRENT_DATE
+        AND (@StepId IS NULL OR da.app_step_id = @StepId)
+)
+SELECT 
+    da.id,
+    da.updated_at,
+    da.created_by,
+    da.updated_by,
+    da.app_document_id,
+    da.file_sign_id,
+    da.department_id,
+    da.position_id,
+    da.status,
+    da.approval_date,
+    da.comments,
+    da.created_at,
+    da.app_step_id,
+    da.document_type_id,
+    da.is_required_doc,
+    da.is_required_approver,
+    da.is_final,
+    da.source_approver_id,
+    da.is_manually_modified,
+    da.last_sync_at,
+    da.order_number,
+    os.name as department_name,
+    sp.name as position_name,
+    ad.name as document_name,
+    
+    COALESCE(
+        (SELECT json_agg(json_build_object(
+            'employee_id', ae.employee_id,
+            'employee_name', ae.employee_name,
+            'employee_fullname', ae.employee_fullname,
+            'post_name', ae.post_name,
+            'structure_name', ae.structure_name,
+            'structure_employee_id', ae.structure_employee_id
+        ))
+        FROM approval_employees ae
+        WHERE ae.approval_id = da.id
+        ),
+        '[]'::json
+    ) as assigned_approvers_json
 
-                // Формируем фильтр по stepId если он указан
-                var stepFilter = stepId.HasValue
-                    ? "AND app_step_id = @StepId"
-                    : "";
+FROM document_approval da
+INNER JOIN application_step aps ON aps.id = da.app_step_id
+LEFT JOIN org_structure os ON os.id = da.department_id
+LEFT JOIN structure_post sp ON sp.id = da.position_id
+LEFT JOIN application_document ad ON ad.id = da.document_type_id
 
-                var finalQuery = string.Format(sql, stepFilter);
+WHERE aps.application_id = @ApplicationId
+    AND (@StepId IS NULL OR da.app_step_id = @StepId)
 
-                var result = await _dbConnection.QueryAsync<document_approval>(
-                    finalQuery,
+ORDER BY 
+    da.order_number NULLS LAST,
+    da.id ASC";
+
+                var result = await _dbConnection.QueryAsync<dynamic>(
+                    sql,
                     new { ApplicationId = applicationId, StepId = stepId },
                     transaction: _dbTransaction
                 );
 
-                return result.ToList();
+                var approvals = result.Select(r => new document_approval
+                {
+                    id = r.id,
+                    updated_at = r.updated_at,
+                    created_by = r.created_by,
+                    updated_by = r.updated_by,
+                    app_document_id = r.app_document_id,
+                    file_sign_id = r.file_sign_id,
+                    department_id = r.department_id,
+                    position_id = r.position_id,
+                    status = r.status,
+                    approval_date = r.approval_date,
+                    comments = r.comments,
+                    created_at = r.created_at,
+                    app_step_id = r.app_step_id,
+                    document_type_id = r.document_type_id,
+                    is_required_doc = r.is_required_doc,
+                    is_required_approver = r.is_required_approver,
+                    is_final = r.is_final,
+                    source_approver_id = r.source_approver_id,
+                    is_manually_modified = r.is_manually_modified,
+                    last_sync_at = r.last_sync_at,
+                    order_number = r.order_number,
+                    department_name = r.department_name,
+                    position_name = r.position_name,
+                    document_name = r.document_name,
+
+                    assigned_approvers = JsonConvert.DeserializeObject<List<AssignedApprover>>(
+                        r.assigned_approvers_json?.ToString() ?? "[]"
+                    ) ?? new List<AssignedApprover>()
+
+                }).ToList();
+
+                return approvals;
             }
             catch (Exception ex)
             {
-                throw new RepositoryException("Failed to get document_approval by application_id", ex);
+                throw new RepositoryException(
+                    $"Failed to get document_approval by application_id: {applicationId}",
+                    ex
+                );
             }
         }
     }
 }
+
