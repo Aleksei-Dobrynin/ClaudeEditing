@@ -110,10 +110,12 @@ const StatisticsWidget: React.FC<StatisticsWidgetProps> = observer(({
   const buildFilterAndOpen = (ids: number[]) => {
     const json = `{"pin": "", "number": "", "tag_id": 0, "address": "", "sort_by": null, "date_end": null, "pageSize": 100, "isExpired": false, "sort_type": null, "useCommon": true, "date_start": null, "pageNumber": 0, "status_ids": [], "district_id": 0, "employee_id": 0, "service_ids": [], "customerName": "", "deadline_day": 0, "common_filter": "", "structure_ids": [], "isMyOrgApplication": false, "withoutAssignedEmployee": false}`
     let filterData = JSON.parse(json);
-    let filter = storeApplication.filter;
     filterData.app_ids = ids;
     storeApplication.filter = filterData;
-    storeApplication.setFilterToLocalStorage();
+    
+    // ИСПРАВЛЕНИЕ: используем немедленное сохранение вместо debounced
+    storeApplication.setFilterToLocalStorageImmediate();
+    
     window.open('/user/Application', '_blank');
   };
 

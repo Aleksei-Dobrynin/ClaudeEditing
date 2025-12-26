@@ -257,6 +257,8 @@ import Reports from 'features/Dashboard_headDepartment/reports';
 import { JournalTemplateType } from "./constants/JournalTemplateType";
 import MainStore from "./MainStore";
 
+import UnsignedDocumentsListView from "features/UnsignedDocuments/UnsignedDocumentsListView";
+
 const router = createBrowserRouter([
   {
     element: (
@@ -520,6 +522,8 @@ const router = createBrowserRouter([
               { path: 'EventType/addedit', element: <EventTypeAddEditView /> },
               { path: 'ArchiveObjectsEvents', element: <ArchiveObjectsEventsListView /> },
               { path: 'ArchiveObjectsEvents/addedit', element: <ArchiveObjectsEventsAddEditView /> },
+              { path: 'UnsignedDocuments', element: <UnsignedDocumentsListView /> },
+
 
             ]
           }]

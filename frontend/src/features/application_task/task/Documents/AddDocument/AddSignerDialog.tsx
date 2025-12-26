@@ -65,10 +65,11 @@ const AddSignerDialog: FC<AddSignerDialogProps> = observer((props) => {
     is_required: false
   });
   const getAvailableOrders = () => {
-    if (!sortedOrders.length) return [1];
+    const count = (store.signersDraft[props.stepId] ?? [])
+      .filter(x => x.status !== 'is_deleted')
+      .length;
 
-    const maxOrder = Math.max(...sortedOrders);
-    return [...sortedOrders, maxOrder + 1];
+    return Array.from({ length: count + 1 }, (_, i) => i + 1);
   };
   const groupedApprovers = (store.signersDraft[props.stepId] ?? []).filter(x => x.status != "is_deleted").reduce((acc: Record<number, any[]>, approver: any) => {
         const order = approver.order_number ?? 1;
@@ -383,8 +384,8 @@ const AddSignerDialog: FC<AddSignerDialogProps> = observer((props) => {
                           <input
                             type="checkbox"
                             checked={!!approver.is_final}
-                            onChange={() =>
-                              store.setFinalApprover(props.stepId, approver.id)
+                            onChange={(e) =>
+                              store.setFinalApprover(props.stepId, approver.id, e.target.checked)
                             }
                           />
                           финальный

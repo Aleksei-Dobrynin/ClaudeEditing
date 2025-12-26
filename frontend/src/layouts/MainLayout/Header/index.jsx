@@ -151,7 +151,7 @@ const Header = observer(({ handleLeftDrawerToggle }) => {
 
       {/* notification & profile */}
       
-      <DocumentsSection  />
+      <DocumentsSection  /> 
       <LanguageSection style={{ marginLeft: '0px' }} />
       <FeedbackSection />
       <TechCouncilSection />

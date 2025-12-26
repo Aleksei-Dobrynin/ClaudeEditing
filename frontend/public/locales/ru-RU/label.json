@@ -3508,5 +3508,11 @@
     "application_id": "Заявление",
     "save": "Сохранить",
     "cancel": "Отмена"
+  },
+  "UnsignedDocuments": {
+    "documentName": "Название документа",
+    "service": "Услуга",
+    "searchHelperText": "Поиск по номеру заявки, ФИО, ПИН, названию документа",
+    "activeFilters": "Активные фильтры"
   }
 }

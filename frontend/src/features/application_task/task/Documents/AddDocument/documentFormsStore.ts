@@ -287,11 +287,13 @@ class DocumentFormsStore {
       comments: signer.comments,
       is_final: signer.is_final,
     });
+    this.normalizeOrders(stepId);
   }
 
   changeApproverOrder(stepId: number, approverId: number, newOrder: number) {
     const a = this.signersDraft[stepId]?.find(x => x.id === approverId);
     if (a) a.order_number = newOrder;
+    this.normalizeOrders(stepId);
   }
 
   removeApprover(stepId: number, approverId: number) {
@@ -308,6 +310,7 @@ class DocumentFormsStore {
         }
         return x;
       }).filter(Boolean) as any[];
+    this.normalizeOrders(stepId);
   }
 
   toggleApproverRequired(stepId: number, approverId: number, value: boolean) {
@@ -349,26 +352,56 @@ class DocumentFormsStore {
     // console.log(toJS(this.signersDraft[stepId] ?? []));
   }
 
-  setFinalApprover(stepId: number, approverId: number) {
-    const list = this.signersDraft[stepId] ?? [];
+  setFinalApprover(stepId: number, approverId: number, checked: boolean) {
+    const list = (this.signersDraft[stepId] ?? []).filter(x => x && x.status !== "is_deleted");
     if (!list.length) return;
+    if (!checked) {
+      console.log('¯\\_(ツ)_/¯')
+      this.signersDraft[stepId] = (this.signersDraft[stepId] ?? []).map(x => {
+        if (!x) return x;
+        if (x.id === approverId) return { ...x, is_final: false };
+        return x;
+      });
+      return;
+    }
+    const current = list.find(x => x.id === approverId);
+    if (!current) return;
 
-    const maxOrder =
-      Math.max(...list.map(x => x.order_number ?? 0)) + 1;
+    const maxOrderOther = Math.max(
+      0,
+      ...list.filter(x => x.id !== approverId).map(x => x.order_number ?? 0)
+    );
+    const desiredOrder = maxOrderOther + 1;
 
-    this.signersDraft[stepId] = list.map(x => {
+    if (current.is_final && (current.order_number ?? 0) === desiredOrder) return;
+
+    this.signersDraft[stepId] = (this.signersDraft[stepId] ?? []).map(x => {
+      if (!x) return x;
+
       if (x.id === approverId) {
-        return {
-          ...x,
-          is_final: true,
-          order_number: maxOrder
-        };
+        return { ...x, is_final: true, order_number: desiredOrder };
       }
 
-      return {
-        ...x,
-        is_final: false
-      };
+      return { ...x, is_final: false };
+    });
+    this.normalizeOrders(stepId);
+  }
+
+  normalizeOrders(stepId: number) {
+    const list = (this.signersDraft[stepId] ?? [])
+      .filter(x => x.status !== 'is_deleted');
+
+    const final = list.filter(x => x.is_final);
+    const normal = list.filter(x => !x.is_final);
+
+    normal
+      .sort((a, b) => (a.order_number ?? 0) - (b.order_number ?? 0))
+      .forEach((x, i) => {
+        x.order_number = i + 1;
+      });
+
+    final.forEach(x => {
+      x.order_number = normal.length + 1;
     });
   }
 }

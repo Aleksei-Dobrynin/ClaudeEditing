@@ -2722,5 +2722,12 @@
     "application_id": "Арыз",
     "save": "Сактоо",
     "cancel": "Жокко чыгаруу"
+  },
+  "UnsignedDocumentsListView": {
+    "entityTitle": "Кол коюу үчүн документтер",
+    "documentName": "Документтин аты",
+    "service": "Кызмат",
+    "searchHelperText": "Арыз номери, аты-жөнү, ПИН, документтин аты боюнча издөө",
+    "activeFilters": "Активдүү чыпкалар"
   }
 }
