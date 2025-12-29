@@ -167,7 +167,7 @@ WHERE ""application_task_id"" = @application_task_id";
         {
             try
             {
-                var sql = @"SELECT assig.*, employee.id employee_id, CONCAT(employee.last_name, ' ', employee.first_name, ' ', employee.second_name) AS employee_name, sp.name AS employee_ocupation, sp.code post_code FROM ""application_task_assignee"" assig
+                var sql = @"SELECT assig.*, employee.id employee_id, CONCAT(employee.last_name, ' ', employee.first_name, ' ', employee.second_name) AS employee_name, sp.name AS employee_ocupation, sp.code post_code, st.structure_id FROM ""application_task_assignee"" assig
 left join employee_in_structure st on st.id = assig.structure_employee_id
 left join structure_post sp on sp.id = st.post_id
 left join employee on employee.id = st.employee_id

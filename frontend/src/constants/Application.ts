@@ -75,5 +75,7 @@ export type FilterApplication = {
   tunduk_address_unit_id: number | null;
   tunduk_street_id: number | null;
   for_signature?: boolean;
+  isAssignedToMe?: boolean,
+  isFavorite?: boolean
 };
 

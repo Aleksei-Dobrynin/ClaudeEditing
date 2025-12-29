@@ -13,6 +13,14 @@ import { observer } from 'mobx-react';
 import store from './store'
 import { useEffect } from 'react';
 import MainStore from 'MainStore';
+import menuBadgeStore from 'stores/MenuBadgeStore';
+import {
+  getForSigningCount,
+  getFavoritesCount,
+  getReturnsCount,
+  getOverdueCount,
+  getCoExecutorCount
+} from 'api/MenuBadges/menuBadgesApi';
 
 // ==============================|| MAIN LAYOUT ||============================== //
 
@@ -38,6 +46,47 @@ const MainLayout = observer(() => {
     }
 
   }, [])
+
+  useEffect(() => {
+    // "На подписание" - обновление каждые 30 секунд
+    menuBadgeStore.registerBadge(
+      'ForSigning',
+      getForSigningCount,
+      30000
+    );
+
+    // "Избранное" - без автообновления
+    menuBadgeStore.registerBadge(
+      'Favorites',
+      getFavoritesCount
+    );
+
+    // "Возвраты" - обновление каждую минуту
+    menuBadgeStore.registerBadge(
+      'Returns',
+      getReturnsCount,
+      60000
+    );
+
+    // "Просрочки" - обновление каждые 30 секунд
+    menuBadgeStore.registerBadge(
+      'Overdue',
+      getOverdueCount,
+      30000
+    );
+
+    // "Соисполнитель" - обновление каждую минуту
+    menuBadgeStore.registerBadge(
+      'CoExecutor',
+      getCoExecutorCount,
+      60000
+    );
+
+    // Очистка при размонтировании
+    return () => {
+      menuBadgeStore.clearStore();
+    };
+  }, []);
 
   return (
 

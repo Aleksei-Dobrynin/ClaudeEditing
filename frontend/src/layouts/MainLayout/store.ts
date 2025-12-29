@@ -13,7 +13,7 @@ interface EmployeeResponse {
 }
 
 class NewStore {
-  drawerOpened = false;
+  drawerOpened = true;
   notifications: notification[] = [];
   curentUserName = '';
   last_name = '';

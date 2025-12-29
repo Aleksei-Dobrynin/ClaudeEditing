@@ -1145,12 +1145,23 @@ namespace Application.UseCases
                 result = await unitOfWork.ApplicationRepository.GetPaginatedDashboardIssuedFromRegister(filter, false);
             }
 
+            var emp = await unitOfWork.EmployeeRepository.GetUser();
+            filter.currentEmployeeId = emp?.id;
+
             if (filter.isMyOrgApplication != null && filter.isMyOrgApplication.Value)
             {
-                var emp = await unitOfWork.EmployeeRepository.GetUser();
                 var orgs = await unitOfWork.EmployeeInStructureRepository.GetByidEmployee(emp.id);
                 filter.structure_ids = orgs.Select(org => org.structure_id).ToArray();
             }
+
+            if (filter.isAssignedToMe == true && filter.withoutAssignedEmployee == true)
+            {
+                var orgs = await unitOfWork.EmployeeInStructureRepository.GetByidEmployee(emp.id);
+                var user = await unitOfWork.UserRepository.GetUserID();
+                var employees = await unitOfWork.EmployeeInStructureRepository.GetByidStructures(orgs.Select(x=>x.structure_id).ToArray());
+                filter.employees_ids = employees.Select(x => x.employee_id).Where(x=>x != emp.id).ToArray();
+            }
+
 
 
             if (filter.pageSize == 70)
@@ -1165,6 +1176,7 @@ namespace Application.UseCases
                     filter.address = filter.common_filter;
                 }
             }
+
 
             result = await unitOfWork.ApplicationRepository.GetPaginated(filter, filter.only_count, false);
 
@@ -2262,8 +2274,10 @@ namespace Application.UseCases
             }
             var user_id = await unitOfWork.UserRepository.GetUserUID();
             var employee = await unitOfWork.EmployeeRepository.GetByUserId(user_id);
+            var result2 = await unitOfWork.ApplicationRepository.DeleteToFavorite(application_id, employee.id);
             var result = await unitOfWork.ApplicationRepository.AddToFavorite(application_id, employee.id);
             unitOfWork.Commit();
+            await InvalidatePaginationCache();
             return result;
         }
         
@@ -2278,6 +2292,7 @@ namespace Application.UseCases
             var employee = await unitOfWork.EmployeeRepository.GetByUserId(user_id);
             var result = await unitOfWork.ApplicationRepository.DeleteToFavorite(application_id, employee.id);
             unitOfWork.Commit();
+            await InvalidatePaginationCache();
             return result;
         }
         

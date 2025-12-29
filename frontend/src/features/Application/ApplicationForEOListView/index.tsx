@@ -47,6 +47,8 @@ import printJS from 'print-js';
 import * as XLSX from 'xlsx';
 import Button from "@mui/material/Button";
 import CloseIcon from "@mui/icons-material/Close";
+import StarIcon from "@mui/icons-material/Star";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
 
 type ApplicationListViewProps = {
   finPlan: boolean;
@@ -198,6 +200,36 @@ const ApplicationListView: FC<ApplicationListViewProps> = observer((props) => {
   // }, [MainStore.isHeadStructure, MainStore.isEmployee]);
 
   let columns: GridColDef[] = [
+    {
+      field: "is_favorite",
+      headerName: "",
+      sortable: false,
+      filterable: false,
+      width: 60,
+      align: "center",
+      renderCell: (params) => (
+        <Tooltip
+          title={params.row.is_favorite ? "Убрать из избранного" : "В избранное"}
+          arrow
+        >
+      <span>
+        <IconButton
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation();
+            store.setFavorite(params.row.id);
+          }}
+        >
+          {params.row.is_favorite ? (
+            <StarIcon color="warning" />
+          ) : (
+            <StarBorderIcon />
+          )}
+        </IconButton>
+      </span>
+        </Tooltip>
+      ),
+    },
     {
       field: "number",
       headerName: translate("label:ApplicationListView.number"),

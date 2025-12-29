@@ -14,6 +14,7 @@ import { getEmployees, getRegisterEmployees } from "../../../api/Employee/useGet
 import appFilterStore from "../../ApplicationFilter/ApplicationFilterAddEditView/store";
 import { getCheckApplicationBeforeRegistering, setApplicationToReestr } from "../../../api/reestr";
 import { getDocumentJournalss } from "../../../api/DocumentJournals";
+import { addToFavorite, deleteToFavorite } from "../../../api/Application/useGetApplication";
 
 type N8nValidationResult = {
   valid: boolean;
@@ -688,6 +689,40 @@ class NewStore {
   setSelectedApplicationId(id: number) {
     this.selectedApplicationId = id;
   }
+
+  async setFavorite(applicationId: number) {
+    const index = this.data.findIndex(x => x.id === applicationId);
+    if (index === -1) return;
+
+    const row = this.data[index];
+
+    try {
+      if (row.is_favorite) {
+        await deleteToFavorite(applicationId);
+      } else {
+        await addToFavorite(applicationId);
+      }
+
+      runInAction(() => {
+        this.data[index] = {
+          ...row,
+          is_favorite: !row.is_favorite,
+        };
+      });
+    } catch (e) {
+      console.error("Favorite error", e);
+    }
+  }
+
+  // setFavoriteFilter(value: boolean) {
+  //   this.filter.is_favorite_only = value;
+  //   if (value) {
+  //     this.data = this.data.filter(x => x.is_favorite == true);
+  //   } else {
+  //     this.filter.pageNumber = 0;
+  //     this.loadApplications();
+  //   }
+  // }
 }
 
 export default new NewStore();

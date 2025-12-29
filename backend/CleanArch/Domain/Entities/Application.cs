@@ -144,6 +144,7 @@ namespace Domain.Entities
         public string common_filter { get; set; }
         public bool useCommon { get; set; }
         public int[]? structure_ids { get; set; }
+        public int[]? employees_ids { get; set; }
         public bool? isMyOrgApplication { get; set; }
         public bool? withoutAssignedEmployee { get; set; }
         public string? incoming_numbers { get; set; }
@@ -166,6 +167,9 @@ namespace Domain.Entities
         public int? tunduk_address_unit_id { get; set; }
         public int? tunduk_street_id { get; set; }
         public bool? for_signature { get; set; }
+        public bool? isAssignedToMe { get; set; }
+        public bool? isFavorite { get; set; }
+        public int? currentEmployeeId { get; set; }
     }
 
     public class PaidAmmount

@@ -6,7 +6,7 @@ import { getUnsignedDocuments } from "api/ApplicationDocument/useGetApplicationD
 
 // Интерфейс для одного документа (строка в гриде)
 export interface IUnsignedDocument {
-  id: number; // уникальный id для грида (uploaded_document_id)
+  id: number;
   uploaded_document_id: number;
   document_name: string;
   document_status: "pending" | "approved" | "rejected";
@@ -23,17 +23,13 @@ export interface IUnsignedDocument {
   app_step_id: number;
 }
 
-// Интерфейс фильтра
+// Упрощенный интерфейс фильтра
 export interface IUnsignedDocumentsFilter {
   searchTerm: string;
-  showOverdue: boolean;
-  showPending: boolean;
-  showApproved: boolean;
-  showRejected: boolean;
 }
 
 class UnsignedDocumentsStore {
-  // Данные для грида (плоский список документов)
+  // Данные для грида
   data: IUnsignedDocument[] = [];
   
   // Счётчик документов (для badge)
@@ -45,22 +41,9 @@ class UnsignedDocumentsStore {
   // Состояние загрузки
   isLoading: boolean = false;
   
-  // Фильтры
+  // Упрощенный фильтр - только поиск
   filter: IUnsignedDocumentsFilter = {
     searchTerm: "",
-    showOverdue: false,
-    showPending: true,
-    showApproved: false,
-    showRejected: false,
-  };
-  
-  // Временные фильтры (для попапа)
-  tempFilters: IUnsignedDocumentsFilter = {
-    searchTerm: "",
-    showOverdue: false,
-    showPending: true,
-    showApproved: false,
-    showRejected: false,
   };
 
   // Пагинация
@@ -87,9 +70,11 @@ class UnsignedDocumentsStore {
         this.isLoading = true;
       });
 
+      // API принимает только search и isDeadline
+      // isDeadline всегда false, фильтрация по просрочке происходит на клиенте через отображение в гриде
       const response = await getUnsignedDocuments(
         this.filter.searchTerm,
-        this.filter.showOverdue
+        false
       );
 
       if ((response.status === 201 || response.status === 200) && response?.data !== null) {
@@ -99,29 +84,23 @@ class UnsignedDocumentsStore {
           
           response.data.forEach((app: any) => {
             app.documents.forEach((doc: any) => {
-              // Применяем фильтрацию по статусу на клиенте
-              const shouldInclude = this.shouldIncludeDocument(doc.document_status);
-              
-              if (shouldInclude) {
-                flatDocuments.push({
-                  id: doc.uploaded_document_id,
-                  uploaded_document_id: doc.uploaded_document_id,
-                  document_name: doc.document_name,
-                  // Нормализуем null в pending
-                  document_status: doc.document_status || "pending",
-                  app_id: app.app_id,
-                  app_number: app.app_number,
-                  app_work_description: app.app_work_description,
-                  arch_object_address: app.arch_object_address,
-                  full_name: app.full_name,
-                  pin: app.pin,
-                  service_name: app.service_name,
-                  service_days: app.service_days,
-                  deadline: app.deadline,
-                  task_id: app.task_id,
-                  app_step_id: app.app_step_id,
-                });
-              }
+              flatDocuments.push({
+                id: doc.uploaded_document_id,
+                uploaded_document_id: doc.uploaded_document_id,
+                document_name: doc.document_name,
+                document_status: doc.document_status || "pending",
+                app_id: app.app_id,
+                app_number: app.app_number,
+                app_work_description: app.app_work_description,
+                arch_object_address: app.arch_object_address,
+                full_name: app.full_name,
+                pin: app.pin,
+                service_name: app.service_name,
+                service_days: app.service_days,
+                deadline: app.deadline,
+                task_id: app.task_id,
+                app_step_id: app.app_step_id,
+              });
             });
           });
 
@@ -138,17 +117,6 @@ class UnsignedDocumentsStore {
       });
       MainStore.setSnackbar(i18n.t("message:somethingWentWrong"), "error");
     }
-  };
-
-  // Проверка, нужно ли включать документ по статусу
-  shouldIncludeDocument = (status: string | null): boolean => {
-    // Обрабатываем null как pending
-    const normalizedStatus = status || "pending";
-    
-    if (normalizedStatus === "pending" && this.filter.showPending) return true;
-    if (normalizedStatus === "approved" && this.filter.showApproved) return true;
-    if (normalizedStatus === "rejected" && this.filter.showRejected) return true;
-    return false;
   };
 
   // Получение количества документов (для badge в хедере)
@@ -180,39 +148,19 @@ class UnsignedDocumentsStore {
     this.loadDocuments();
   };
 
-  // Обновление временного фильтра
-  updateTempFilter = (key: keyof IUnsignedDocumentsFilter, value: boolean | string) => {
-    runInAction(() => {
-      (this.tempFilters as any)[key] = value;
-    });
-  };
-
-  // Применение фильтров
-  applyFilters = () => {
-    runInAction(() => {
-      this.filter = { ...this.tempFilters };
-    });
-    this.loadDocuments();
-  };
-
   // Сброс фильтров
   resetFilters = () => {
     runInAction(() => {
-      this.tempFilters = {
+      this.filter = {
         searchTerm: "",
-        showOverdue: false,
-        showPending: true,
-        showApproved: false,
-        showRejected: false,
       };
-      this.filter = { ...this.tempFilters };
     });
     this.loadDocuments();
   };
 
   // Навигация к заявке
   navigateToApplication = (taskId: number, appStepId: number) => {
-    window.location.href = `/user/application_task/addedit?id=${taskId}&tab_id=1&app_step_id=${appStepId}`;
+    window.location.href = `/user/application_task/addedit?id=${taskId}&tab_id=2&app_step_id=${appStepId}`;
   };
 
   // Пагинация
@@ -221,9 +169,6 @@ class UnsignedDocumentsStore {
       this.page = page;
       this.pageSize = pageSize;
     });
-    // Для клиентской пагинации перезагрузка не нужна
-    // Если бэкенд поддерживает пагинацию - раскомментировать:
-    // this.loadDocuments();
   };
 
   // Сортировка
@@ -237,7 +182,6 @@ class UnsignedDocumentsStore {
         this.sortType = sortModel[0].sort || null;
       }
     });
-    // Сортировка на клиенте реализована в гриде
   };
 
   // Очистка store
@@ -249,12 +193,7 @@ class UnsignedDocumentsStore {
       this.page = 0;
       this.filter = {
         searchTerm: "",
-        showOverdue: false,
-        showPending: true,
-        showApproved: false,
-        showRejected: false,
       };
-      this.tempFilters = { ...this.filter };
     });
   };
 }

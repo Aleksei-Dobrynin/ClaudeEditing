@@ -15,6 +15,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DownloadIcon from '@mui/icons-material/Download';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import AddIcon from '@mui/icons-material/Add';
+import ShuffleIcon from '@mui/icons-material/Shuffle';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
@@ -27,6 +28,8 @@ import taskStore from '../../application_task/task/store';
 
 import { groupApprovalsByOrder } from '../utils/approvalHelpers';
 import ApprovalGroupCard from './ApprovalGroupCard';
+import MainStore from "../../../MainStore";
+import LayoutStore from "../../../layouts/MainLayout/store";
 
 type DocumentCardProps = {
   document: any, t: any,
@@ -118,7 +121,24 @@ export const DocumentCard: FC<DocumentCardProps> = ({
     .map(Number)
     .sort((a, b) => a - b);
 
+  const allApprovals = (Object.values(groupedApprovals) as any[][]).flat();
 
+  const myApproval = allApprovals.find(
+    (x: any) =>
+      x.department_id === LayoutStore.my_structures[0]?.structure_id
+  );
+
+  const hasUnsignedBefore = myApproval
+    ? allApprovals.some(
+      (x: any) =>
+        x.order_number < myApproval.order_number &&
+        x.status !== 'signed'
+    )
+    : false;
+
+  const isFinalBlocked =
+    Boolean(myApproval?.is_final) && hasUnsignedBefore;
+  
   return (
     <Card>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -259,7 +279,7 @@ export const DocumentCard: FC<DocumentCardProps> = ({
                 onAddSigner();
                 setShowMoreMenu(false);
               }}>
-                <AddIcon />
+                <ShuffleIcon />
               </IconButton>
             </Tooltip>
 
@@ -283,10 +303,15 @@ export const DocumentCard: FC<DocumentCardProps> = ({
         </ActionsLeft>
 
         <PrimaryButton
-          onClick={() => store.signApplicationPayment(document.upl?.file_id, document.upl?.id, () => {
+          onClick={() => {
+            if (!document.upl?.file_id) {
+              MainStore.setSnackbar("Файл не загружен", "error");
+              return;
+            }
+            store.signApplicationPayment(document.upl?.file_id, document.upl?.id, () => {
             onSigned()
-          })}
-          disabled={taskStore.applicationComments.filter(x => x.type_code == 'return' && x.is_completed == false).length > 0}
+          })}}
+          disabled={!document.upl?.file_id || isFinalBlocked || taskStore.applicationComments.filter(x => x.type_code == 'return' && x.is_completed == false).length > 0}
         >
           Подписать ЭЦП
         </PrimaryButton>

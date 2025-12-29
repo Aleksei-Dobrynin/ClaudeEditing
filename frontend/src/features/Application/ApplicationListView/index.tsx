@@ -37,6 +37,10 @@ import printJS from 'print-js';
 import * as XLSX from 'xlsx';
 import Button from "@mui/material/Button";
 import CloseIcon from "@mui/icons-material/Close";
+import StarIcon from "@mui/icons-material/Star";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
+import { getFiltersFromURL } from "./utils/urlParams";
+import { useLocation, useNavigate } from "react-router-dom";
 
 type ApplicationListViewProps = {
   finPlan: boolean;
@@ -47,6 +51,9 @@ type ApplicationListViewProps = {
 const ApplicationListView: FC<ApplicationListViewProps> = observer((props) => {
   const { t } = useTranslation();
   const translate = t;
+  const location = useLocation();
+  const navigate = useNavigate();
+
 
   useEffect(() => {
     store.getValuesFromLocalStorage();
@@ -55,6 +62,33 @@ const ApplicationListView: FC<ApplicationListViewProps> = observer((props) => {
       store.clearStore();
     };
   }, []);
+
+  useEffect(() => {
+    // Получаем параметры из URL
+    const searchParams = new URLSearchParams(location.search);
+    const urlFilters = getFiltersFromURL(searchParams);
+
+    // Определяем источник фильтров
+    if (urlFilters !== null) {
+      store.filtersSource = 'url';
+      console.log('Filters from URL:', urlFilters);
+    } else {
+      store.filtersSource = 'localStorage';
+      console.log('Filters from localStorage');
+    }
+
+    // Загружаем фильтры с учетом приоритета
+    store.getFiltersWithPriority(urlFilters);
+    
+    // Загружаем данные
+    store.doLoad(props.finPlan, props.forJournal);
+
+    return () => {
+      store.clearStore();
+    };
+  }, [location.search]); 
+
+
 
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -68,11 +102,17 @@ const ApplicationListView: FC<ApplicationListViewProps> = observer((props) => {
   };
 
   const handleSearch = () => {
+    // Когда пользователь нажимает "Поиск" - переключаемся на localStorage
+    store.switchToLocalStorageFilters();
+    
     store.filter.pageNumber = 0;
     store.loadApplications();
   };
 
   const handleClearFilter = () => {
+    // Когда пользователь очищает фильтры - переключаемся на localStorage
+    store.switchToLocalStorageFilters();
+    
     store.clearFilter();
     store.loadApplications();
   };
@@ -202,6 +242,36 @@ const ApplicationListView: FC<ApplicationListViewProps> = observer((props) => {
         }} />
       },
     }] : []),
+    {
+      field: "is_favorite",
+      headerName: "",
+      // sortable: false,
+      // filterable: false,
+      width: 60,
+      // align: "center",
+      renderCell: (params) => (
+        <Tooltip
+          title={params.row.is_favorite ? "Убрать из избранного" : "В избранное"}
+          arrow
+        >
+      <span>
+        <IconButton
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation();
+            store.setFavorite(params.row.id);
+          }}
+        >
+          {params.row.is_favorite ? (
+            <StarIcon color="warning" />
+          ) : (
+            <StarBorderIcon />
+          )}
+        </IconButton>
+      </span>
+        </Tooltip>
+      ),
+    },
     {
       field: "number",
       headerName: translate("label:ApplicationListView.number"),

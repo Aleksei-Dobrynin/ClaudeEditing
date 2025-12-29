@@ -11,6 +11,7 @@ using Org.BouncyCastle.Cms;
 using System.Text;
 using Newtonsoft.Json;
 using System.Security.Cryptography;
+using Application.Services;
 using Microsoft.Extensions.DependencyInjection;
 using File = Domain.Entities.File;
 
@@ -24,8 +25,9 @@ namespace Application.UseCases
         private readonly IBgaService _bgaService;
         private readonly IAuthRepository _authRepository;
         private readonly IServiceProvider _provider;
+        private readonly ISendNotification sendNotification;
 
-        public FileUseCases(IUnitOfWork unitOfWork, IUserRepository? userRepository, IConfiguration configuration, IBgaService bgaService, IAuthRepository authRepository, IServiceProvider provider)
+        public FileUseCases(IUnitOfWork unitOfWork, IUserRepository? userRepository, IConfiguration configuration, IBgaService bgaService, IAuthRepository authRepository, IServiceProvider provider, ISendNotification SendNotification)
         {
             this.unitOfWork = unitOfWork;
             _userRepository = userRepository;
@@ -33,6 +35,7 @@ namespace Application.UseCases
             _bgaService = bgaService;
             this._authRepository = authRepository;
             _provider = provider;
+            this.sendNotification = SendNotification;
         }
 
         public Task<List<Domain.Entities.File>> GetAll()
@@ -117,7 +120,8 @@ namespace Application.UseCases
                     var role_id = roles?.FirstOrDefault() ?? 0;
                     var org_id = orgs?.FirstOrDefault()?.structure_id ?? 0;
 
-                    var item = (await unitOfWork.document_approvalRepository.GetByapp_document_id(uplId ?? 0))
+                    var approvals = await unitOfWork.document_approvalRepository.GetByapp_document_id(uplId ?? 0);
+                    var item = approvals
                         .FirstOrDefault(x => x.position_id == role_id 
                                              && x.department_id == org_id 
                                              && x.status == "waiting");
@@ -130,6 +134,25 @@ namespace Application.UseCases
                         item.updated_by = user_id;
                         item.updated_at = DateTime.Now;
                         await unitOfWork.document_approvalRepository.Update(item);
+                    }
+
+                    var appId = uploaded_document.FirstOrDefault().application_document_id;
+                    var app_stepId = uploaded_document.FirstOrDefault().app_step_id;
+                    var appstep = await unitOfWork.application_stepRepository.GetOne(app_stepId ?? 0);
+                    var step = await unitOfWork.path_stepRepository.GetOne(appstep.step_id ?? 0);
+                    var app = await unitOfWork.ApplicationRepository.GetOneByID(appId ?? 0);
+                    var all_assignees = await unitOfWork.application_task_assigneeRepository.GetByapplication_id(app.id);
+                    var assigneesOrg = all_assignees.Where(x => x.structure_id == step.responsible_org_id).ToList();
+                    foreach (var assignee in assigneesOrg)
+                    {
+                        if (approvals.Where(x => x.status == "waiting").ToList().Count == 0)
+                        {
+                            var param = new Dictionary<string, string>();
+                            param.Add("app_number", app.number);
+                            param.Add("address", app.arch_object_address);
+                            param.Add("app_id", app.id.ToString());
+                            await sendNotification.SendNotification("comment_notify_assignee", assignee.employee_id, param);
+                        }
                     }
                     unitOfWork.Commit();
                 }

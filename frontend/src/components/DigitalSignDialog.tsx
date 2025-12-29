@@ -64,7 +64,6 @@ const DigitalSignDialog = observer(() => {
       if ((response.status === 201 || response.status === 200)) {
         MainStore.setSnackbar(i18n.t("ПИН код отправлен"), "success");
         setIsSend(true);
-        setPinCode(""); // Очистка старого PIN-кода
 
       } else {
         throw new Error();
@@ -139,11 +138,32 @@ const DigitalSignDialog = observer(() => {
 
         {pin == "" && (
           <div style={{ margin: 15 }}>
-            У вас не заполнен ИНН в профиле, пройдите в <Link onClick={() => {
-              MainStore.digitalSign.onCloseNo();
-              navigate('/user/account-settings')
-            }} >личный кабинет</Link> сотрудника и заполните свой ИНН
+            У вас не заполнен ИНН в профиле, пройдите в <Link  onClick={() => {
+                  MainStore.digitalSign.onCloseNo();
+                  navigate('/user/account-settings')
+                }} >личный кабинет</Link> сотрудника и заполните свой ИНН
           </div>
+        )}
+
+        {isSend && (
+          <>
+            <div style={{ margin: 15 }}>
+              Вам был отправлен PIN-код доступа на почту или телефон привязанные к СЭД "Infodocs"
+            </div>
+            <MaskedTextField
+              label={translate("PIN-код")}
+              value={pinCode}
+              mask={"000000"}
+    inputProps={{
+                autoComplete: 'off',
+                'data-lpignore': 'true',
+                'data-form-type': 'other'
+              }}
+              onChange={(e) => setPinCode(e.target.value)}
+              id='id_dialog_sign_pin_code'
+              name='dialog_sign_pin_code'
+            />
+          </>
         )}
 
         {!isSend && (
@@ -160,63 +180,61 @@ const DigitalSignDialog = observer(() => {
                 disabled={pin?.length !== 14}
                 onClick={handleSendCode}
               >
-                Отправить код
+                Отправить код заново
               </CustomButton>
             </ButtonWrapper>
-          </>
-        )}
+            <br />
+            <br />
 
-        {isSend && (
-          <>
-            <div style={{ margin: 15 }}>
-              Вам был отправлен PIN-код доступа на почту или телефон привязанные к СЭД "Infodocs"
-            </div>
             <MaskedTextField
               label={translate("PIN-код")}
               value={pinCode}
               mask={"000000"}
-              onChange={(e) => setPinCode(e.target.value)}
-              id='id_dialog_sign_pin_code'
-              name='dialog_sign_pin_code'
-              inputProps={{
+    inputProps={{
                 autoComplete: 'off',
                 'data-lpignore': 'true',
                 'data-form-type': 'other'
               }}
+              onChange={(e) => setPinCode(e.target.value)}
+              id='id_dialog_sign_pin_code'
+              name='dialog_sign_pin_code'
             />
             <br />
             <br />
-
             <ButtonWrapper>
               <CustomButton
                 name="AlertButtonYes"
                 color={"primary"}
                 variant="contained"
                 id={"AlertButtonYes"}
-                disabled={pinCode?.length !== 6}
+                disabled={pinCode?.length !== 6 || pin?.length !== 14}
                 onClick={handleSign}
               >
-                Подписать
-              </CustomButton>
-            </ButtonWrapper>
-            <br />
-            <br />
-
-            <ButtonWrapper>
-              <CustomButton
-                name="AlertButtonResend"
-                color={"secondary"}
-                variant="outlined"
-                id={"AlertButtonResend"}
-                disabled={pin?.length !== 14}
-                onClick={handleSendCode}
-              >
-                Отправить код заново
+                Подписать прошлым кодом
               </CustomButton>
             </ButtonWrapper>
           </>
+
+
         )}
 
+        {isSend && (
+          <ButtonWrapper>
+            <br />
+            <br />
+
+            <CustomButton
+              name="AlertButtonYes"
+              color={"primary"}
+              variant="contained"
+              id={"AlertButtonYes"}
+              disabled={pinCode?.length !== 6}
+              onClick={handleSign}
+            >
+              Подписать
+            </CustomButton>
+          </ButtonWrapper>
+        )}
         <br />
         <br />
 

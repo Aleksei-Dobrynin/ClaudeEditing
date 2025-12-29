@@ -26,7 +26,7 @@ namespace Infrastructure.Repositories
         }
 
         /// <summary>
-        /// ИЗМЕНЕНО: Добавлен фильтр is_deleted = false
+        /// ????????: ???????? ?????? is_deleted = false
         /// </summary>
         public async Task<List<application_step>> GetAll()
         {
@@ -43,7 +43,7 @@ namespace Infrastructure.Repositories
         }
 
         /// <summary>
-        /// ИЗМЕНЕНО: Добавлены новые поля для динамических шагов + is_deleted
+        /// ????????: ????????? ????? ???? ??? ???????????? ????? + is_deleted
         /// </summary>
         public async Task<int> Add(application_step domain)
         {
@@ -110,7 +110,7 @@ namespace Infrastructure.Repositories
         }
 
         /// <summary>
-        /// ИЗМЕНЕНО: Добавлены новые поля для динамических шагов + is_deleted
+        /// ????????: ????????? ????? ???? ??? ???????????? ????? + is_deleted
         /// </summary>
         public async Task Update(application_step domain)
         {
@@ -156,7 +156,7 @@ namespace Infrastructure.Repositories
         }
 
         /// <summary>
-        /// ИЗМЕНЕНО: Добавлен фильтр is_deleted = false
+        /// ????????: ???????? ?????? is_deleted = false
         /// </summary>
         public async Task<PaginatedList<application_step>> GetPaginated(int pageSize, int pageNumber)
         {
@@ -187,7 +187,7 @@ namespace Infrastructure.Repositories
         }
 
         /// <summary>
-        /// ИЗМЕНЕНО: Мягкое удаление - устанавливает is_deleted = true
+        /// ????????: ?????? ???????? - ????????????? is_deleted = true
         /// </summary>
         public async Task Delete(int id)
         {
@@ -213,7 +213,7 @@ namespace Infrastructure.Repositories
         }
 
         /// <summary>
-        /// ИЗМЕНЕНО: Добавлен фильтр is_deleted = false
+        /// ????????: ???????? ?????? is_deleted = false
         /// </summary>
         public async Task<application_step> GetOne(int id)
         {
@@ -235,7 +235,7 @@ namespace Infrastructure.Repositories
         }
 
         /// <summary>
-        /// ИЗМЕНЕНО: Добавлен фильтр is_deleted = false
+        /// ????????: ???????? ?????? is_deleted = false
         /// </summary>
         public async Task<List<application_step>> GetByapplication_id(int application_id)
         {
@@ -264,7 +264,7 @@ namespace Infrastructure.Repositories
         }
 
         /// <summary>
-        /// ИЗМЕНЕНО: Добавлен фильтр is_deleted = false
+        /// ????????: ???????? ?????? is_deleted = false
         /// </summary>
         public async Task<List<application_step>> GetBystep_id(int step_id)
         {
@@ -285,7 +285,7 @@ namespace Infrastructure.Repositories
         }
 
         /// <summary>
-        /// ИЗМЕНЕНО: Добавлен фильтр is_deleted = false в WHERE для apps.status
+        /// ????????: ???????? ?????? is_deleted = false ? WHERE ??? apps.status
         /// </summary>
         public async Task<List<UnsignedDocumentsModel>> GetUnsignedDocuments(List<int> post_ids, List<int> structure_ids, string search, bool isDeadline, string user_id)
         {
@@ -311,6 +311,7 @@ from document_approval val
     left join application_document ad on ad.id = val.document_type_id
 left join application_step apps on apps.id = val.app_step_id
 left join application app on apps.application_id = app.id
+        left join application_status ""as"" on app.status_id = ""as"".id
 LEFT JOIN application_object ao on ao.application_id = app.id
 LEFT JOIN arch_object obj on ao.arch_object_id = obj.id
 left join service srv on srv.id = app.service_id
@@ -327,6 +328,8 @@ WHERE
     val.department_id = ANY(@structure_ids)
     AND val.position_id = ANY(@post_ids)
     AND (apps.status IS NULL OR apps.status != 'completed')
+    AND (""as"".group_code != 'completed')
+  AND (""as"".group_code != 'refusal')
     AND (apps.is_deleted = false OR apps.is_deleted IS NULL)
 ";
                 if (isDeadline)
@@ -343,7 +346,7 @@ WHERE
                 }
                 sql += @"
 GROUP BY 
-    uad.id, ad.id, app.id, cl.id, srv.id, val.id, atask.id
+    uad.id, ad.id, app.id, cl.id, srv.id, val.id, atask.id, ""as"".group_code
 ORDER BY
     app.deadline ASC, app.id, uad.id;
 ";
@@ -364,7 +367,7 @@ ORDER BY
         }
 
         /// <summary>
-        /// ИЗМЕНЕНО: Мягкое удаление вместо физического
+        /// ????????: ?????? ???????? ?????? ???????????
         /// </summary>
         public async Task DeleteByApplicationId(int application_id)
         {
@@ -386,7 +389,7 @@ ORDER BY
         }
 
         /// <summary>
-        /// ИЗМЕНЕНО: Добавлен фильтр is_deleted = false
+        /// ????????: ???????? ?????? is_deleted = false
         /// </summary>
         public async Task<List<application_step>> GetDynamicallyAddedSteps(int applicationId, int additionalServiceLinkId)
         {
@@ -421,7 +424,7 @@ ORDER BY
         }
 
         /// <summary>
-        /// ИЗМЕНЕНО: Добавлен фильтр is_deleted = false
+        /// ????????: ???????? ?????? is_deleted = false
         /// </summary>
         public async Task<int> ShiftOrderNumbers(int applicationId, int afterOrderNumber, int shiftBy)
         {
@@ -450,7 +453,7 @@ ORDER BY
         }
 
         /// <summary>
-        /// ИЗМЕНЕНО: Добавлен фильтр is_deleted = false
+        /// ????????: ???????? ?????? is_deleted = false
         /// </summary>
         public async Task ReorderSteps(int applicationId)
         {
@@ -483,7 +486,7 @@ ORDER BY
         }
 
         /// <summary>
-        /// ИЗМЕНЕНО: Добавлен фильтр is_deleted = false
+        /// ????????: ???????? ?????? is_deleted = false
         /// </summary>
         public async Task<bool> AreAllDynamicStepsCompleted(int additionalServiceLinkId)
         {
@@ -512,7 +515,7 @@ ORDER BY
         }
 
         /// <summary>
-        /// ИЗМЕНЕНО: Добавлен фильтр is_deleted = false
+        /// ????????: ???????? ?????? is_deleted = false
         /// </summary>
         public async Task<bool> AreAnyDynamicStepsStarted(int additionalServiceLinkId)
         {
@@ -541,7 +544,7 @@ ORDER BY
         }
 
         /// <summary>
-        /// ИЗМЕНЕНО: Мягкое удаление вместо физического
+        /// ????????: ?????? ???????? ?????? ???????????
         /// </summary>
         public async Task DeleteDynamicSteps(int additionalServiceLinkId)
         {
@@ -567,10 +570,10 @@ ORDER BY
             }
         }
 
-        // ============ МЕТОДЫ ДЛЯ СИСТЕМНОЙ ОТЛАДКИ ============
+        // ============ ?????? ??? ????????? ??????? ============
 
         /// <summary>
-        /// ОТЛАДКА: Получить все удаленные записи
+        /// ???????: ???????? ??? ????????? ??????
         /// </summary>
         public async Task<List<application_step>> GetAllDeleted()
         {
@@ -587,7 +590,7 @@ ORDER BY
         }
 
         /// <summary>
-        /// ОТЛАДКА: Получить все записи включая удаленные
+        /// ???????: ???????? ??? ?????? ??????? ?????????
         /// </summary>
         public async Task<List<application_step>> GetAllIncludingDeleted()
         {
@@ -604,7 +607,7 @@ ORDER BY
         }
 
         /// <summary>
-        /// ОТЛАДКА: Получить удаленную запись по ID
+        /// ???????: ???????? ????????? ?????? ?? ID
         /// </summary>
         public async Task<application_step> GetDeletedById(int id)
         {

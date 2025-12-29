@@ -28,7 +28,7 @@ const NavCollapse = observer(({ menu, level }) => {
   // const customization = useSelector((state) => state.customization);
   const navigate = useNavigate();
 
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [selected, setSelected] = useState(null);
 
   const handleClick = () => {
@@ -51,7 +51,10 @@ const NavCollapse = observer(({ menu, level }) => {
 
   // menu collapse for sub-levels
   useEffect(() => {
-    setOpen(false);
+    if (!menu.defaultOpen) {
+      setOpen(false);
+    }
+
     setSelected(null);
     if (menu.children) {
       menu.children.forEach((item) => {
@@ -70,25 +73,11 @@ const NavCollapse = observer(({ menu, level }) => {
 
   // menu collapse & item
   const menus = menu.children?.map((item) => {
-    
-    // if (!MainStore.isAdmin) {
-    //   if (item.id === "TelegramAdmin" || item.id === "Dashboard") {
-    //     if (!MainStore.isAdmin) {
-    //       return ""
-    //     }
-    //   }
-    //   if (item.id === "Customer") {
-    //     if (!(MainStore.isAdmin || MainStore.isRegistrar)) {
-    //       return ""
-    //     }
-    //   }
-    //   if (item.id === "AwaitingApplication") {
-    //     if (!(MainStore.isAdmin || MainStore.isHeadStructure || MainStore.isRegistrar)) {
-    //       return ""
-    //     }
-    //   }
-    // }
-
+    // Проверка прав доступа для "Назначение исполнителя"
+    if (item.headStructureOnly && !MainStore.isHeadStructure) {
+      return null; // Скрываем пункт для не-начальников
+    }
+  
     switch (item.type) {
       case 'collapse':
         return <NavCollapse key={item.id} menu={item} level={level + 1} />;
@@ -101,7 +90,7 @@ const NavCollapse = observer(({ menu, level }) => {
           </Typography>
         );
     }
-  });
+  }).filter(Boolean); 
 
   const Icon = menu.icon;
   const menuIcon = menu.icon ? (

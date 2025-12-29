@@ -240,23 +240,36 @@ class NewStore {
       return;
     }
     else {
-      const menuItems = this.myRoles.flatMap(role =>
-        RoleMenu[role].flatMap(i => {
+      const menuGroups = this.myRoles.flatMap(role =>
+        RoleMenu[role].map(i => {
           const objectMenu = pageMenu.find(pageItem => pageItem.id === i.group);
           if (objectMenu?.children) {
-            return objectMenu.children.filter(child => i.rows.includes(child.id));
+            // Возвращаем всю группу с отфильтрованными children
+            return {
+              ...objectMenu,
+              children: objectMenu.children.filter(child => i.rows.includes(child.id))
+            };
           }
-          return []
+          return null;
         })
       ).filter(Boolean);
-      this.menu = menuItems.reduce((acc, item) => {
-        let find = acc.find((f) => f.id === item.id);
-        if (!find) {
-          acc.push({ ...item });
+      
+      // Убираем дубликаты групп и объединяем children
+      this.menu = menuGroups.reduce((acc, group) => {
+        let existingGroup = acc.find((g) => g.id === group.id);
+        if (!existingGroup) {
+          acc.push(group);
+        } else {
+          // Если группа уже есть, объединяем children без дубликатов
+          existingGroup.children = [
+            ...existingGroup.children,
+            ...group.children.filter(child => 
+              !existingGroup.children.some(ec => ec.id === child.id)
+            )
+          ];
         }
         return acc;
-      }, [])
-        ;
+      }, []);
     }
   }
 

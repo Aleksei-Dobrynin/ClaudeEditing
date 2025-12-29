@@ -9,6 +9,7 @@ namespace Application.Repositories
         Task<List<EmployeeInStructure>> GetInMyStructure(int userId);
         Task<EmployeeInStructure> GetOneByID(int id);
         Task<List<EmployeeInStructure>> GetByidStructure(int idStructure);
+        Task<List<EmployeeInStructure>> GetByidStructures(int[] idStructure);
         Task<List<EmployeeInStructure>> GetByStructureAndPost(int? idStructure, string codePost);
         Task<List<EmployeeInStructure>> GetByidEmployee(int idEmployee);
         Task<List<EmployeeInStructure>> GetByEmployeeStructureId(int idStructure, int? idEmployee);

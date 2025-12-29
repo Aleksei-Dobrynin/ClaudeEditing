@@ -81,11 +81,35 @@ export const RoleCode = {
 export const RoleMenu = {
   head_structure: [
     {
+      group: "Important",
+      rows: [
+        "AssignExecutor",  // Доступно админам
+        "ForSigning",
+        "Favorites",
+        "Returns",
+        "CoExecutor",
+        "Overdue",
+        "SignedByMe"
+      ]
+    },
+    {
       group: "CustomPage",
       rows: ["Application", "MyTasks", "MyApps", "OrgTasks", "CustomSubscribtion", "CustomerDiscount", "DashboardHeadDepartment", "TechCouncil", "ArchiveObject", "ServicePrice", "SignDocuments"],
     },
   ],
   registrar: [
+    {
+      group: "Important",
+      rows: [
+        "AssignExecutor",  // Доступно админам
+        "ForSigning",
+        "Favorites",
+        "Returns",
+        "CoExecutor",
+        "Overdue",
+        "SignedByMe"
+      ]
+    },
     {
       group: "CustomPage",
       rows: [
@@ -100,6 +124,18 @@ export const RoleMenu = {
   ],
   secretary: [
     {
+      group: "Important",
+      rows: [
+        "AssignExecutor",  // Доступно админам
+        "ForSigning",
+        "Favorites",
+        "Returns",
+        "CoExecutor",
+        "Overdue",
+        "SignedByMe"
+      ]
+    },
+    {
       group: "CustomPage",
       rows: [
         "Application",
@@ -112,11 +148,35 @@ export const RoleMenu = {
   ],
   clerk: [
     {
+      group: "Important",
+      rows: [
+        "AssignExecutor",  // Доступно админам
+        "ForSigning",
+        "Favorites",
+        "Returns",
+        "CoExecutor",
+        "Overdue",
+        "SignedByMe"
+      ]
+    },
+    {
       group: "CustomPage",
       rows: ["AwaitingApplication"],
     },
   ],
   employee: [
+    {
+      group: "Important",
+      rows: [
+        "AssignExecutor",  // Доступно админам
+        "ForSigning",
+        "Favorites",
+        "Returns",
+        "CoExecutor",
+        "Overdue",
+        "SignedByMe"
+      ]
+    },
     {
       group: "CustomPage",
       rows: ["Application", "MyTasks", "MyApps", "OrgTasks", "CustomSubscribtion", "ArchiveLog", "ArchiveObject", "SignDocuments"],
@@ -124,11 +184,35 @@ export const RoleMenu = {
   ],
   accountant: [
     {
+      group: "Important",
+      rows: [
+        "AssignExecutor",  // Доступно админам
+        "ForSigning",
+        "Favorites",
+        "Returns",
+        "CoExecutor",
+        "Overdue",
+        "SignedByMe"
+      ]
+    },
+    {
       group: "CustomPage",
       rows: ["Application", "Report", "CustomSubscribtion", "ArchiveLog", "Income"],
     },
   ],
   lawyer: [
+    {
+      group: "Important",
+      rows: [
+        "AssignExecutor",  // Доступно админам
+        "ForSigning",
+        "Favorites",
+        "Returns",
+        "CoExecutor",
+        "Overdue",
+        "SignedByMe"
+      ]
+    },
     {
       group: "CustomPage",
       rows: ["Application",],
@@ -140,11 +224,35 @@ export const RoleMenu = {
   ],
   archive: [
     {
+      group: "Important",
+      rows: [
+        "AssignExecutor",  // Доступно админам
+        "ForSigning",
+        "Favorites",
+        "Returns",
+        "CoExecutor",
+        "Overdue",
+        "SignedByMe"
+      ]
+    },
+    {
       group: "CustomPage",
       rows: ["ArchiveLog", "ArchitectureProcessToArchive", "ArchiveObject"],
     },
   ],
   smm: [
+    {
+      group: "Important",
+      rows: [
+        "AssignExecutor",  // Доступно админам
+        "ForSigning",
+        "Favorites",
+        "Returns",
+        "CoExecutor",
+        "Overdue",
+        "SignedByMe"
+      ]
+    },
     {
       group: "CustomPage",
       rows: ["TelegramAdmin"],
@@ -152,17 +260,53 @@ export const RoleMenu = {
   ],
   financial_plan: [
     {
+      group: "Important",
+      rows: [
+        "AssignExecutor",  // Доступно админам
+        "ForSigning",
+        "Favorites",
+        "Returns",
+        "CoExecutor",
+        "Overdue",
+        "SignedByMe"
+      ]
+    },
+    {
       group: "CustomPage",
       rows: ["ApplicationFinPlan", "ReestrOtchet", "ReestrRealization", "ReestrTax", "Reestrs", "ReestrSvodnaya", "Report", "Income", "ArchiveObject", "SignDocuments"],
     },
   ],
   duty_plan: [
     {
+      group: "Important",
+      rows: [
+        "AssignExecutor",  // Доступно админам
+        "ForSigning",
+        "Favorites",
+        "Returns",
+        "CoExecutor",
+        "Overdue",
+        "SignedByMe"
+      ]
+    },
+    {
       group: "CustomPage",
       rows: ["ArchiveObject", "ArchitectureProcess"],
     },
   ],
   deputy_chief: [
+    {
+      group: "Important",
+      rows: [
+        "AssignExecutor",  // Доступно админам
+        "ForSigning",
+        "Favorites",
+        "Returns",
+        "CoExecutor",
+        "Overdue",
+        "SignedByMe"
+      ]
+    },
     {
       group: "CustomPage",
       rows: ["Application", "CustomSubscribtion", "employee", "Dashboard", "AllTasks", "Reports", "TechCouncilSession", "ArchiveObject",

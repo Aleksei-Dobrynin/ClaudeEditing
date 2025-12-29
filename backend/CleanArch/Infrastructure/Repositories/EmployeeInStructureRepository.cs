@@ -91,6 +91,33 @@ where u.id = @userId
             }
         }
 
+
+        public async Task<List<EmployeeInStructure>> GetByidStructures(int[] idStructure)
+        {
+            try
+            {
+                var sql = @"SELECT employee_in_structure.id,
+                                   employee_id,
+                                   CONCAT(employee.last_name, ' ', employee.first_name, ' ', employee.second_name) AS employee_name,
+                                   date_start,
+                                   date_end,
+                                   structure_id,
+                                   post_id,
+                                   is_temporary,
+                                   structure_post.name as post_name
+                            FROM employee_in_structure
+                                     left join employee on employee.id = employee_in_structure.employee_id
+                                     left join structure_post on employee_in_structure.post_id = structure_post.id
+                            WHERE employee_in_structure.structure_id=any(@IdStructure)";
+                var models = await _dbConnection.QueryAsync<EmployeeInStructure>(sql, new { IdStructure = idStructure }, transaction: _dbTransaction);
+                return models.ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new RepositoryException("Failed to get EmployeeInStructure", ex);
+            }
+        }
+
         public async Task<List<EmployeeInStructure>> GetByidStructure(int idStructure)
         {
             try

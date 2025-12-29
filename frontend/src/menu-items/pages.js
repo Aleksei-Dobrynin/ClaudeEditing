@@ -16,7 +16,14 @@ import {
   IconBuildingBridge2,
   IconRouteAltRight,
   IconArchive,
-  IconUsers
+  IconUsers,
+  IconUserCheck,      // Для "Назначение исполнителя"
+  IconSignature,      // Для "На подписание"
+  IconStar,           // Для "Избранное"
+  IconArrowBack,      // Для "Возвраты"
+  IconUserPlus,       // Для "Соисполнитель"
+  IconAlertTriangle,  // Для "Просрочки"
+  IconCircleCheck     // Для "Подписанные мной"
 } from "@tabler/icons-react";
 
 // constant
@@ -37,7 +44,14 @@ export const icons = {
   IconCalendarBolt,
   IconBuildingBridge2,
   IconArchive,
-  IconUsers
+  IconUsers,
+  IconUserCheck,
+  IconSignature,
+  IconStar,
+  IconArrowBack,
+  IconUserPlus,
+  IconAlertTriangle,
+  IconCircleCheck
 };
 
 // ==============================|| EXTRA PAGES MENU ITEMS ||============================== //
@@ -48,6 +62,67 @@ const pages = {
   caption: "Pages Caption",
   type: "group",
   children: [
+    {
+      id: "Important",
+      title: "Важное",
+      defaultOpen: true,
+      type: "collapse",
+      icon: icons.IconStar,
+      children: [
+        {
+          id: "AssignExecutor",
+          title: "Назначение исполнителя",
+          type: "item",
+          icon: icons.IconUserCheck, //withoutAssignedEmployee
+          url: "/user/Application?withoutAssignedEmployee=true&isAssignedToMe=true",
+          headStructureOnly: true  // Флаг для проверки прав
+        },
+        {
+          id: "ForSigning",
+          title: "На подписание",
+          type: "item",
+          icon: icons.IconSignature,
+          // badgeConfig: true,
+          url: "/user/UnsignedDocuments"
+        },
+        {
+          id: "Favorites",
+          title: "Избранное",
+          type: "item",
+          icon: icons.IconStar, //isAssignedToMe
+          url: "/user/Application?isFavorite=true"
+        },
+        // {
+        //   id: "Returns",
+        //   title: "Возвраты",
+        //   type: "item",
+        //   icon: icons.IconArrowBack,
+        //   // badgeConfig: true,
+        //   url: "/user/returns"
+        // },
+        {
+          id: "CoExecutor",
+          title: "Соисполнитель",
+          type: "item",
+          icon: icons.IconUserPlus,
+          url: "/user/Application?isAssignedToMe=true"
+        },
+        {
+          id: "Overdue",
+          title: "Просрочки",
+          type: "item",
+          icon: icons.IconAlertTriangle,
+          url: "/user/Application?isExpired=true"
+        },
+        {
+          id: "SignedByMe",
+          title: "Подписанные мной",
+          type: "item",
+          icon: icons.IconCircleCheck,
+          url: "/user/SignDocuments"
+        }
+      ]
+    },
     {
       id: "Directories",
       title: "Справочники",
@@ -484,13 +559,13 @@ const pages = {
           icon: icons.IconId,
           url: "/user/DutyPlanLog"
         },
-        {
-          id: "SignDocuments",
-          title: "Подписанные документы",
-          type: "item",
-          icon: icons.IconId,
-          url: "/user/SignDocuments"
-        },
+        // {
+        //   id: "SignDocuments",
+        //   title: "Подписанные документы",
+        //   type: "item",
+        //   icon: icons.IconId,
+        //   url: "/user/SignDocuments"
+        // },
       ]
     },
     {

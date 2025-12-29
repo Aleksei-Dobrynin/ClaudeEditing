@@ -19,6 +19,6 @@ namespace Domain.Entities
 		public DateTime? updated_at { get; set; }
 		public int? created_by { get; set; }
 		public int? updated_by { get; set; }
-		
+		public int? structure_id { get; set; }
     }
 }

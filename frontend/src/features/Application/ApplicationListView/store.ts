@@ -29,6 +29,7 @@ import {
   deleteEmployeeSavedFilter,
   markEmployeeSavedFilterAsUsed
 } from "../../../api/EmployeeSavedFilters/useEmployeeSavedFilters";
+import { addToFavorite, deleteToFavorite, getStatusFavorite } from "../../../api/Application/useGetApplication";
 
 type N8nValidationResult = {
   valid: boolean;
@@ -49,6 +50,9 @@ class NewStore {
   messageError = "";
   openError = false;
   selectedIds = [];
+
+  // Добавить в класс (в секцию с другими полями)
+  filtersSource: 'url' | 'localStorage' | 'default' = 'default';
 
   // Saved filters functionality
   savedFilters = [];
@@ -108,7 +112,9 @@ class NewStore {
     tunduk_district_id: null,
     tunduk_address_unit_id: null,
     tunduk_street_id: null,
-    for_signature: false
+    for_signature: false,
+    isAssignedToMe: false,
+    isFavorite: false
   };
 
   checkResult: null | { valid: boolean; errors: Record<string, string> } = null;
@@ -147,7 +153,14 @@ class NewStore {
   }
 
   // Оптимизированный метод для сохранения в localStorage с дебаунсом
+  // Модифицировать существующий метод setFilterToLocalStorageDebounced
   setFilterToLocalStorageDebounced = () => {
+    // Не сохраняем в localStorage, если фильтры пришли из URL
+    // if (this.filtersSource === 'url') {
+    //   console.log('Skipping localStorage save - filters from URL');
+    //   return;
+    // }
+
     if (this.localStorageDebounceTimer) {
       clearTimeout(this.localStorageDebounceTimer);
     }
@@ -158,7 +171,19 @@ class NewStore {
         is_allFilter: this.is_allFilter
       };
       window.localStorage.setItem("filter_application", JSON.stringify(filterData));
-    }, 500); // Задержка 500мс перед сохранением
+      console.log('Filters saved to localStorage');
+    }, 500);
+  };
+
+  /**
+   * Переключить источник фильтров на localStorage
+   * Вызывается когда пользователь начинает взаимодействовать с фильтрами
+   */
+  switchToLocalStorageFilters = () => {
+    runInAction(() => {
+      this.filtersSource = 'localStorage';
+    });
+    console.log('Switched to localStorage filters');
   };
 
   // Немедленное сохранение (для критичных изменений)
@@ -258,6 +283,8 @@ class NewStore {
         is_expired: this.filter.isExpired,
         is_my_org_application: this.filter.isMyOrgApplication,
         without_assigned_employee: this.filter.withoutAssignedEmployee,
+        is_assigned_to_me: this.filter.isAssignedToMe,
+        is_favorite: this.filter.isFavorite,
         use_common: this.filter.useCommon,
         only_count: this.filter.only_count,
         is_journal: this.isJournal,
@@ -342,7 +369,9 @@ class NewStore {
           withoutAssignedEmployee: savedFilter.without_assigned_employee || false,
           useCommon: savedFilter.use_common !== false,
           only_count: savedFilter.only_count || false,
-          is_paid: savedFilter.is_paid
+          is_paid: savedFilter.is_paid,
+          isAssignedToMe: savedFilter.is_assigned_to_me || false,
+          isFavorite: savedFilter.is_favorite || false,
         };
 
         this.is_allFilter = !this.filter.useCommon;
@@ -665,7 +694,9 @@ class NewStore {
         tunduk_district_id: null,
         tunduk_address_unit_id: null,
         tunduk_street_id: null,
-      for_signature: false
+        for_signature: false,
+        isAssignedToMe: false,
+        isFavorite: false
       };
 
       this.streetSearchState = {
@@ -849,7 +880,7 @@ class NewStore {
     });
 
     // if (prevValue === true && value === false) {
-      this.loadApplications();
+    this.loadApplications();
     // }
 
     if (fieldName !== 'is_paid') {
@@ -896,6 +927,81 @@ class NewStore {
       this.filter.outgoing_numbers = outgoing_numbers;
     });
     this.setFilterToLocalStorageDebounced();
+  };
+
+  // Добавить в класс ApplicationListViewStore
+
+  /**
+   * Получить фильтры с учетом приоритета: URL > localStorage > defaults
+   * @param urlFilters - фильтры из URL (если есть)
+   */
+  getFiltersWithPriority = (urlFilters: Partial<FilterApplication> | null) => {
+    // Если есть фильтры в URL - используем их в качестве базы
+    if (urlFilters !== null) {
+      console.log('Using filters from URL');
+
+      // Создаем объект фильтров на основе дефолтных значений
+      const defaultFilter: FilterApplication = {
+        pageSize: 100,
+        pageNumber: 0,
+        sort_by: null,
+        sort_type: null,
+        pin: "",
+        customerName: "",
+        date_start: null,
+        date_end: null,
+        service_ids: [],
+        status_ids: [],
+        address: "",
+        number: "",
+        district_id: null,
+        deadline_day: 0,
+        tag_id: null,
+        isExpired: false,
+        isMyOrgApplication: false,
+        withoutAssignedEmployee: false,
+        employee_id: 0,
+        common_filter: "",
+        useCommon: true,
+        structure_ids: [],
+        incoming_numbers: "",
+        outgoing_numbers: "",
+        only_count: false,
+        is_paid: null,
+        total_sum_from: null,
+        total_sum_to: null,
+        total_payed_from: null,
+        total_payed_to: null,
+        app_ids: [],
+        tunduk_district_id: null,
+        tunduk_address_unit_id: null,
+        tunduk_street_id: null,
+        for_signature: false,
+        isAssignedToMe: false,
+        isFavorite: false
+      };
+
+      // Объединяем дефолтные значения с URL параметрами
+      runInAction(() => {
+        this.filter = {
+          ...defaultFilter,
+          ...urlFilters
+        };
+
+        // Устанавливаем district_id если есть tunduk_district_id
+        if (this.filter.tunduk_district_id) {
+          this.filter.district_id = getRegularDistrictId(this.filter.tunduk_district_id);
+          this.loadTundukResidentialAreas(this.filter.tunduk_district_id);
+        }
+      });
+
+      // НЕ сохраняем в localStorage при загрузке из URL
+      // Это важно, чтобы не перезаписать сохраненные фильтры пользователя
+      return;
+    }
+
+    // Если нет URL параметров - используем существующую логику с localStorage
+    this.getValuesFromLocalStorage();
   };
 
   getValuesFromLocalStorage = () => {
@@ -1282,6 +1388,45 @@ class NewStore {
   setSelectedApplicationId(id: number) {
     this.selectedApplicationId = id;
   }
+
+  async setFavorite(applicationId: number) {
+    const index = this.data.findIndex(x => x.id === applicationId);
+    if (index === -1) return;
+
+    const row = this.data[index];
+
+    try {
+      MainStore.changeLoader(true);
+      if (row.is_favorite) {
+        await deleteToFavorite(applicationId);
+      } else {
+        await addToFavorite(applicationId);
+      }
+
+      runInAction(() => {
+        this.loadApplications()
+        MainStore.changeLoader(false);
+
+        // this.data[index] = {
+        //   ...row,
+        //   is_favorite: !row.is_favorite,
+        // };
+      });
+    } catch (e) {
+      console.error("Favorite error", e);
+      MainStore.changeLoader(false);
+    }
+  }
+
+  // setFavoriteFilter(value: boolean) {
+  //   this.filter.is_favorite_only = value;
+  //   if (value) {
+  //     this.data = this.data.filter(x => x.is_favorite == true);
+  //   } else {
+  //     this.filter.pageNumber = 0;
+  //     this.loadApplications();
+  //   }
+  // }
 }
 
 export default new NewStore();

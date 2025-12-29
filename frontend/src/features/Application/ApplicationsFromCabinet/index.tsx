@@ -1,4 +1,4 @@
-import { FC, useEffect, } from 'react';
+import React, { FC, useEffect, } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -45,6 +45,8 @@ import RemoveRedEyeIcon from '@mui/icons-material/RemoveRedEye';
 import AutocompleteCustom from "components/Autocomplete";
 import printJS from 'print-js';
 import PageGrid from "components/PageGrid";
+import StarIcon from "@mui/icons-material/Star";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
 
 type applicationListViewProps = {
   finPlan: boolean;
@@ -135,6 +137,36 @@ const applicationListView: FC<applicationListViewProps> = observer((props) => {
     //     </Link>;
     //   }
     // },
+    {
+      field: "is_favorite",
+      headerName: "",
+      sortable: false,
+      filterable: false,
+      width: 60,
+      align: "center",
+      renderCell: (params) => (
+        <Tooltip
+          title={params.row.is_favorite ? "Убрать из избранного" : "В избранное"}
+          arrow
+        >
+      <span>
+        <IconButton
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation();
+            store.setFavorite(params.row.id);
+          }}
+        >
+          {params.row.is_favorite ? (
+            <StarIcon color="warning" />
+          ) : (
+            <StarBorderIcon />
+          )}
+        </IconButton>
+      </span>
+        </Tooltip>
+      ),
+    },
     {
       field: "status_name",
       headerName: translate("label:ApplicationListView.status_name"),

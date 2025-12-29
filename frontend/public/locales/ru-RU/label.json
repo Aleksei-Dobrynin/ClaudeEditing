@@ -722,7 +722,9 @@
     "assigned_employees_names": "Исполнители",
     "districts_names_extracted": "Районы",
     "registrator_name": "Регистратор",
-    "for_signature": "Для подписания"
+    "for_signature": "Для подписания",
+    "isAssignedToMe": "Я исполнитель",
+    "isFavorite": "Избранное"
   },
   "ApplicationAddEditView": {
     "entityTitle": "Заявка",

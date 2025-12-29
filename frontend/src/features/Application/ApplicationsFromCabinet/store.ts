@@ -12,6 +12,7 @@ import { getApplicationStatuss, } from "api/ApplicationStatus/useGetApplicationS
 import { getTags } from "api/Tag/useGetTags";
 import { getEmployees, getRegisterEmployees } from "api/Employee/useGetEmployees";
 import { getCheckApplicationBeforeRegistering, setApplicationToReestr } from "api/reestr";
+import { addToFavorite, deleteToFavorite } from "../../../api/Application/useGetApplication";
 
 class NewStore {
   data = [];
@@ -21,6 +22,7 @@ class NewStore {
   totalCount = 0;
   totalCountFinPlan = 0;
   isEdit = false;
+  is_favorite_only = false;
   filter: FilterApplication = {
     pageSize: 100,
     pageNumber: 0,
@@ -457,6 +459,40 @@ class NewStore {
       this.isEdit = false;
     });
   }
+
+  async setFavorite(applicationId: number) {
+    const index = this.data.findIndex(x => x.id === applicationId);
+    if (index === -1) return;
+
+    const row = this.data[index];
+
+    try {
+      if (row.is_favorite) {
+        await deleteToFavorite(applicationId);
+      } else {
+        await addToFavorite(applicationId);
+      }
+
+      runInAction(() => {
+        this.data[index] = {
+          ...row,
+          is_favorite: !row.is_favorite,
+        };
+      });
+    } catch (e) {
+      console.error("Favorite error", e);
+    }
+  }
+
+  // setFavoriteFilter(value: boolean) {
+  //   this.filter.is_favorite_only = value;
+  //   if (value) {
+  //     this.data = this.data.filter(x => x.is_favorite == true);
+  //   } else {
+  //     this.filter.pageNumber = 0;
+  //     this.loadApplications();
+  //   }
+  // }
 }
 
 export default new NewStore();

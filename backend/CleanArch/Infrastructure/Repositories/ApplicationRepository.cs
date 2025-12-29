@@ -1709,6 +1709,8 @@ ORDER BY app.id DESC";
         {
             try
             {
+                int? currentEmployeeId = filter.currentEmployeeId;
+
                 // Updated count query - using extracted columns instead of JSON operations
                 var countSql = @"
 SELECT count(distinct app.id)
@@ -1717,6 +1719,7 @@ FROM application app
     inner JOIN application_status st on app.status_id = st.id
     LEFT JOIN application_object ao ON ao.application_id = app.id
     LEFT JOIN arch_object obj ON ao.arch_object_id = obj.id
+    LEFT JOIN application_chosen ac ON ac.application_id = app.id
         ";
 
                 // Updated main query - using extracted columns for better performance
@@ -1736,12 +1739,17 @@ SELECT app.id, app.done_date, app.object_tag_id, registration_date, app.customer
        is_paid, number, app.total_sum, app.total_payed, service.day_count,
        app.cashed_info->>'assignees' AS assigned_employees_names,
        app.cashed_info->>'comments' AS comments,
-       app.customer_contacts_extracted AS customer_contacts
+       app.customer_contacts_extracted AS customer_contacts,
+   CASE WHEN ac.id IS NOT NULL and ac.employee_id = @current_employee_id THEN true ELSE false END as is_favorite
+
+
 FROM application app
     LEFT JOIN service on service.id = app.service_id
     LEFT JOIN application_status st on app.status_id = st.id
     LEFT JOIN application_object ao ON ao.application_id = app.id
     LEFT JOIN arch_object obj ON ao.arch_object_id = obj.id
+    LEFT JOIN application_chosen ac ON ac.application_id = app.id
+
         ";
 
                 var sql = "";
@@ -2000,11 +2008,36 @@ AND (
                     sql += " AND app.status_id = (select id from application_status where code = 'ready_for_signing_eo')";
                 }
 
+                //if (filter.isAssignedToMe == true)
+                //{
+                //    sql += " AND eis_assigned.employee_id = @current_employee_id ";
+                //}
+
+                if (filter.withoutAssignedEmployee == true)
+                {
+                    //sql += $" AND NOT ((cashed_info->>'assignee_ids')::jsonb::int[] && @employees_ids) ";
+                    sql += @" AND NOT EXISTS (
+        SELECT 1 
+        FROM jsonb_array_elements_text(cashed_info->'assignee_ids') AS elem
+        WHERE elem::int = ANY(@employees_ids)
+      ) ";
+                }
+
+                if (filter.isAssignedToMe == true)
+                {
+                    sql += $" AND app.cashed_info->'assignee_ids' @> '[{currentEmployeeId}]'";
+                }
+
+                if (filter.isFavorite == true)
+                {
+                    sql += " AND ac.employee_id = @current_employee_id ";
+                }
+
                 countSql = countSql + sql;
 
                 // Group by clause - simplified since we removed architecture_process JOIN
                 sql += @$" 
-group by app.id, st.id, service.id";
+group by app.id, st.id, service.id, ac.id";
 
                 // Sorting logic - unchanged
                 if (filter.sort_by != null && filter.sort_type != null)
@@ -2033,6 +2066,8 @@ OFFSET @pageSize * @pageNumber Limit @pageSize;
                     {
                         filter.pageSize,
                         filter.pageNumber,
+                        current_employee_id = currentEmployeeId,
+                        filter.employees_ids,
                         pin = filter.pin?.ToLower(),
                         customer_name = filter.customerName?.ToLower(),
                         number = filter.number?.ToLower(),
@@ -2063,6 +2098,8 @@ OFFSET @pageSize * @pageNumber Limit @pageSize;
                     {
                         filter.pageSize,
                         filter.pageNumber,
+                        current_employee_id = currentEmployeeId,
+                        filter.employees_ids,
                         pin = filter.pin?.ToLower(),
                         customer_name = filter.customerName?.ToLower(),
                         number = filter.number?.ToLower(),

@@ -170,6 +170,17 @@ const ApplicationListFilter: FC<ApplicationListFilterProps> = observer(({
     setLocalServiceIds(toJS(store.filter.service_ids) || []);
   }, [store.filter.service_ids]);
 
+  React.useEffect(() => {
+    // При любом изменении фильтров пользователем переключаемся на localStorage
+    const handleFilterChange = () => {
+      if (store.filtersSource === 'url') {
+        store.switchToLocalStorageFilters();
+      }
+    };
+
+    // Можно добавить слушатель или вызывать при изменениях
+    // В данном случае уже вызывается в обработчиках
+  }, []);
   // Мемоизируем обработчики
   const handleSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.keyCode === 13) {
@@ -178,12 +189,15 @@ const ApplicationListFilter: FC<ApplicationListFilterProps> = observer(({
   }, [onSearch]);
 
   const handleCommonFilterChange = useCallback((value: string) => {
+    store.switchToLocalStorageFilters(); // Добавить эту строку
     store.changeCommonFilter(value);
   }, [store]);
 
   const handleNumberChange = useCallback((value: string) => {
+    store.switchToLocalStorageFilters(); // Добавить эту строку
     store.changeNumber(value);
   }, [store]);
+
 
   const handleCustomerNameChange = useCallback((value: string) => {
     store.changeCustomerName(value);
@@ -222,6 +236,8 @@ const ApplicationListFilter: FC<ApplicationListFilterProps> = observer(({
       store.filter.isExpired != false ||
       store.filter.isMyOrgApplication != false ||
       store.filter.withoutAssignedEmployee != false ||
+      store.filter.isAssignedToMe ||
+      store.filter.isFavorite ||
       store.filter.employee_id != 0 ||
       store.filter.incoming_numbers != "" ||
       store.filter.outgoing_numbers != "" ||
@@ -248,6 +264,8 @@ const ApplicationListFilter: FC<ApplicationListFilterProps> = observer(({
     if (store.filter.status_ids.length > 0) count++;
     if (store.filter.district_id != 0) count++;
     if (store.filter.isExpired) count++;
+    if (store.filter.isAssignedToMe) count++;
+    if (store.filter.isFavorite) count++;
     if (store.filter.employee_id != 0) count++;
     if (store.filter.total_sum_from !== null || store.filter.total_sum_to !== null) count++;
     if (store.filter.total_payed_from !== null || store.filter.total_payed_to !== null) count++;
@@ -846,6 +864,22 @@ const ApplicationListFilter: FC<ApplicationListFilterProps> = observer(({
                     id="id_f_Application_withoutAssignedEmployee"
                   />
                 )}
+
+                <CustomCheckbox
+                  value={store.filter.isAssignedToMe}
+                  onChange={(event) => store.handleCheckboxChangeWithLoad('isAssignedToMe', event.target.value)}
+                  name="isAssignedToMe"
+                  label={translate("label:ApplicationListView.isAssignedToMe")}
+                  id="id_f_Application_isAssignedToMe"
+                />
+
+                <CustomCheckbox
+                  value={store.filter.isFavorite}
+                  onChange={(event) => store.handleCheckboxChangeWithLoad('isFavorite', event.target.value)}
+                  name="isFavorite"
+                  label={translate("label:ApplicationListView.isFavorite")}
+                  id="id_f_Application_isFavorite"
+                />
               </Box>
             </AccordionDetails>
           </Accordion>}
